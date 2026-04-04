@@ -1,0 +1,563 @@
+:root {
+    /* Paleta de Cores Nova e Profissional */
+    --bg-color: #0b1017;
+    --surface-color: #131b26;
+    --surface-hover: #1c2738;
+    --primary-color: #eab308;
+    --primary-hover: #ca8a04;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --danger-color: #ef4444;
+    --success-color: #10b981;
+    --border-color: #1e293b;
+    --radius: 6px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+h2 {
+    margin-bottom: 20px;
+    font-size: 22px;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    outline: none;
+    font-weight: 500;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 10px 12px;
+    margin-top: 6px;
+    margin-bottom: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    background-color: #0b1017;
+    color: var(--text-main);
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+input:focus,
+select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Tabelas UI (Clean e Monocromática) */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+th,
+td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th {
+    background-color: transparent;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Layout Principal */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+    .app-container {
+        flex-direction: row;
+    }
+}
+
+.sidebar {
+    width: 100%;
+    background-color: var(--surface-color);
+    border-right: 1px solid var(--border-color);
+}
+
+@media (min-width: 768px) {
+    .sidebar {
+        width: 260px;
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+.logo-area {
+    padding: 30px 24px;
+}
+
+.logo-area h1 {
+    font-size: 22px;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nav-btn {
+    width: 100%;
+    padding: 12px 24px;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 0;
+    border-left: 3px solid transparent;
+    justify-content: flex-start;
+    font-size: 14px;
+}
+
+.nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+    color: var(--text-main);
+}
+
+.nav-btn.active {
+    background-color: #1a2332;
+    border-left-color: var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.nav-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 16px 24px;
+}
+
+.main-content {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.card {
+    background-color: var(--surface-color);
+    padding: 24px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    width: 100%;
+    overflow-x: auto;
+}
+
+.card h3 {
+    font-size: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-main);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: #000;
+    padding: 10px 20px;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 10px 20px;
+}
+
+.btn-outline:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-danger {
+    background-color: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--danger-color);
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-danger:hover {
+    background-color: var(--danger-color);
+    color: #fff;
+}
+
+.flex {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .grid-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.mt-4 {
+    margin-top: 15px;
+}
+
+.text-right {
+    text-align: right;
+}
+
+/* BARRA FIXA DOS BOTÕES DE IMPRESSÃO */
+.fixed-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    background-color: var(--bg-color);
+    padding: 15px 30px;
+    border-top: 1px solid var(--border-color);
+    z-index: 100;
+}
+
+@media (min-width: 768px) {
+    .fixed-bottom-bar {
+        width: calc(100% - 260px);
+    }
+}
+
+/* MODAL */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: var(--surface-color);
+    padding: 30px;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.modal-content p {
+    margin: 15px 0;
+    font-size: 15px;
+    color: var(--text-main);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =========================================
+    NOVO LAYOUT: TABELA DE PREÇOS (PREVIEW)
+    ========================================= */
+.preview-tabela-wrapper {
+    background: white;
+    color: black;
+    padding: 30px;
+    border-radius: var(--radius);
+    margin-top: 20px;
+    overflow-x: auto;
+    font-family: Arial, sans-serif;
+}
+
+.tabela-precos-header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.tabela-precos-header h1 {
+    font-size: 22px;
+    font-weight: bold;
+    color: black;
+    margin: 0;
+    text-transform: uppercase;
+    font-family: Arial, sans-serif;
+}
+
+.tabela-precos-header h2 {
+    font-size: 18px;
+    font-weight: normal;
+    color: black;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.tabela-precos-subheader {
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: black;
+    font-family: Arial, sans-serif;
+}
+
+.tabela-precos-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabela-precos-table th {
+    font-style: italic;
+    font-weight: normal;
+    border-bottom: 1.5px solid black;
+    padding: 2px 0;
+    font-size: 12px;
+    color: black;
+    text-transform: none;
+    background: transparent;
+}
+
+.tabela-precos-table .valor-col-th {
+    text-align: right;
+    padding-right: 15px;
+}
+
+.tabela-precos-table td {
+    border-bottom: 1.5px solid black;
+    padding: 3px 0;
+    font-size: 11px;
+    color: black;
+    font-weight: bold;
+}
+
+.tabela-precos-table .produto-col {
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.tabela-precos-table .valor-flex {
+    display: flex;
+    justify-content: flex-end;
+    gap: 5px;
+    padding-right: 15px;
+}
+
+.tabela-precos-table .valor-reajuste-flex {
+    display: flex;
+    justify-content: flex-end;
+    gap: 5px;
+    padding-right: 15px;
+}
+
+/* =========================================
+    LAYOUT DE IMPRESSÃO (ROTAÇÃO E ECRÃ BRANCO RESOLVIDOS)
+    ========================================= */
+.print-area {
+    display: none;
+}
+
+@media print {
+
+    .app-container,
+    .modal-overlay {
+        display: none !important;
+    }
+
+    /* A folha será SEMPRE retrato (portrait) para não lutar contra o Android */
+    @page {
+        size: portrait;
+        margin: 0mm !important;
+    }
+
+    body {
+        background-color: white !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-family: 'Arial', sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* --- MÁGICA DO CSS ROTAÇÃO PARA A NOTA MAXIMIZADA --- */
+    body.printing-nota #print-area-nota {
+        display: flex !important;
+        flex-direction: row;
+        justify-content: space-between;
+
+        /* Ocupa o tamanho exato de um A4 (297mm x 210mm) para não quebrar nem espremer */
+        width: 297mm !important;
+        height: 210mm !important;
+
+        /* Posiciona no topo direito da tela em pé e rotaciona a partir do canto para alinhar perfeito */
+        position: absolute;
+        top: 0;
+        left: 210mm;
+        -webkit-transform: rotate(90deg);
+        transform: rotate(90deg);
+        transform-origin: top left;
+
+        padding: 4mm;
+        /* Margem mínima interna */
+        box-sizing: border-box;
+    }
+
+    body.printing-nota #print-area-nota * {
+        visibility: visible;
+    }
+
+    .print-half {
+        width: 49%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .print-separator {
+        width: 0px;
+        border-left: 1px dashed #000;
+        margin: 0;
+        height: 100%;
+    }
+
+    /* --- IMPRESSÃO DA TABELA DE PREÇOS (NORMAL / RETRATO) --- */
+    body.printing-tabela #print-area-tabela {
+        display: block !important;
+        width: 100%;
+        padding: 10mm;
+        box-sizing: border-box;
+    }
+
+    body.printing-tabela #print-area-tabela * {
+        visibility: visible;
+    }
+
+    .excel-view {
+        padding: 0mm;
+    }
+
+    /* Ajustes Finos Tabela de Preços Print */
+    .tabela-precos-header {
+        margin-bottom: 10px;
+        gap: 10px;
+    }
+
+    .tabela-precos-header h1 {
+        font-size: 18px;
+    }
+
+    .tabela-precos-header h2 {
+        font-size: 16px;
+    }
+
+    .tabela-precos-subheader {
+        font-size: 11px;
+        margin-bottom: 2px;
+    }
+
+    .tabela-precos-table td {
+        font-size: 9px;
+        padding: 0.5px 0;
+        border-bottom: 1px solid #333;
+    }
+
+    .tabela-precos-table th {
+        font-size: 10px;
+        padding: 1px 0;
+        border-bottom: 1px solid black;
+    }
+
+    .tabela-precos-table .valor-flex,
+    .tabela-precos-table .valor-reajuste-flex,
+    .tabela-precos-table .valor-col-th {
+        padding-right: 5px;
+    }
+}

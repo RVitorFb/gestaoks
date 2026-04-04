@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão - KS Afinações</title>
+
+    <script async defer src="https://apis.google.com/js/api.js"></script>
+    <script async defer src="https://accounts.google.com/gsi/client"></script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="custom-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modal-title" style="color: var(--primary-color); margin-bottom: 10px;">Aviso</h3>
+            <p id="modal-message"></p>
+            <div class="modal-actions">
+                <button id="modal-btn-cancel" class="btn-outline" style="display: none;">Cancelar</button>
+                <button id="modal-btn-confirm" class="btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-ui">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <h1>KS Afinações</h1>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" onclick="UI.switchTab('dashboard')">
+                    <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Status
+                </button>
+                <button class="nav-btn" onclick="UI.switchTab('produtos')">
+                    <i data-lucide="package" style="width: 18px; height: 18px;"></i> Produtos
+                </button>
+                <button class="nav-btn" onclick="UI.switchTab('clientes')">
+                    <i data-lucide="users" style="width: 18px; height: 18px;"></i> Clientes
+                </button>
+                <button class="nav-btn" onclick="UI.switchTab('busca')">
+                    <i data-lucide="search" style="width: 18px; height: 18px;"></i> Busca
+                </button>
+
+                <div class="nav-divider"></div>
+
+                <button class="nav-btn" onclick="UI.switchTab('nota')">
+                    <i data-lucide="file-text" style="width: 18px; height: 18px;"></i> Gerar Nota
+                </button>
+                <button class="nav-btn" onclick="UI.switchTab('tabelas')">
+                    <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i> Tabelas e Reajuste
+                </button>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+
+            <section id="tab-dashboard" class="tab-content active">
+                <h2>Status do Sistema</h2>
+                <div class="grid-2">
+                    <div class="card">
+                        <h3><i data-lucide="database" style="width: 18px; height: 18px;"></i> Cadastros Local</h3>
+                        <p class="mt-4">Produtos Únicos: <strong id="dash-prod-count"
+                                style="color: var(--primary-color)">0</strong></p>
+                        <p>Clientes: <strong id="dash-cli-count" style="color: var(--primary-color)">0</strong></p>
+                    </div>
+
+                    <div class="card">
+                        <h3><i data-lucide="cloud" style="width: 18px; height: 18px;"></i> Nuvem (Google Drive)</h3>
+                        <div id="gdrive-status-area" class="mt-4">
+                            <button id="btn-gdrive-connect" class="btn-primary" onclick="DriveAPI.handleAuthClick()"
+                                style="width: 100%;">
+                                Conectar Conta Google
+                            </button>
+                            <p id="gdrive-status-text"
+                                style="color: var(--text-muted); margin-top: 15px; font-weight: 500; font-size: 14px;">
+                                Status: Desconectado</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <h3><i data-lucide="hard-drive" style="width: 18px; height: 18px;"></i> Backup Manual do Celular/PC
+                    </h3>
+                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px;">
+                        <input type="file" id="file-import" accept=".json" style="margin: 0; padding: 6px;">
+                        <button class="btn-outline" onclick="DB.importBackup()">Restaurar Dados</button>
+                        <button class="btn-outline" onclick="DB.downloadManualBackup()">Baixar Arquivo JSON</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-produtos" class="tab-content">
+                <h2>Cadastro de Produtos</h2>
+                <div class="card">
+                    <form id="form-produto" onsubmit="event.preventDefault(); LogicaNegocio.salvarProduto();">
+                        <div class="grid-2">
+                            <div>
+                                <label>Código do Produto</label>
+                                <input type="text" id="prod-codigo" required placeholder="Ex: 100">
+                            </div>
+                            <div>
+                                <label>Nome do Produto (Base)</label>
+                                <input type="text" id="prod-nome" required placeholder="Ex: Corpo 6161">
+                            </div>
+                            <div>
+                                <label>Fornecedor (Empresa Vinculada)</label>
+                                <select id="prod-fornecedor">
+                                    <option value="">-- Selecione o Fornecedor (Opcional) --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Valor Unitário Base (R$)</label>
+                                <input type="number" step="0.01" id="prod-val-venda" required>
+                            </div>
+
+                            <div style="grid-column: 1 / -1;">
+                                <label style="color: var(--text-main);">Variações de Acabamento</label>
+                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+                                    A versão <strong>Cromada</strong> é vinculada automaticamente a todos os produtos.
+                                </p>
+                                <div class="flex" style="gap: 20px;">
+                                    <label
+                                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);">
+                                        <input type="checkbox" id="var-pintura"
+                                            style="width: 16px; height: 16px; margin: 0;"> Pintura
+                                    </label>
+                                    <label
+                                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);">
+                                        <input type="checkbox" id="var-polida"
+                                            style="width: 16px; height: 16px; margin: 0;"> Polida
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary mt-4" style="width: auto;">
+                            <i data-lucide="save" style="width: 18px; height: 18px;"></i> Salvar Produto
+                        </button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>Cadastrados</h3>
+                    <table id="tabela-produtos">
+                        <thead>
+                            <tr>
+                                <th>Cód</th>
+                                <th>Nome e Variações</th>
+                                <th>Empresa</th>
+                                <th>Val. Un.</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-clientes" class="tab-content">
+                <h2>Clientes / Fornecedores</h2>
+                <div class="card">
+                    <form id="form-cliente" onsubmit="event.preventDefault(); LogicaNegocio.salvarCliente();">
+                        <div class="grid-2">
+                            <div><label>Nome da Empresa / Pessoa</label><input type="text" id="cli-nome" required></div>
+                            <div><label>CNPJ / CPF</label><input type="text" id="cli-cnpj"></div>
+                            <div><label>Endereço Completo</label><input type="text" id="cli-endereco"></div>
+                            <div><label>Telefone</label><input type="text" id="cli-telefone"></div>
+                        </div>
+                        <button type="submit" class="btn-primary mt-4" style="width: auto;">
+                            <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> Salvar Cliente
+                        </button>
+                    </form>
+                </div>
+                <div class="card">
+                    <table id="tabela-clientes">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Doc</th>
+                                <th>Telefone</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-busca" class="tab-content">
+                <h2>Busca Rápida</h2>
+                <div class="card">
+                    <div class="flex" style="align-items: flex-end;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label>Digite o Código único</label>
+                            <input type="text" id="busca-codigo" placeholder="Ex: 100" style="margin-bottom: 0;">
+                        </div>
+                        <button class="btn-primary" onclick="LogicaNegocio.buscarProduto()">
+                            <i data-lucide="search" style="width: 18px; height: 18px;"></i> Buscar
+                        </button>
+                    </div>
+                    <div id="busca-resultado" class="mt-4 p-4"
+                        style="background-color: #0b1017; border: 1px solid var(--border-color); border-radius: var(--radius); display: none; padding: 20px;">
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-nota" class="tab-content">
+                <h2>Emissão de Nota</h2>
+
+                <div class="card">
+                    <label>1. Destinatário</label>
+                    <select id="nota-cliente" required>
+                        <option value="">-- Selecione --</option>
+                    </select>
+                </div>
+
+                <div class="card">
+                    <label>2. Adicionar Itens</label>
+                    <div class="flex" style="align-items: flex-end; margin-top: 10px; gap: 10px;">
+                        <div style="flex: 1; min-width: 80px;">
+                            <label>Código</label>
+                            <input type="text" id="nota-item-codigo" onblur="LogicaNegocio.autoPreencherItemNota()"
+                                placeholder="Ex: 100" style="margin-bottom: 0;">
+                        </div>
+                        <div style="flex: 2; min-width: 150px;">
+                            <label>Produto (Base)</label>
+                            <input type="text" id="nota-item-nome" readonly
+                                style="background-color: #0b1017; opacity: 0.7; margin-bottom: 0;">
+                        </div>
+
+                        <div style="flex: 1; min-width: 120px;">
+                            <label>Variação</label>
+                            <select id="nota-item-variacao" style="margin-bottom: 0;">
+                                <option value="">--</option>
+                            </select>
+                        </div>
+
+                        <div style="flex: 1; min-width: 90px;">
+                            <label>Val. Un.</label>
+                            <input type="number" id="nota-item-valor" readonly
+                                style="background-color: #0b1017; opacity: 0.7; margin-bottom: 0;">
+                        </div>
+                        <div style="flex: 1; min-width: 60px;">
+                            <label>Qtd</label>
+                            <input type="number" id="nota-item-qtd" min="1" value="1" style="margin-bottom: 0;">
+                        </div>
+                        <div style="flex: 1; min-width: 70px;">
+                            <label>Perca</label>
+                            <input type="number" id="nota-item-perca" min="0" value="0" style="margin-bottom: 0;">
+                        </div>
+                        <div style="flex: 1; min-width: 70px;">
+                            <label>Caixas</label>
+                            <input type="number" id="nota-item-repeticoes" min="1" value="1"
+                                title="Adicionar multiplas vezes" style="margin-bottom: 0;">
+                        </div>
+
+                        <button class="btn-outline" onclick="LogicaNegocio.adicionarItemNota()"
+                            style="height: 42px;">Adicionar</button>
+                    </div>
+
+                    <table id="tabela-nota-itens" class="mt-4">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Produto</th>
+                                <th>Val. Unit.</th>
+                                <th>Qtd.</th>
+                                <th>Perca</th>
+                                <th>Total</th>
+                                <th style="width: 50px;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-itens-nota"></tbody>
+                    </table>
+
+                    <div class="text-right mt-4" style="padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <h3 style="font-size: 18px;">Total: <span id="nota-total-display"
+                                style="color: var(--primary-color);">R$ 0,00</span></h3>
+                    </div>
+                </div>
+
+                <div style="height: 100px;"></div>
+
+                <div class="grid-2 text-right fixed-bottom-bar">
+                    <button class="btn-outline" onclick="LogicaNegocio.limparNota()"
+                        style="font-size: 16px; padding: 16px; width: 100%; border-color: rgba(239,68,68,0.5); color: #ef4444;">
+                        <i data-lucide="trash-2" style="width: 20px; height: 20px;"></i> Limpar Nota Atual
+                    </button>
+                    <button class="btn-primary" onclick="LogicaNegocio.gerarEImprimirNota()"
+                        style="font-size: 16px; padding: 16px; width: 100%;">
+                        <i data-lucide="printer" style="width: 20px; height: 20px;"></i> Gerar e Imprimir Nota
+                    </button>
+                </div>
+            </section>
+
+            <section id="tab-tabelas" class="tab-content">
+                <h2>Gerador de Tabelas e Reajuste</h2>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h3><i data-lucide="file-spreadsheet" style="width: 18px; height: 18px;"></i> Gerar Tabela de
+                            Preços</h3>
+                        <p style="font-size: 12px; margin-bottom: 15px; color: var(--text-muted);">Selecione uma empresa
+                            para listar apenas os produtos dela.</p>
+
+                        <label>Selecione a Empresa (Fornecedor)</label>
+                        <select id="tabela-fornecedor">
+                            <option value="GERAL">-- Tabela Geral (Todos os Produtos) --</option>
+                        </select>
+
+                        <button class="btn-outline mt-4" onclick="Tabelas.gerarTabelaPreview()"
+                            style="width: 100%;">Visualizar Tabela</button>
+                        <button class="btn-primary mt-4" onclick="Tabelas.imprimirTabela()"
+                            style="width: 100%; display: none;" id="btn-imprimir-tabela">
+                            <i data-lucide="printer" style="width: 18px; height: 18px;"></i> Imprimir Tabela
+                        </button>
+                    </div>
+
+                    <div class="card" style="border-top: 3px solid var(--border-color);">
+                        <h3><i data-lucide="trending-up" style="width: 18px; height: 18px;"></i> Reajuste de Preço
+                            (Aumento)</h3>
+                        <p style="font-size: 12px; margin-bottom: 15px; color: var(--text-muted);">Aplica um aumento
+                            percentual na base de todos os produtos de uma empresa.</p>
+
+                        <label>Empresa (Alvo do aumento)</label>
+                        <select id="reajuste-fornecedor"></select>
+
+                        <label>Porcentagem do Aumento (%)</label>
+                        <input type="number" id="reajuste-porcentagem" placeholder="Ex: 10 para 10%" step="0.1"
+                            min="0.1">
+
+                        <button class="btn-outline mt-4" onclick="Tabelas.aplicarReajuste()"
+                            style="width: 100%;">Aplicar Aumento e Gerar Relatório</button>
+                    </div>
+                </div>
+
+                <div id="preview-tabela-container" class="preview-tabela-wrapper" style="display: none;">
+                    <div id="preview-tabela-conteudo"></div>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+
+    <div id="print-area-nota" class="print-area">
+        <div class="print-half" id="print-top"></div>
+        <div class="print-separator"></div>
+        <div class="print-half" id="print-bottom"></div>
+    </div>
+
+    <div id="print-area-tabela" class="print-area">
+        <div class="excel-view" id="print-tabela-conteudo">
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
