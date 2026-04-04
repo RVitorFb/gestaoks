@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="lg.png" alt="KS Afinações Logo" width="150"/>
+  <img src="favicon.png" alt="KS Afinações Logo" width="150"/>
 </p>
 
 <h1 align="center">Sistema de Gestão - KS Afinações</h1>
