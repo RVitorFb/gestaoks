@@ -1,0 +1,153 @@
+/* =========================================
+   ESTILOS EXCLUSIVOS DO MÓDULO RH
+   ========================================= */
+
+.btn-switch-module {
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.15) 0%, transparent 100%) !important;
+    color: #eab308 !important;
+    border-left: 4px solid #eab308 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 13px !important;
+    padding: 14px 24px !important;
+    margin: 10px 0;
+    transition: all 0.2s ease;
+}
+
+.btn-switch-module:hover {
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.3) 0%, transparent 100%) !important;
+    color: #fef08a !important;
+}
+
+.ponto-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface-hover);
+    padding: 15px;
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-trabalhando {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.status-ausente {
+    background: rgba(148, 163, 184, 0.2);
+    color: var(--text-muted);
+}
+
+.sticky-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    left: 260px;
+    background: #0f172a;
+    padding: 20px 30px;
+    border-top: 1px solid #1e293b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.btn-outline-danger {
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 10px 20px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-outline-secondary {
+    background: transparent;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+    padding: 10px 20px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.btn-primary-yellow {
+    background: #eab308;
+    border: none;
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+@media (max-width: 800px) {
+    .sticky-bottom-bar {
+        left: 0;
+        padding: 15px;
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+@media print {
+    body:not(.printing-holerite) #print-area-holerite {
+        display: none !important;
+    }
+
+    body.printing-holerite .app-container,
+    body.printing-holerite .modal-overlay {
+        display: none !important;
+    }
+
+    @page {
+        size: portrait;
+        margin: 5mm !important;
+    }
+
+    body.printing-holerite {
+        background: white !important;
+        color: black !important;
+    }
+
+    body.printing-holerite #print-area-holerite {
+        display: flex !important;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 100% !important;
+        height: 280mm !important;
+    }
+
+    .print-half-holerite {
+        width: 100% !important;
+        height: 48.5%;
+        display: block;
+    }
+
+    .print-separator-holerite {
+        width: 100% !important;
+        border-top: 1px dashed #000;
+        height: 0px;
+    }
+}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RH - KS Afinações</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="rh.css">
+</head>
+
+<body>
+    <div id="custom-modal" class="modal-overlay"
+        style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999;">
+        <div class="modal-content"
+            style="background-color: #171c26; border-radius: 8px; padding: 30px; width: 380px; text-align: center;">
+            <h3 id="modal-title" style="color: #facc15; margin-bottom: 20px;">Aviso</h3>
+            <p id="modal-message" style="color: #f8fafc; margin-bottom: 30px;"></p>
+            <div class="modal-actions" style="display: flex; justify-content: center; gap: 15px;">
+                <button id="modal-btn-confirm"
+                    style="background: #facc15; border: none; color: #000; padding: 10px 35px; border-radius: 6px; cursor: pointer; font-weight: bold;">OK</button>
+                <button id="modal-btn-cancel"
+                    style="display: none; background: transparent; border: 1px solid #facc15; color: #facc15; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-relatorio" class="modal-overlay"
+        style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 9999; padding: 10px;">
+        <div class="modal-content"
+            style="background-color: #0f172a; border-radius: 12px; padding: 35px; width: 95%; max-width: 1400px; height: 92vh; display: flex; flex-direction: column; position: relative; border: 1px solid #1e293b;">
+            <button onclick="document.getElementById('modal-relatorio').style.display='none'"
+                style="position: absolute; top: 25px; right: 25px; background: #1e293b; border: none; color: #94a3b8; cursor: pointer; padding: 8px; border-radius: 50%;">
+                <i data-lucide="x"></i>
+            </button>
+            <h2
+                style="color: #facc15; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; font-size: 26px;">
+                <i data-lucide="layout-dashboard"></i> Painel de Conferência Mensal
+            </h2>
+            <div id="relatorio-conteudo" style="flex: 1; overflow-y: hidden; display: flex; flex-direction: column;">
+            </div>
+            <div
+                style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #1e293b; padding-top: 20px;">
+                <button class="btn-outline-secondary"
+                    onclick="document.getElementById('modal-relatorio').style.display='none'">Ajustar Dados</button>
+                <button class="btn-primary-yellow" onclick="RH.imprimirHolerite()">
+                    <i data-lucide="printer" style="width: 20px; vertical-align: middle; margin-right: 8px;"></i> Emitir
+                    Holerite Oficial
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-ui">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <h1>KS RH</h1>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-btn btn-switch-module"><i data-lucide="arrow-left"
+                        style="margin-right:8px;"></i> Voltar para ERP</a>
+                <div class="nav-divider"></div>
+                <button class="nav-btn active" onclick="RH_UI.switchTab('equipe')"><i data-lucide="users"></i> Gestão de
+                    Equipe</button>
+                <button class="nav-btn" onclick="RH_UI.switchTab('ponto')"><i data-lucide="clock"></i> Bater
+                    Ponto</button>
+                <button class="nav-btn" onclick="RH_UI.switchTab('fechamento')"><i data-lucide="calculator"></i>
+                    Fechamento Mensal</button>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <section id="tab-equipe" class="tab-content active">
+                <h2>Gestão de Equipe</h2>
+                <div class="card">
+                    <form id="form-func" onsubmit="event.preventDefault(); RH.salvarFuncionario();">
+                        <input type="hidden" id="func-id">
+                        <div class="grid-2">
+                            <div><label>Nome Completo</label><input type="text" id="func-nome" required></div>
+                            <div><label>Cargo</label><input type="text" id="func-cargo" required></div>
+                            <div><label>Data de Admissão</label><input type="date" id="func-admissao" required></div>
+                            <div>
+                                <label>Tipo de Remuneração</label>
+                                <select id="func-tipo" required>
+                                    <option value="Mensalista">Mensalista</option>
+                                    <option value="Horista">Horista</option>
+                                </select>
+                            </div>
+                            <div><label>Valor Base (R$)</label><input type="number" step="0.01" id="func-valor"
+                                    required></div>
+                            <div><label>Carga Horária Mensal</label><input type="number" id="func-carga" required></div>
+                        </div>
+                        <button type="submit" class="btn-primary mt-4">Salvar Funcionário</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <table id="tabela-funcionarios">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Cargo</th>
+                                <th>Admissão</th>
+                                <th>Tipo</th>
+                                <th>Valor Base</th>
+                                <th>Carga (H)</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-ponto" class="tab-content">
+                <div class="card" id="lista-pontos"></div>
+            </section>
+
+            <section id="tab-fechamento" class="tab-content">
+                <div class="card">
+                    <div class="grid-2">
+                        <div><label>Mês de Referência</label><input type="month" id="fechamento-mes"
+                                onchange="RH.calcularFechamento()"></div>
+                        <div><label>Funcionário</label><select id="fechamento-func"
+                                onchange="RH.calcularFechamento()"></select></div>
+                    </div>
+                    <div id="resultado-fechamento" class="mt-4" style="display: none; padding-bottom: 120px;">
+                        <h3 id="res-nome" style="color: var(--primary-color);"></h3>
+                        <p id="res-resumo" style="color: var(--text-muted);"></p>
+                        <table id="tabela-extrato">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Horários de Turno</th>
+                                    <th>Total Dia</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="mt-4" style="border-top: 1px solid var(--border-color); padding-top: 15px;">
+                            <h4 style="color: var(--text-main); font-size: 15px;">Lançamento de Descontos</h4>
+                            <div class="flex" style="gap: 10px; margin-top: 10px;">
+                                <input type="text" id="desc-nome" placeholder="Descrição" style="flex:2;">
+                                <input type="text" id="desc-ref" placeholder="Ref" style="flex:1;">
+                                <input type="number" id="desc-valor" step="0.01" placeholder="R$" style="flex:1;">
+                                <button class="btn-outline" onclick="RH.adicionarDescontoManual()">Adicionar</button>
+                            </div>
+                            <table id="tabela-descontos-manuais" class="mt-4">
+                                <thead>
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Referência</th>
+                                        <th>Valor (R$)</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="sticky-bottom-bar">
+                            <h3 style="margin:0; color:#f8fafc;">Líquido a Pagar: <span id="res-liquido"
+                                    style="color:#10b981;"></span></h3>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-outline-danger" onclick="RH.limparHorasPeriodo()"><i
+                                        data-lucide="trash-2" style="width:16px;"></i> Limpar Horas</button>
+                                <button class="btn-primary-yellow" onclick="RH.mostrarRelatorio()"><i
+                                        data-lucide="file-search" style="width:16px;"></i> Conferir e Gerar
+                                    Holerite</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div id="print-area-holerite" style="display: none;"></div>
+    <script src="rh.js"></script>
+</body>
+
+</html>
