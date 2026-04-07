@@ -46,15 +46,15 @@ const CustomModal = {
 
 const DB = {
     KEY: 'ks_afinacoes_dados',
-    KEY_RH: 'ks_rh_dados', // Chave do RH adicionada para o backup
-
+    KEY_RH: 'ks_rh_dados', 
+    
     get: function () {
         const data = localStorage.getItem(this.KEY);
         return data ? JSON.parse(data) : { produtos: [], clientes: [] };
     },
     save: function (data) {
         localStorage.setItem(this.KEY, JSON.stringify(data));
-
+        
         // Backup Unificado (Notas + RH)
         const dadosRHRaw = localStorage.getItem(this.KEY_RH);
         const backupUnificado = {
@@ -62,8 +62,13 @@ const DB = {
             rh: dadosRHRaw ? JSON.parse(dadosRHRaw) : { funcionarios: [], pontos: [], descontosFechamento: [] }
         };
 
-        UI.updateDashCards();
-        UI.renderSelectsFornecedoresTabelas();
+        if (document.getElementById('dash-prod-count')) {
+            UI.updateDashCards();
+        }
+        if (document.getElementById('tabela-fornecedor')) {
+            UI.renderSelectsFornecedoresTabelas();
+        }
+        
         DriveAPI.autoSaveBackup(JSON.stringify(backupUnificado));
     },
     importBackup: function () {
@@ -91,7 +96,7 @@ const DB = {
         const dadosNotas = this.get();
         const dadosRHRaw = localStorage.getItem(this.KEY_RH);
         const dadosRH = dadosRHRaw ? JSON.parse(dadosRHRaw) : { funcionarios: [], pontos: [], descontosFechamento: [] };
-
+        
         const backupUnificado = {
             notas: dadosNotas,
             rh: dadosRH
@@ -110,9 +115,34 @@ const DriveAPI = {
     tokenClient: null, accessToken: null, backupFileId: null,
     init: function () {
         if (CLIENT_ID === 'COLE_AQUI_SEU_CLIENT_ID') return;
+
+        // VERIFICA SE JÁ EXISTE UM LOGIN SALVO (Válido por 1 hora)
+        const savedToken = localStorage.getItem('ks_gdrive_token');
+        if (savedToken) {
+            const tokenData = JSON.parse(savedToken);
+            if (Date.now() < tokenData.expiresAt) {
+                this.accessToken = tokenData.token;
+                this.updateStatusUI(true);
+                this.findBackupFileId();
+            } else {
+                localStorage.removeItem('ks_gdrive_token'); // Expirou, apaga
+            }
+        }
+
         this.tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID, scope: SCOPES,
-            callback: (r) => { if (r && r.access_token) { this.accessToken = r.access_token; this.updateStatusUI(true); this.findBackupFileId(); } },
+            callback: (r) => { 
+                if (r && r.access_token) { 
+                    this.accessToken = r.access_token; 
+                    
+                    // SALVA O LOGIN NA MEMÓRIA PARA NÃO PEDIR NAS OUTRAS TELAS
+                    const expiresAt = Date.now() + (r.expires_in * 1000);
+                    localStorage.setItem('ks_gdrive_token', JSON.stringify({ token: r.access_token, expiresAt: expiresAt }));
+
+                    this.updateStatusUI(true); 
+                    this.findBackupFileId(); 
+                } 
+            },
         });
     },
     handleAuthClick: function () {
@@ -121,8 +151,11 @@ const DriveAPI = {
     },
     updateStatusUI: function (isConnected) {
         if (isConnected) {
-            document.getElementById('gdrive-status-text').innerText = "Status: Sincronizado";
-            document.getElementById('gdrive-status-text').style.color = "var(--success-color)";
+            const statusEl = document.getElementById('gdrive-status-text');
+            if (statusEl) {
+                statusEl.innerText = "Status: Sincronizado";
+                statusEl.style.color = "var(--success-color)";
+            }
         }
     },
     findBackupFileId: async function () {
@@ -491,7 +524,7 @@ const LogicaNegocio = {
                     <div style="flex: 1; border-right: 2px solid black; padding: 0;">
                         <div style="text-align: center; font-weight: bold; border-bottom: 1px solid black; padding: 4px 0; background: transparent;">KS Afinações</div>
                         <table style="width: 100%; font-size: 10px; border-collapse: collapse; color: black;">
-                            <tr><td style="width: 55px; padding: 3px 6px;">Endereço:</td><td style="padding: 3px 6px;">KS Afinações, Santa Isabel - PR, 87910-000</td></tr>
+                            <tr><td style="width: 55px; padding: 3px 6px;">Endereço:</td><td style="padding: 3px 6px;">KS Afinações, Loanda - PR, 87900-000</td></tr>
                             <tr><td style="padding: 3px 6px;">Telefone:</td><td style="padding: 3px 6px;">(44) 9 9828-8914</td></tr>
                             <tr><td style="padding: 3px 6px;">CNPJ:</td><td style="padding: 3px 6px;">42.360.395/0001-83</td></tr>
                         </table>
@@ -730,12 +763,12 @@ const Tabelas = {
 
 const UI = {
     initData: function () {
-        this.updateDashCards();
-        this.renderTabelaProdutos();
-        this.renderTabelaClientes();
-        this.renderSelectClientes();
-        this.renderSelectFornecedorProduto();
-        this.renderSelectsFornecedoresTabelas();
+        if (document.getElementById('dash-prod-count')) this.updateDashCards();
+        if (document.querySelector('#tabela-produtos tbody')) this.renderTabelaProdutos();
+        if (document.querySelector('#tabela-clientes tbody')) this.renderTabelaClientes();
+        if (document.getElementById('nota-cliente')) this.renderSelectClientes();
+        if (document.getElementById('prod-fornecedor')) this.renderSelectFornecedorProduto();
+        if (document.getElementById('tabela-fornecedor')) this.renderSelectsFornecedoresTabelas();
     },
     switchTab: function (tabId) {
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -842,7 +875,7 @@ const UI = {
     }
 };
 
-window.onload = function () {
+document.addEventListener("DOMContentLoaded", function () {
     UI.initData();
     setTimeout(() => { if (window.google) DriveAPI.init(); }, 1000);
-};
+});
