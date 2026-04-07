@@ -75,6 +75,13 @@
     gap: 8px;
     cursor: pointer;
     font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
 }
 
 .btn-outline-secondary {
@@ -87,6 +94,15 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border-color: #64748b;
 }
 
 .btn-primary-yellow {
@@ -100,6 +116,13 @@
     gap: 8px;
     cursor: pointer;
     font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary-yellow:hover {
+    background: #facc15;
+    transform: translateY(-1px);
 }
 
 @media (max-width: 800px) {
@@ -109,8 +132,16 @@
         flex-direction: column;
         gap: 10px;
     }
+
+    .sticky-bottom-bar>div {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
 }
 
+/* =========================================
+   LAYOUT DE IMPRESSÃO DO HOLERITE
+   ========================================= */
 @media print {
     body:not(.printing-holerite) #print-area-holerite {
         display: none !important;
@@ -122,13 +153,21 @@
     }
 
     @page {
-        size: portrait;
-        margin: 5mm !important;
+        size: A4 portrait;
+        margin: 0 !important;
+        /* Retira o controle do navegador que empurra a folha */
     }
 
     body.printing-holerite {
         background: white !important;
         color: black !important;
+        margin: 0 !important;
+        padding: 4mm !important;
+        /* Cria a distância exata nos 4 lados (topo, laterais e baixo) */
+        box-sizing: border-box !important;
+        font-family: 'Arial', sans-serif;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
     body.printing-holerite #print-area-holerite {
@@ -136,18 +175,22 @@
         flex-direction: column;
         justify-content: space-between;
         width: 100% !important;
-        height: 280mm !important;
+        height: 289mm !important;
+        /* Altura do A4 (297) menos a soma da distância cima+baixo (8) */
+        box-sizing: border-box;
     }
 
     .print-half-holerite {
         width: 100% !important;
         height: 48.5%;
         display: block;
+        box-sizing: border-box;
     }
 
     .print-separator-holerite {
         width: 100% !important;
         border-top: 1px dashed #000;
+        margin: 0;
         height: 0px;
     }
 }

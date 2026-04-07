@@ -11,44 +11,35 @@ const RHDb = {
     },
     save: function (data) {
         localStorage.setItem(this.KEY, JSON.stringify(data));
+        // Aciona o backup se ele existir no script local
+        if (typeof DB !== 'undefined' && DB.save) {
+            const dadosNotas = DB.get();
+            DB.save(dadosNotas);
+        }
     }
 };
 
-// Controlador do Modal Customizado
 const ModalRH = {
     show: function (title, message, type = 'alert', onConfirm = null) {
+        const modal = document.getElementById('custom-modal');
         document.getElementById('modal-title').innerText = title;
         document.getElementById('modal-message').innerText = message;
-        const modal = document.getElementById('custom-modal');
         const btnCancel = document.getElementById('modal-btn-cancel');
         const btnConfirm = document.getElementById('modal-btn-confirm');
-
-        btnConfirm.onclick = null;
-        btnCancel.onclick = null;
-
-        btnConfirm.onclick = () => {
-            modal.style.display = 'none';
-            if (onConfirm) onConfirm();
-        };
-
-        if (type === 'confirm') {
-            btnCancel.style.display = 'inline-block';
-            btnCancel.onclick = () => modal.style.display = 'none';
-        } else {
-            btnCancel.style.display = 'none';
-        }
-
+        btnConfirm.onclick = () => { modal.style.display = 'none'; if (onConfirm) onConfirm(); };
+        btnCancel.style.display = (type === 'confirm') ? 'inline-block' : 'none';
+        btnCancel.onclick = () => modal.style.display = 'none';
         modal.style.display = 'flex';
     }
 };
 
 const RH_UI = {
     switchTab: function (tabId) {
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelector(`button[onclick="RH_UI.switchTab('${tabId}')"]`).classList.add('active');
-        document.getElementById(`tab-${tabId}`).classList.add('active');
-        document.body.className = '';
+        document.querySelectorAll('.nav-btn, .tab-content').forEach(el => el.classList.remove('active'));
+        const btn = document.querySelector(`button[onclick*="${tabId}"]`);
+        if (btn) btn.classList.add('active');
+        const content = document.getElementById(`tab-${tabId}`);
+        if (content) content.classList.add('active');
         if (tabId === 'ponto') RH.renderPontoCards();
         if (tabId === 'fechamento') RH.renderSelectFechamento();
     }
@@ -58,16 +49,14 @@ const RH = {
     init: function () {
         this.renderTabelaFuncionarios();
         const hoje = new Date();
-        const mes = (hoje.getMonth() + 1).toString().padStart(2, '0');
-        document.getElementById('fechamento-mes').value = `${hoje.getFullYear()}-${mes}`;
+        document.getElementById('fechamento-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
     },
 
     salvarFuncionario: function () {
         const db = RHDb.get();
-        const idCampo = document.getElementById('func-id').value;
-
+        const id = document.getElementById('func-id').value || Date.now().toString();
         const func = {
-            id: idCampo ? idCampo : Date.now().toString(),
+            id,
             nome: document.getElementById('func-nome').value.trim(),
             cargo: document.getElementById('func-cargo').value.trim(),
             dataAdmissao: document.getElementById('func-admissao').value,
@@ -75,52 +64,32 @@ const RH = {
             valorBase: parseFloat(document.getElementById('func-valor').value),
             cargaHoraria: parseFloat(document.getElementById('func-carga').value)
         };
-
-        if (idCampo) {
-            const index = db.funcionarios.findIndex(f => f.id === idCampo);
-            if (index > -1) db.funcionarios[index] = func;
-        } else {
-            db.funcionarios.push(func);
-        }
-
+        const idx = db.funcionarios.findIndex(f => f.id === id);
+        if (idx > -1) db.funcionarios[idx] = func; else db.funcionarios.push(func);
         RHDb.save(db);
         document.getElementById('form-func').reset();
         document.getElementById('func-id').value = '';
         this.renderTabelaFuncionarios();
     },
 
-    excluirFuncionario: function (id) {
-        ModalRH.show('Atenção', 'Tem certeza que deseja excluir este funcionário?', 'confirm', () => {
-            const db = RHDb.get();
-            db.funcionarios = db.funcionarios.filter(f => f.id !== id);
-            RHDb.save(db);
-            this.renderTabelaFuncionarios();
-        });
-    },
-
     renderTabelaFuncionarios: function () {
         const db = RHDb.get();
         const tbody = document.querySelector('#tabela-funcionarios tbody');
-        tbody.innerHTML = '';
-        db.funcionarios.forEach(f => {
-            const admissaoStr = f.dataAdmissao ? f.dataAdmissao.split('-').reverse().join('/') : '--/--/----';
-            tbody.innerHTML += `<tr id="tr-func-${f.id}">
+        tbody.innerHTML = db.funcionarios.map(f => `
+            <tr id="tr-func-${f.id}">
                 <td>${f.nome}</td>
                 <td>${f.cargo}</td>
-                <td>${admissaoStr}</td>
+                <td>${f.dataAdmissao?.split('-').reverse().join('/') || '-'}</td>
                 <td>${f.tipo}</td>
                 <td>R$ ${f.valorBase.toFixed(2)}</td>
                 <td>${f.cargaHoraria}</td>
                 <td>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button onclick="RH.iniciarEdicaoFuncionario('${f.id}')" style="background: transparent; border: none; cursor: pointer; color: var(--primary-color); padding: 0;" title="Editar">
-                            <i data-lucide="pencil" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <button class="btn-danger" onclick="RH.excluirFuncionario('${f.id}')" style="padding: 4px;"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
+                        <button onclick="RH.iniciarEdicaoFuncionario('${f.id}')" style="background: transparent; border: none; cursor: pointer; color: #eab308; padding: 0;"><i data-lucide="pencil" style="width: 16px;"></i></button>
+                        <button class="btn-danger" onclick="RH.excluirFuncionario('${f.id}')" style="padding: 4px;"><i data-lucide="trash-2" style="width: 16px;"></i></button>
                     </div>
                 </td>
-            </tr>`;
-        });
+            </tr>`).join('');
         lucide.createIcons();
     },
 
@@ -128,24 +97,18 @@ const RH = {
         const db = RHDb.get();
         const f = db.funcionarios.find(func => func.id === id);
         if (!f) return;
-
         const tr = document.getElementById(`tr-func-${id}`);
         tr.innerHTML = `
-            <td><input type="text" id="edit-f-nome-${id}" value="${f.nome}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
-            <td><input type="text" id="edit-f-cargo-${id}" value="${f.cargo}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
-            <td><input type="date" id="edit-f-admissao-${id}" value="${f.dataAdmissao || ''}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
-            <td>
-                <select id="edit-f-tipo-${id}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;">
-                    <option value="Mensalista" ${f.tipo === 'Mensalista' ? 'selected' : ''}>Mensalista</option>
-                    <option value="Horista" ${f.tipo === 'Horista' ? 'selected' : ''}>Horista</option>
-                </select>
-            </td>
-            <td><input type="number" id="edit-f-valor-${id}" value="${f.valorBase}" step="0.01" style="width: 80px; margin: 0; padding: 4px; font-size: 12px;"></td>
-            <td><input type="number" id="edit-f-carga-${id}" value="${f.cargaHoraria}" style="width: 60px; margin: 0; padding: 4px; font-size: 12px;"></td>
+            <td><input type="text" id="edit-f-nome-${id}" value="${f.nome}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
+            <td><input type="text" id="edit-f-cargo-${id}" value="${f.cargo}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
+            <td><input type="date" id="edit-f-admissao-${id}" value="${f.dataAdmissao || ''}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
+            <td><select id="edit-f-tipo-${id}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"><option value="Mensalista" ${f.tipo === 'Mensalista' ? 'selected' : ''}>Mensalista</option><option value="Horista" ${f.tipo === 'Horista' ? 'selected' : ''}>Horista</option></select></td>
+            <td><input type="number" id="edit-f-valor-${id}" value="${f.valorBase}" step="0.01" style="width:80px; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
+            <td><input type="number" id="edit-f-carga-${id}" value="${f.cargaHoraria}" style="width:60px; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
             <td>
                 <div style="display: flex; gap: 4px;">
-                    <button onclick="RH.salvarEdicaoFuncionario('${id}')" style="background: var(--success-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
-                    <button onclick="RH.renderTabelaFuncionarios()" style="background: var(--danger-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+                    <button onclick="RH.salvarEdicaoFuncionario('${id}')" style="background: #10b981; border: none; color: #fff; padding: 6px; border-radius:4px; cursor:pointer;"><i data-lucide="check" style="width: 14px;"></i></button>
+                    <button onclick="RH.renderTabelaFuncionarios()" style="background: #ef4444; border: none; color: #fff; padding: 6px; border-radius:4px; cursor:pointer;"><i data-lucide="x" style="width: 14px;"></i></button>
                 </div>
             </td>
         `;
@@ -156,9 +119,8 @@ const RH = {
         const db = RHDb.get();
         const index = db.funcionarios.findIndex(f => f.id === id);
         if (index === -1) return;
-
         db.funcionarios[index] = {
-            id: id,
+            id,
             nome: document.getElementById(`edit-f-nome-${id}`).value.trim(),
             cargo: document.getElementById(`edit-f-cargo-${id}`).value.trim(),
             dataAdmissao: document.getElementById(`edit-f-admissao-${id}`).value,
@@ -166,212 +128,190 @@ const RH = {
             valorBase: parseFloat(document.getElementById(`edit-f-valor-${id}`).value),
             cargaHoraria: parseFloat(document.getElementById(`edit-f-carga-${id}`).value)
         };
-
         RHDb.save(db);
         this.renderTabelaFuncionarios();
     },
 
-    renderPontoCards: function () {
-        const db = RHDb.get();
-        const container = document.getElementById('lista-pontos');
-        container.innerHTML = '';
-
-        if (db.funcionarios.length === 0) {
-            container.innerHTML = '<p>Nenhum funcionário cadastrado.</p>';
-            return;
-        }
-
-        db.funcionarios.forEach(f => {
-            const pontoAberto = db.pontos.find(p => p.idFunc === f.id && !p.saida);
-            const statusClass = pontoAberto ? 'status-trabalhando' : 'status-ausente';
-            const statusText = pontoAberto ? 'Trabalhando' : 'Ausente';
-
-            let btnAction = '';
-            if (!pontoAberto) {
-                btnAction = `<button class="btn-primary" onclick="RH.registrarPonto('${f.id}', 'entrada')">Registrar Entrada</button>`;
-            } else {
-                const entradaStr = new Date(pontoAberto.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                btnAction = `
-                    <span style="font-size: 12px; color: var(--text-muted); margin-right: 15px;">Entrada: ${entradaStr}</span>
-                    <button class="btn-outline" style="border-color: var(--danger-color); color: var(--danger-color);" onclick="RH.registrarPonto('${f.id}', 'saida')">Registrar Saída</button>
-                `;
-            }
-
-            container.innerHTML += `
-                <div class="ponto-card">
-                    <div>
-                        <h3 style="margin-bottom: 5px;">${f.nome}</h3>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                    </div>
-                    <div style="display: flex; align-items: center;">
-                        ${btnAction}
-                    </div>
-                </div>
-            `;
+    excluirFuncionario: function (id) {
+        ModalRH.show('Atenção', 'Remover este funcionário?', 'confirm', () => {
+            const db = RHDb.get();
+            db.funcionarios = db.funcionarios.filter(f => f.id !== id);
+            RHDb.save(db);
+            this.renderTabelaFuncionarios();
         });
     },
 
     registrarPonto: function (idFunc, tipo) {
         const db = RHDb.get();
         const agora = new Date().toISOString();
-
-        if (tipo === 'entrada') {
-            db.pontos.push({ id: Date.now().toString(), idFunc: idFunc, entrada: agora, saida: null });
-        } else {
-            const index = db.pontos.findIndex(p => p.idFunc === idFunc && !p.saida);
-            if (index > -1) db.pontos[index].saida = agora;
-        }
-
+        if (tipo === 'entrada') db.pontos.push({ id: Date.now().toString(), idFunc, entrada: agora, saida: null });
+        else { const p = db.pontos.find(p => p.idFunc === idFunc && !p.saida); if (p) p.saida = agora; }
         RHDb.save(db);
         this.renderPontoCards();
     },
 
+    renderPontoCards: function () {
+        const db = RHDb.get();
+        const container = document.getElementById('lista-pontos');
+        container.innerHTML = db.funcionarios.map(f => {
+            const aberto = db.pontos.find(p => p.idFunc === f.id && !p.saida);
+            return `
+                <div class="ponto-card">
+                    <div><h3>${f.nome}</h3><span class="status-badge ${aberto ? 'status-trabalhando' : 'status-ausente'}">${aberto ? 'Trabalhando' : 'Ausente'}</span></div>
+                    <button class="${aberto ? 'btn-outline' : 'btn-primary'}" onclick="RH.registrarPonto('${f.id}','${aberto ? 'saida' : 'entrada'}')">${aberto ? 'Registrar Saída' : 'Registrar Entrada'}</button>
+                </div>`;
+        }).join('') || '<p>Nenhum funcionário cadastrado.</p>';
+    },
+
     renderSelectFechamento: function () {
         const db = RHDb.get();
-        const select = document.getElementById('fechamento-func');
-        select.innerHTML = '<option value="">-- Selecione --</option>';
-        db.funcionarios.forEach(f => {
-            select.innerHTML += `<option value="${f.id}">${f.nome}</option>`;
-        });
+        document.getElementById('fechamento-func').innerHTML = '<option value="">Selecione</option>' + db.funcionarios.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
     },
 
     adicionarDescontoManual: function () {
-        const desc = document.getElementById('desc-nome').value.trim();
-        const ref = document.getElementById('desc-ref').value.trim();
+        const desc = document.getElementById('desc-nome').value;
         const valor = parseFloat(document.getElementById('desc-valor').value);
-
-        if (!desc || isNaN(valor) || valor <= 0) {
-            ModalRH.show('Aviso', 'Preencha a descrição e um valor numérico válido.');
-            return;
-        }
-
         const idFunc = document.getElementById('fechamento-func').value;
         const mesAno = document.getElementById('fechamento-mes').value;
-
-        if (!idFunc || !mesAno) {
-            ModalRH.show('Aviso', 'Selecione o funcionário e o mês antes de adicionar o desconto.');
-            return;
-        }
-
+        if (!desc || isNaN(valor)) return;
         const db = RHDb.get();
-        db.descontosFechamento.push({
-            id: Date.now().toString(),
-            idFunc, mesAno, desc, ref, valor
-        });
-
+        db.descontosFechamento.push({ id: Date.now().toString(), idFunc, mesAno, desc, ref: document.getElementById('desc-ref').value, valor });
         RHDb.save(db);
         document.getElementById('desc-nome').value = '';
-        document.getElementById('desc-ref').value = '';
         document.getElementById('desc-valor').value = '';
-
         this.calcularFechamento();
     },
 
-    removerDescontoManual: function (idDesconto) {
+    removerDescontoManual: function (id) {
         const db = RHDb.get();
-        db.descontosFechamento = db.descontosFechamento.filter(d => d.id !== idDesconto);
+        db.descontosFechamento = db.descontosFechamento.filter(d => d.id !== id);
         RHDb.save(db);
         this.calcularFechamento();
     },
-
-    fechamentoAtual: null,
 
     calcularFechamento: function () {
         const idFunc = document.getElementById('fechamento-func').value;
         const mesAno = document.getElementById('fechamento-mes').value;
-        const areaRes = document.getElementById('resultado-fechamento');
-
-        if (!idFunc || !mesAno) { areaRes.style.display = 'none'; return; }
-
+        if (!idFunc || !mesAno) return;
         const db = RHDb.get();
         const func = db.funcionarios.find(f => f.id === idFunc);
         if (!func) return;
 
-        const pontosMes = db.pontos.filter(p => {
-            if (!p.saida) return false;
-            const dataEntrada = new Date(p.entrada);
-            const mesPonto = `${dataEntrada.getFullYear()}-${(dataEntrada.getMonth() + 1).toString().padStart(2, '0')}`;
-            return (p.idFunc === idFunc && mesPonto === mesAno);
-        });
-
-        // Agrupamento por data para a interface
+        const pontos = db.pontos.filter(p => p.saida && p.idFunc === idFunc && p.entrada.startsWith(mesAno));
         const agrupados = {};
         let totalHoras = 0;
-        pontosMes.sort((a, b) => new Date(a.entrada) - new Date(b.entrada)).forEach(p => {
-            const dataStr = new Date(p.entrada).toLocaleDateString('pt-BR');
-            if (!agrupados[dataStr]) agrupados[dataStr] = { pontos: [], totalDia: 0 };
-            const h = (new Date(p.saida).getTime() - new Date(p.entrada).getTime()) / (1000 * 60 * 60);
-            agrupados[dataStr].pontos.push(p);
-            agrupados[dataStr].totalDia += h;
-            totalHoras += h;
+        pontos.sort((a, b) => new Date(a.entrada) - new Date(b.entrada)).forEach(p => {
+            const d = new Date(p.entrada).toLocaleDateString('pt-BR');
+            if (!agrupados[d]) agrupados[d] = { pontos: [], totalDia: 0 };
+            const h = (new Date(p.saida) - new Date(p.entrada)) / 36e5;
+            agrupados[d].pontos.push(p); agrupados[d].totalDia += h; totalHoras += h;
         });
 
         const tbodyEx = document.querySelector('#tabela-extrato tbody');
-        tbodyEx.innerHTML = Object.keys(agrupados).map(data => {
-            const dia = agrupados[data];
-            const turnosDesc = dia.pontos.map(p =>
-                `${new Date(p.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} - ${new Date(p.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-            ).join(' / ');
-
-            return `<tr><td>${data}</td><td>${turnosDesc}</td><td>${dia.totalDia.toFixed(2)}h</td></tr>`;
+        tbodyEx.innerHTML = Object.keys(agrupados).map(d => {
+            const dia = agrupados[d];
+            const turnosHTML = dia.pontos.map(p => {
+                const ent = new Date(p.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const sai = new Date(p.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span>${ent} - ${sai}</span>
+                            <button onclick="RH.editarHoraPonto('${p.id}')" style="background:transparent; border:none; color:#eab308; cursor:pointer; padding:0;" title="Editar">
+                                <i data-lucide="pencil" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button onclick="RH.excluirHoraPonto('${p.id}')" style="background:transparent; border:none; color:#ef4444; cursor:pointer; padding:0;" title="Excluir">
+                                <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                            </button>
+                        </div>`;
+            }).join('');
+            return `<tr><td>${d}</td><td>${turnosHTML}</td><td>${dia.totalDia.toFixed(2)}h</td></tr>`;
         }).join('');
 
-        const descontosDesseMes = db.descontosFechamento.filter(d => d.idFunc === idFunc && d.mesAno === mesAno);
-        const tbodyDesc = document.querySelector('#tabela-descontos-manuais tbody');
-        tbodyDesc.innerHTML = descontosDesseMes.map(d => `<tr><td>${d.desc}</td><td>${d.ref || '-'}</td><td>R$ ${d.valor.toFixed(2)}</td><td><button class="btn-danger" onclick="RH.removerDescontoManual('${d.id}')"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button></td></tr>`).join('');
+        const descontos = db.descontosFechamento.filter(d => d.idFunc === idFunc && d.mesAno === mesAno);
+        const somaDesc = descontos.reduce((a, b) => a + b.valor, 0);
+        document.querySelector('#tabela-descontos-manuais tbody').innerHTML = descontos.map(d => `<tr><td>${d.desc}</td><td>${d.ref}</td><td>R$ ${d.valor.toFixed(2)}</td><td><button class="btn-danger" onclick="RH.removerDescontoManual('${d.id}')"><i data-lucide="trash-2" style="width:14px;"></i></button></td></tr>`).join('');
 
-        let proventosExtras = 0;
-        let descontosFaltas = 0;
-        let totalVencimentos = 0;
+        const valorHora = func.valorBase / (func.tipo === 'Mensalista' ? func.cargaHoraria : 1);
+        const bruto = func.tipo === 'Mensalista' ? (func.valorBase + (totalHoras > func.cargaHoraria ? (totalHoras - func.cargaHoraria) * valorHora : 0)) : totalHoras * func.valorBase;
+        const descFaltas = (func.tipo === 'Mensalista' && totalHoras < func.cargaHoraria) ? (func.cargaHoraria - totalHoras) * valorHora : 0;
 
-        if (func.tipo === 'Horista') {
-            totalVencimentos = totalHoras * func.valorBase;
-        } else {
-            const valorHora = func.valorBase / func.cargaHoraria;
-            if (totalHoras > func.cargaHoraria) {
-                proventosExtras = (totalHoras - func.cargaHoraria) * valorHora;
-                totalVencimentos = func.valorBase + proventosExtras;
-            } else if (totalHoras < func.cargaHoraria) {
-                descontosFaltas = (func.cargaHoraria - totalHoras) * valorHora;
-                totalVencimentos = func.valorBase;
-            } else {
-                totalVencimentos = func.valorBase;
-            }
+        this.fechamentoAtual = { func, mesAno, totalHoras, valorLiquido: bruto - descFaltas - somaDesc, totalVencimentos: bruto, descontosFaltas: descFaltas, descontosManuais: descontos, somaDescontosManuais: somaDesc, agrupados };
+        document.getElementById('res-nome').innerText = func.nome;
+        document.getElementById('res-liquido').innerText = `R$ ${this.fechamentoAtual.valorLiquido.toFixed(2).replace('.', ',')}`;
+        document.getElementById('resultado-fechamento').style.display = 'block';
+        lucide.createIcons();
+    },
+
+    pontoEmEdicaoId: null,
+
+    editarHoraPonto: function (idPonto) {
+        const db = RHDb.get();
+        const ponto = db.pontos.find(p => p.id === idPonto);
+        if (!ponto) return;
+
+        this.pontoEmEdicaoId = idPonto;
+
+        const entOriginal = new Date(ponto.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const saiOriginal = ponto.saida ? new Date(ponto.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : "";
+
+        document.getElementById('edit-hora-entrada').value = entOriginal;
+        document.getElementById('edit-hora-saida').value = saiOriginal;
+        document.getElementById('modal-edit-hora').style.display = 'flex';
+    },
+
+    salvarEdicaoHora: function () {
+        if (!this.pontoEmEdicaoId) return;
+
+        const novaEntrada = document.getElementById('edit-hora-entrada').value;
+        const novaSaida = document.getElementById('edit-hora-saida').value;
+
+        if (!novaEntrada || !novaSaida) {
+            ModalRH.show('Aviso', 'Preencha os dois horários para salvar.');
+            return;
         }
 
-        const valorLiquido = totalVencimentos - descontosFaltas - descontosDesseMes.reduce((a, b) => a + b.valor, 0);
+        const db = RHDb.get();
+        const ponto = db.pontos.find(p => p.id === this.pontoEmEdicaoId);
+        if (!ponto) return;
 
-        document.getElementById('res-nome').innerText = func.nome;
-        document.getElementById('res-liquido').innerText = `R$ ${valorLiquido.toFixed(2).replace('.', ',')}`;
+        const dataRef = new Date(ponto.entrada);
+        const [hE, mE] = novaEntrada.split(':');
+        const [hS, mS] = novaSaida.split(':');
 
-        areaRes.style.display = 'block';
-        lucide.createIcons();
+        const dEntrada = new Date(dataRef.getFullYear(), dataRef.getMonth(), dataRef.getDate(), hE, mE);
+        const dSaida = new Date(dataRef.getFullYear(), dataRef.getMonth(), dataRef.getDate(), hS, mS);
 
-        this.fechamentoAtual = {
-            func, mesAno, totalHoras, valorLiquido, agrupados,
-            proventosExtras, descontosFaltas, totalVencimentos,
-            descontosManuais: descontosDesseMes, somaDescontosManuais: descontosDesseMes.reduce((a, b) => a + b.valor, 0)
-        };
+        if (dSaida <= dEntrada) {
+            ModalRH.show('Aviso', 'O horário de saída deve ser maior que o de entrada.');
+            return;
+        }
+
+        ponto.entrada = dEntrada.toISOString();
+        ponto.saida = dSaida.toISOString();
+
+        RHDb.save(db);
+        this.calcularFechamento();
+
+        document.getElementById('modal-edit-hora').style.display = 'none';
+        this.pontoEmEdicaoId = null;
+    },
+
+    excluirHoraPonto: function (idPonto) {
+        ModalRH.show('Atenção', 'Deseja excluir permanentemente este horário?', 'confirm', () => {
+            const db = RHDb.get();
+            db.pontos = db.pontos.filter(p => p.id !== idPonto);
+            RHDb.save(db);
+            this.calcularFechamento();
+        });
     },
 
     limparHorasPeriodo: function () {
         const idFunc = document.getElementById('fechamento-func').value;
         const mesAno = document.getElementById('fechamento-mes').value;
-
-        if (!idFunc || !mesAno) return;
-
-        const db = RHDb.get();
-        const func = db.funcionarios.find(f => f.id === idFunc);
-
-        ModalRH.show('Atenção Crítica', `Deseja apagar permanentemente todos os registros de ponto de ${func.nome} referentes ao mês ${mesAno}?`, 'confirm', () => {
-            db.pontos = db.pontos.filter(p => {
-                const dataEntrada = new Date(p.entrada);
-                const mesPonto = `${dataEntrada.getFullYear()}-${(dataEntrada.getMonth() + 1).toString().padStart(2, '0')}`;
-                return !(p.idFunc === idFunc && mesPonto === mesAno);
-            });
+        ModalRH.show('Limpar Ponto', 'Apagar todos os registros do mês inteiro?', 'confirm', () => {
+            const db = RHDb.get();
+            db.pontos = db.pontos.filter(p => !(p.idFunc === idFunc && p.entrada.startsWith(mesAno)));
             RHDb.save(db);
             this.calcularFechamento();
-            ModalRH.show('Sucesso', 'Banco de horas do período limpo!');
         });
     },
 
@@ -379,7 +319,6 @@ const RH = {
         if (!this.fechamentoAtual) return;
         const data = this.fechamentoAtual;
         const [ano, mes] = data.mesAno.split('-');
-
         let linhas = '';
         Object.keys(data.agrupados).forEach(d => {
             const dia = data.agrupados[d];
@@ -430,22 +369,20 @@ const RH = {
         const [ano, mes] = data.mesAno.split('-');
         const admissaoStr = data.func.dataAdmissao?.split('-').reverse().join('/') || '--/--/----';
 
-        // --- LÓGICA DO NOME DO ARQUIVO ---
         const nomeArquivo = `Holerite - ${data.func.nome} - ${mes}_${ano}`;
-        const tituloOriginal = document.title; // Guarda o título original (RH - KS Afinações)
-        document.title = nomeArquivo; // Define o nome que o PDF terá
-        // ---------------------------------
+        const tituloOriginal = document.title;
+        document.title = nomeArquivo;
 
         let linhasDescontosExtrasHTML = '';
         data.descontosManuais.forEach((desc, index) => {
             const codExibicao = (4 + index).toString().padStart(3, '0');
             linhasDescontosExtrasHTML += `
-                <tr style="color: #000 !important;">
-                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000;">${codExibicao}</td>
-                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000;">${desc.desc.toUpperCase()}</td>
-                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000;">${desc.ref || ''}</td>
-                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000;"></td>
-                    <td style="padding: 4px; text-align: right; border-bottom: 1px solid #000;">${desc.valor.toFixed(2).replace('.', ',')}</td>
+                <tr>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${codExibicao}</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">${desc.desc.toUpperCase()}</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${desc.ref || ''}</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;"></td>
+                    <td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${desc.valor.toFixed(2).replace('.', ',')}</td>
                 </tr>
             `;
         });
@@ -454,14 +391,15 @@ const RH = {
 
         const generateVia = (viaName) => `
         <div style="width: 100%; height: 100%; border: 1px solid #000; box-sizing: border-box; background: #fff; display: flex; flex-direction: column; font-family: Arial, sans-serif; color: #000 !important;">
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding: 6px; color: #000 !important;">
-                <div style="font-size: 10px; line-height: 1.3;">
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding: 6px;">
+                <div style="font-size: 10px; line-height: 1.3; color: #000 !important;">
                     <strong style="font-size: 12px; color: #000 !important;">KS AFINAÇÕES</strong><br>
                     <span style="color: #000 !important;">Estância Triângulo - Estrada, Rodovia - a Loanda<br>
                     Santa Isabel do Ivaí - PR, 87900-000<br>
                     CNPJ: 42.360.395/0001-83</span>
                 </div>
-                <div style="text-align: right; font-size: 10px;">
+                <div style="text-align: right; font-size: 10px; color: #000 !important;">
                     <strong style="font-size: 14px; text-transform: uppercase; color: #000 !important;">Recibo de Pagamento de Salário</strong><br>
                     <span style="color: #000 !important;">Mês: ${mes}/${ano}</span><br>
                     <span style="font-size: 9px; font-weight: bold; color: #000 !important;">(${viaName})</span>
@@ -492,7 +430,7 @@ const RH = {
                         <tr style="border-bottom: 1px solid #000;">
                             <th style="width: 10%; padding: 4px; border-right: 1px solid #000; font-weight: bold; text-align: center; color: #000 !important;">Cód.</th>
                             <th style="width: 45%; padding: 4px; border-right: 1px solid #000; text-align: left; font-weight: bold; color: #000 !important;">Descrição</th>
-                            <th style="width: 15%; padding: 4px; border-right: 1px solid #000; text-align: center; color: #000 !important;">Ref</th>
+                            <th style="width: 15%; padding: 4px; border-right: 1px solid #000; font-weight: bold; text-align: center; color: #000 !important;">Referência</th>
                             <th style="width: 15%; padding: 4px; border-right: 1px solid #000; text-align: right; font-weight: bold; color: #000 !important;">Vencimentos</th>
                             <th style="width: 15%; padding: 4px; text-align: right; font-weight: bold; color: #000 !important;">Descontos</th>
                         </tr>
@@ -505,8 +443,8 @@ const RH = {
                             <td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.func.valorBase.toFixed(2).replace('.', ',')}</td>
                             <td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td>
                         </tr>
-                        ${data.proventosExtras > 0 ? `<tr style="color: #000 !important;"><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000;">002</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000;">HORAS EXTRAS</td><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000;">${(data.totalHoras - data.func.cargaHoraria).toFixed(2)}</td><td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000;">${data.proventosExtras.toFixed(2).replace('.', ',')}</td><td style="padding: 4px; border-bottom: 1px solid #000;"></td></tr>` : ''}
-                        ${data.descontosFaltas > 0 ? `<tr style="color: #000 !important;"><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000;">003</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000;">FALTAS / ATRASOS</td><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000;">-</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000;"></td><td style="padding: 4px; text-align: right; border-bottom: 1px solid #000;">${data.descontosFaltas.toFixed(2).replace('.', ',')}</td></tr>` : ''}
+                        ${data.proventosExtras > 0 ? `<tr><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">002</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">HORAS EXTRAS</td><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${(data.totalHoras - data.func.cargaHoraria).toFixed(2)}</td><td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.proventosExtras.toFixed(2).replace('.', ',')}</td><td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td></tr>` : ''}
+                        ${data.descontosFaltas > 0 ? `<tr><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">003</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">FALTAS / ATRASOS</td><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">-</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;"></td><td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.descontosFaltas.toFixed(2).replace('.', ',')}</td></tr>` : ''}
                         ${linhasDescontosExtrasHTML}
                     </tbody>
                 </table>
@@ -520,17 +458,17 @@ const RH = {
                 <div style="width: 40%; display: flex; flex-direction: column;">
                     <div style="display: flex; border-bottom: 1px solid #000; flex: 1;">
                         <div style="width: 50%; padding: 4px; border-right: 1px solid #000; text-align: right; color: #000 !important;">
-                            <span style="font-size: 8px;">Total Vencimentos</span><br>
-                            <strong>${data.totalVencimentos.toFixed(2).replace('.', ',')}</strong>
+                            <span style="font-size: 8px; color: #000 !important;">Total Vencimentos</span><br>
+                            <strong style="color: #000 !important;">${data.totalVencimentos.toFixed(2).replace('.', ',')}</strong>
                         </div>
                         <div style="width: 50%; padding: 4px; text-align: right; color: #000 !important;">
-                            <span style="font-size: 8px;">Total Descontos</span><br>
-                            <strong>${totalGeralDescontos.toFixed(2).replace('.', ',')}</strong>
+                            <span style="font-size: 8px; color: #000 !important;">Total Descontos</span><br>
+                            <strong style="color: #000 !important;">${totalGeralDescontos.toFixed(2).replace('.', ',')}</strong>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px; flex: 1; color: #000 !important;">
-                        <span style="font-size: 10px; font-weight: bold;">Valor Líquido ⇨</span>
-                        <strong style="font-size: 14px;">R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</strong>
+                        <span style="font-size: 10px; font-weight: bold; color: #000 !important;">Valor Líquido ⇨</span>
+                        <strong style="font-size: 14px; color: #000 !important;">R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</strong>
                     </div>
                 </div>
             </div>
@@ -550,7 +488,7 @@ const RH = {
                 #print-area-holerite * { color: #000 !important; }
             </style>
             <div class="print-half-holerite">${generateVia('1ª VIA - EMPRESA')}</div>
-            <div class="print-separator-holerite"></div>
+            <div class="print-separator-holerite" style="border-top: 1px dashed #000; margin: 15px 0;"></div>
             <div class="print-half-holerite">${generateVia('2ª VIA - FUNCIONÁRIO')}</div>
         `;
 
@@ -559,7 +497,7 @@ const RH = {
         setTimeout(() => {
             window.print();
             document.body.classList.remove('printing-holerite');
-            document.title = tituloOriginal; // Restaura o título original do sistema
+            document.title = tituloOriginal;
         }, 500);
     }
 };

@@ -14,6 +14,24 @@
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
+.btn-switch-module {
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.15) 0%, transparent 100%) !important;
+    color: #eab308 !important;
+    border-left: 4px solid #eab308 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 13px !important;
+    padding: 14px 24px !important;
+    margin: 10px 0;
+    transition: all 0.2s ease;
+}
+
+.btn-switch-module:hover {
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.3) 0%, transparent 100%) !important;
+    color: #fef08a !important;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -37,21 +55,6 @@ h3 {
 h2 {
     margin-bottom: 20px;
     font-size: 22px;
-}
-
-#rh-bt {
-    background: linear-gradient(90deg,
-            rgba(234, 179, 8, 0.15) 0%,
-            transparent 100%) !important;
-    color: #eab308 !important;
-    border-left: 4px solid #eab308 !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-size: 13px !important;
-    padding: 14px 24px !important;
-    margin: 10px 0;
-    transition: all 0.2s ease;
 }
 
 button {
@@ -451,7 +454,7 @@ tbody tr:hover {
 }
 
 /* =========================================
-    LAYOUT DE IMPRESSÃO (ROTAÇÃO E ECRÃ BRANCO RESOLVIDOS)
+    LAYOUT DE IMPRESSÃO
     ========================================= */
 .print-area {
     display: none;
@@ -464,7 +467,6 @@ tbody tr:hover {
         display: none !important;
     }
 
-    /* A folha será SEMPRE retrato (portrait) para não lutar contra o Android */
     @page {
         size: portrait;
         margin: 0mm !important;
@@ -480,17 +482,14 @@ tbody tr:hover {
         print-color-adjust: exact;
     }
 
-    /* --- MÁGICA DO CSS ROTAÇÃO PARA A NOTA MAXIMIZADA --- */
     body.printing-nota #print-area-nota {
         display: flex !important;
         flex-direction: row;
         justify-content: space-between;
 
-        /* Ocupa o tamanho exato de um A4 (297mm x 210mm) para não quebrar nem espremer */
         width: 297mm !important;
         height: 210mm !important;
 
-        /* Posiciona no topo direito da tela em pé e rotaciona a partir do canto para alinhar perfeito */
         position: absolute;
         top: 0;
         left: 210mm;
@@ -499,7 +498,6 @@ tbody tr:hover {
         transform-origin: top left;
 
         padding: 4mm;
-        /* Margem mínima interna */
         box-sizing: border-box;
     }
 
@@ -539,7 +537,6 @@ tbody tr:hover {
         padding: 0mm;
     }
 
-    /* Ajustes Finos Tabela de Preços Print */
     .tabela-precos-header {
         margin-bottom: 10px;
         gap: 10px;

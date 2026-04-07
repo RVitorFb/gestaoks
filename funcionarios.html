@@ -27,6 +27,31 @@
         </div>
     </div>
 
+    <div id="modal-edit-hora" class="modal-overlay"
+        style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999;">
+        <div class="modal-content"
+            style="background-color: #171c26; border-radius: 8px; padding: 30px; width: 380px; text-align: center; border: 1px solid #1e293b;">
+            <h3 style="color: #eab308; margin-top: 0; margin-bottom: 20px; font-size: 20px;">Editar Horário</h3>
+            <div style="display: flex; gap: 15px; text-align: left; margin-bottom: 25px;">
+                <div style="flex: 1;">
+                    <label style="color: #94a3b8; font-size: 13px;">Nova Entrada</label>
+                    <input type="time" id="edit-hora-entrada"
+                        style="width: 100%; padding: 10px; background: #0b1017; border: 1px solid #334155; color: #fff; border-radius: 6px; margin-top: 5px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="color: #94a3b8; font-size: 13px;">Nova Saída</label>
+                    <input type="time" id="edit-hora-saida"
+                        style="width: 100%; padding: 10px; background: #0b1017; border: 1px solid #334155; color: #fff; border-radius: 6px; margin-top: 5px;">
+                </div>
+            </div>
+            <div class="modal-actions" style="display: flex; justify-content: center; gap: 15px;">
+                <button class="btn-primary-yellow" onclick="RH.salvarEdicaoHora()">Salvar Alteração</button>
+                <button class="btn-outline-secondary"
+                    onclick="document.getElementById('modal-edit-hora').style.display='none'">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-relatorio" class="modal-overlay"
         style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 9999; padding: 10px;">
         <div class="modal-content"

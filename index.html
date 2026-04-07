@@ -12,7 +12,6 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <link rel="icon" type="image/png" href="favicon.png">
-
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -35,6 +34,13 @@
                 <h1>KS Afinações</h1>
             </div>
             <nav class="nav-menu">
+
+                <a href="funcionarios.html" class="nav-btn btn-switch-module">
+                    <i data-lucide="users" style="width: 18px; height: 18px;"></i> Módulo RH
+                </a>
+
+                <div class="nav-divider"></div>
+
                 <button class="nav-btn active" onclick="UI.switchTab('dashboard')">
                     <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Status
                 </button>
@@ -56,13 +62,6 @@
                 <button class="nav-btn" onclick="UI.switchTab('tabelas')">
                     <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i> Tabelas e Reajuste
                 </button>
-
-                <div class="nav-divider"></div>
-
-                <a href="funcionarios.html" class="nav-btn" id="rh-bt"
-                    style="text-decoration: none; display: flex; align-items: center;">
-                    <i data-lucide="users" style="width: 18px; height: 18px; margin-right: 8px;"></i> Módulo RH
-                </a>
             </nav>
         </aside>
 
@@ -98,7 +97,8 @@
                     <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px;">
                         <input type="file" id="file-import" accept=".json" style="margin: 0; padding: 6px;">
                         <button class="btn-outline" onclick="DB.importBackup()">Restaurar Dados</button>
-                        <button class="btn-outline" onclick="DB.downloadManualBackup()">Baixar Arquivo JSON</button>
+                        <button class="btn-outline" onclick="DB.downloadManualBackup()">Baixar Arquivo JSON
+                            (Completo)</button>
                     </div>
                 </div>
             </section>
