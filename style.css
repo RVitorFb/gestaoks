@@ -39,6 +39,21 @@ h2 {
     font-size: 22px;
 }
 
+#rh-bt {
+    background: linear-gradient(90deg,
+            rgba(234, 179, 8, 0.15) 0%,
+            transparent 100%) !important;
+    color: #eab308 !important;
+    border-left: 4px solid #eab308 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 13px !important;
+    padding: 14px 24px !important;
+    margin: 10px 0;
+    transition: all 0.2s ease;
+}
+
 button {
     cursor: pointer;
     border: none;
