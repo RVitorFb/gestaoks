@@ -29,6 +29,9 @@
     border-radius: var(--radius);
     margin-bottom: 10px;
     border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    /* Previne quebra no mobile */
+    gap: 10px;
 }
 
 .status-badge {
@@ -37,6 +40,8 @@
     font-size: 11px;
     font-weight: bold;
     text-transform: uppercase;
+    display: inline-block;
+    margin-top: 5px;
 }
 
 .status-trabalhando {
@@ -125,17 +130,125 @@
     transform: translateY(-1px);
 }
 
+/* =========================================
+   USABILIDADE RESPONSIVA NO CELULAR (RH)
+   ========================================= */
 @media (max-width: 800px) {
+
+    /* SOBRESCRITA PARA O BOTÃO "VOLTAR PARA O ERP" NO MOBILE 
+       Fixa o botão pequeno no topo superior direito
+    */
+    .btn-switch-module {
+        position: absolute !important;
+        top: 12px !important;
+        right: 15px !important;
+        width: auto !important;
+        padding: 6px 12px !important;
+        font-size: 11px !important;
+        border-left: none !important;
+        border: 1px solid #eab308 !important;
+        background: transparent !important;
+        margin: 0 !important;
+        border-radius: var(--radius) !important;
+        z-index: 1000;
+    }
+
+    .btn-switch-module i,
+    .btn-switch-module svg {
+        width: 14px !important;
+        height: 14px !important;
+        margin-right: 4px !important;
+    }
+
+    /* Adapta a barra de baixo (Fechamento) para não sobrepor o conteúdo e empilhar bonito */
     .sticky-bottom-bar {
         left: 0;
         padding: 15px;
         flex-direction: column;
-        gap: 10px;
+        gap: 15px;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .sticky-bottom-bar h3 {
+        text-align: center;
+        width: 100%;
+        font-size: 18px;
     }
 
     .sticky-bottom-bar>div {
-        flex-wrap: wrap;
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .sticky-bottom-bar>div button {
+        width: 100%;
         justify-content: center;
+        padding: 12px;
+    }
+
+    /* Dá um espaço no final da tela do fechamento pro conteúdo não sumir atrás da barra */
+    #resultado-fechamento {
+        padding-bottom: 200px !important;
+    }
+
+    /* Corrige o botão de bater ponto para ocupar 100% se quebrar linha */
+    .ponto-card button {
+        width: 100%;
+        padding: 12px;
+    }
+
+    /* Ajustes brutais para o Relatório Gerado (Aquele injetado via JS).
+       O !important garante que ele ignore os estilos embutidos do seu rh.js 
+    */
+    #modal-relatorio .modal-content {
+        padding: 15px !important;
+        height: 100vh !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+        /* Faz virar tela cheia no mobile */
+    }
+
+    #modal-relatorio h2 {
+        font-size: 18px !important;
+        margin-bottom: 10px !important;
+        flex-wrap: wrap;
+    }
+
+    .relatorio-mobile {
+        flex-direction: column !important;
+        /* Empilha a tabela e os resumos */
+        gap: 15px !important;
+        overflow-y: auto !important;
+        display: flex !important;
+    }
+
+    .box-extrato,
+    .box-descontos,
+    .box-resumo {
+        flex: none !important;
+        width: 100% !important;
+    }
+
+    .box-extrato {
+        min-height: 300px !important;
+        /* Garante que a tabela tenha um espaço mínimo para rolar no mobile */
+    }
+
+    /* Reduz o texto gigante do valor liquido no mobile */
+    .texto-liquido {
+        font-size: 26px !important;
+    }
+
+    #relatorio-conteudo table {
+        font-size: 11px !important;
+    }
+
+    #relatorio-conteudo th,
+    #relatorio-conteudo td {
+        padding: 8px 4px !important;
+        /* Reduz espaçamento para caber os 4 horários na vertical */
     }
 }
 
@@ -155,42 +268,45 @@
     @page {
         size: A4 portrait;
         margin: 0 !important;
-        /* Retira o controle do navegador que empurra a folha */
     }
 
+    html,
     body.printing-holerite {
         background: white !important;
         color: black !important;
         margin: 0 !important;
-        padding: 4mm !important;
-        /* Cria a distância exata nos 4 lados (topo, laterais e baixo) */
-        box-sizing: border-box !important;
+        padding: 0 !important;
+        height: 100% !important;
         font-family: 'Arial', sans-serif;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
+    /* Layout corrigido para Android: relative e height em % */
     body.printing-holerite #print-area-holerite {
         display: flex !important;
-        flex-direction: column;
-        justify-content: space-between;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        position: relative !important;
         width: 100% !important;
-        height: 289mm !important;
-        /* Altura do A4 (297) menos a soma da distância cima+baixo (8) */
-        box-sizing: border-box;
+        height: 99% !important;
+        /* Impede a quebra de página/folha em branco */
+        padding: 2px !important;
+        /* Exatos 2px de margem interna */
+        box-sizing: border-box !important;
     }
 
     .print-half-holerite {
         width: 100% !important;
-        height: 48.5%;
-        display: block;
-        box-sizing: border-box;
+        height: 48.5% !important;
+        display: block !important;
+        box-sizing: border-box !important;
     }
 
     .print-separator-holerite {
         width: 100% !important;
-        border-top: 1px dashed #000;
-        margin: 0;
-        height: 0px;
+        border-top: 1px dashed #000 !important;
+        margin: 0 !important;
+        height: 0px !important;
     }
 }

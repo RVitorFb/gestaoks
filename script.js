@@ -46,15 +46,15 @@ const CustomModal = {
 
 const DB = {
     KEY: 'ks_afinacoes_dados',
-    KEY_RH: 'ks_rh_dados', 
-    
+    KEY_RH: 'ks_rh_dados',
+
     get: function () {
         const data = localStorage.getItem(this.KEY);
         return data ? JSON.parse(data) : { produtos: [], clientes: [] };
     },
     save: function (data) {
         localStorage.setItem(this.KEY, JSON.stringify(data));
-        
+
         // Backup Unificado (Notas + RH)
         const dadosRHRaw = localStorage.getItem(this.KEY_RH);
         const backupUnificado = {
@@ -68,7 +68,7 @@ const DB = {
         if (document.getElementById('tabela-fornecedor')) {
             UI.renderSelectsFornecedoresTabelas();
         }
-        
+
         DriveAPI.autoSaveBackup(JSON.stringify(backupUnificado));
     },
     importBackup: function () {
@@ -96,7 +96,7 @@ const DB = {
         const dadosNotas = this.get();
         const dadosRHRaw = localStorage.getItem(this.KEY_RH);
         const dadosRH = dadosRHRaw ? JSON.parse(dadosRHRaw) : { funcionarios: [], pontos: [], descontosFechamento: [] };
-        
+
         const backupUnificado = {
             notas: dadosNotas,
             rh: dadosRH
@@ -131,17 +131,17 @@ const DriveAPI = {
 
         this.tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID, scope: SCOPES,
-            callback: (r) => { 
-                if (r && r.access_token) { 
-                    this.accessToken = r.access_token; 
-                    
+            callback: (r) => {
+                if (r && r.access_token) {
+                    this.accessToken = r.access_token;
+
                     // SALVA O LOGIN NA MEMÓRIA PARA NÃO PEDIR NAS OUTRAS TELAS
                     const expiresAt = Date.now() + (r.expires_in * 1000);
                     localStorage.setItem('ks_gdrive_token', JSON.stringify({ token: r.access_token, expiresAt: expiresAt }));
 
-                    this.updateStatusUI(true); 
-                    this.findBackupFileId(); 
-                } 
+                    this.updateStatusUI(true);
+                    this.findBackupFileId();
+                }
             },
         });
     },
@@ -524,7 +524,7 @@ const LogicaNegocio = {
                     <div style="flex: 1; border-right: 2px solid black; padding: 0;">
                         <div style="text-align: center; font-weight: bold; border-bottom: 1px solid black; padding: 4px 0; background: transparent;">KS Afinações</div>
                         <table style="width: 100%; font-size: 10px; border-collapse: collapse; color: black;">
-                            <tr><td style="width: 55px; padding: 3px 6px;">Endereço:</td><td style="padding: 3px 6px;">KS Afinações, Loanda - PR, 87900-000</td></tr>
+                            <tr><td style="width: 55px; padding: 3px 6px;">Endereço:</td><td style="padding: 3px 6px;">KS Afinações, Santa Isabel - PR, 87910-000</td></tr>
                             <tr><td style="padding: 3px 6px;">Telefone:</td><td style="padding: 3px 6px;">(44) 9 9828-8914</td></tr>
                             <tr><td style="padding: 3px 6px;">CNPJ:</td><td style="padding: 3px 6px;">42.360.395/0001-83</td></tr>
                         </table>

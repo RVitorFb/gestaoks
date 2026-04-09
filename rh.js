@@ -253,6 +253,7 @@ const RH = {
         const entOriginal = new Date(ponto.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const saiOriginal = ponto.saida ? new Date(ponto.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : "";
 
+        // ALIMENTA E ABRE O MODAL DO RELÓGIO (A TELA ESCURA DO FUNCIONARIOS.HTML)
         document.getElementById('edit-hora-entrada').value = entOriginal;
         document.getElementById('edit-hora-saida').value = saiOriginal;
         document.getElementById('modal-edit-hora').style.display = 'flex';
@@ -328,9 +329,9 @@ const RH = {
         });
 
         document.getElementById('relatorio-conteudo').innerHTML = `
-            <div style="display:flex; gap:30px; flex:1; min-height:0;">
-                <div style="flex:1.8; display:flex; flex-direction:column; background:#020617; border-radius:8px; border:1px solid #1e293b;">
-                    <div style="padding:15px 20px; background:#1e293b; color:#f8fafc; font-weight:bold;">EXTRATO DE JORNADA DIÁRIA (${mes}/${ano})</div>
+            <div class="relatorio-mobile" style="display:flex; gap:30px; flex:1; min-height:0;">
+                <div class="box-extrato" style="flex:1.8; display:flex; flex-direction:column; background:#020617; border-radius:8px; border:1px solid #1e293b;">
+                    <div class="box-extrato-title" style="padding:15px 20px; background:#1e293b; color:#f8fafc; font-weight:bold;">EXTRATO DE JORNADA DIÁRIA (${mes}/${ano})</div>
                     <div style="flex:1; overflow-y:auto; padding: 0 10px;">
                         <table style="width:100%; border-collapse:collapse; font-size:14px;">
                             <thead style="position:sticky; top:0; background:#020617; color:#64748b; font-size:11px; text-transform:uppercase;">
@@ -341,18 +342,18 @@ const RH = {
                     </div>
                 </div>
                 <div style="flex:1; display:flex; flex-direction:column; gap:20px;">
-                    <div style="background:#020617; border-radius:8px; border:1px solid #1e293b; padding:20px; flex:1; overflow-y:auto;">
+                    <div class="box-descontos" style="background:#020617; border-radius:8px; border:1px solid #1e293b; padding:20px; flex:1; overflow-y:auto;">
                         <h4 style="color:#ef4444; margin-bottom:10px;">DESCONTOS</h4>
                         <table style="width:100%; font-size:13px; color:#94a3b8;">
                             ${data.descontosManuais.map(d => `<tr><td>${d.desc}</td><td align="right">- R$ ${d.valor.toFixed(2)}</td></tr>`).join('')}
                             ${data.descontosFaltas > 0 ? `<tr><td>Faltas/Atrasos</td><td align="right">- R$ ${data.descontosFaltas.toFixed(2)}</td></tr>` : ''}
                         </table>
                     </div>
-                    <div style="background:#1e293b; border:2px solid #10b981; padding:25px; border-radius:8px;">
+                    <div class="box-resumo" style="background:#1e293b; border:2px solid #10b981; padding:25px; border-radius:8px;">
                         <div style="display:flex; justify-content:space-between; color:#94a3b8; margin-bottom:10px;"><span>Total Bruto:</span><span style="color:#f8fafc; font-weight:bold;">R$ ${data.totalVencimentos.toFixed(2).replace('.', ',')}</span></div>
                         <div style="border-top:1px solid rgba(148,163,184,0.1); padding-top:15px;">
                             <div style="color:#10b981; font-size:12px; font-weight:bold; text-transform:uppercase;">Valor Líquido</div>
-                            <div style="color:#10b981; font-size:36px; font-weight:800;">R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</div>
+                            <div class="texto-liquido" style="color:#10b981; font-size:36px; font-weight:800;">R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</div>
                         </div>
                     </div>
                 </div>
@@ -395,8 +396,8 @@ const RH = {
             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding: 6px;">
                 <div style="font-size: 10px; line-height: 1.3; color: #000 !important;">
                     <strong style="font-size: 12px; color: #000 !important;">KS AFINAÇÕES</strong><br>
-                    <span style="color: #000 !important;">Estância Triângulo - Estrada, Rodovia - a Loanda<br>
-                    Santa Isabel do Ivaí - PR, 87900-000<br>
+                    <span style="color: #000 !important;">Estância Triângulo - Estrada, Rodovia - Santa Isabel do Ivaí a<br>
+                    Loanda - PR, 87910-000<br>
                     CNPJ: 42.360.395/0001-83</span>
                 </div>
                 <div style="text-align: right; font-size: 10px; color: #000 !important;">
@@ -484,19 +485,16 @@ const RH = {
         `;
 
         document.getElementById('print-area-holerite').innerHTML = `
-            <style>
-                #print-area-holerite * { color: #000 !important; }
-            </style>
             <div class="print-half-holerite">${generateVia('1ª VIA - EMPRESA')}</div>
             <div class="print-separator-holerite" style="border-top: 1px dashed #000; margin: 15px 0;"></div>
             <div class="print-half-holerite">${generateVia('2ª VIA - FUNCIONÁRIO')}</div>
         `;
 
-        document.body.classList.add('printing-holerite');
+        // A MÁGICA DA NOTA NO CELULAR: Apenas adiciona a classe, NÃO apaga ela via setTimeout depois
+        document.body.className = 'printing-holerite';
 
         setTimeout(() => {
             window.print();
-            document.body.classList.remove('printing-holerite');
             document.title = tituloOriginal;
         }, 500);
     }
