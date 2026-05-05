@@ -291,6 +291,19 @@ tbody tr:hover {
     color: #fff;
 }
 
+.btn-success {
+    background-color: transparent;
+    border: 1px solid var(--success-color);
+    color: var(--success-color);
+    padding: 10px 20px;
+}
+
+.btn-success:hover {
+    background-color: var(--success-color);
+    color: #fff;
+}
+
+
 .flex {
     display: flex;
     gap: 15px;
@@ -316,6 +329,53 @@ tbody tr:hover {
 .text-right {
     text-align: right;
 }
+
+/* LISTA DE SUGESTÕES DO AUTO-COMPLETE */
+.sugestao-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    max-height: 250px;
+    overflow-y: auto;
+    width: 100%;
+    z-index: 10000;
+    /* Aumentado para garantir que fique por cima de tudo */
+    top: calc(100% + 2px);
+    /* Descola levemente do input para não sobrepor a borda */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    /* Sombra mais forte para destacar a elevação */
+}
+
+.sugestao-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sugestao-item:last-child {
+    border-bottom: none;
+}
+
+.sugestao-item:hover {
+    background: var(--surface-hover);
+}
+
+.sugestao-item.selecionado {
+    background: var(--surface-hover);
+    border-left: 3px solid var(--primary-color);
+    padding-left: 9px;
+}
+
+.sugestao-item strong {
+    color: var(--primary-color);
+}
+
 
 /* BARRA FIXA DOS BOTÕES DE IMPRESSÃO */
 .fixed-bottom-bar {

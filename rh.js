@@ -168,6 +168,164 @@ const RH = {
         document.getElementById('fechamento-func').innerHTML = '<option value="">Selecione</option>' + db.funcionarios.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
     },
 
+    importarDadosRelogio: function () {
+        const fileInput = document.getElementById('import-relogio-file');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            ModalRH.show('Aviso', 'Por favor, selecione o arquivo .xls gerado pelo relógio primeiro.');
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const data = new Uint8Array(e.target.result);
+            try {
+                // Lê o arquivo Excel
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                if (!jsonData || jsonData.length < 5) {
+                    ModalRH.show('Erro', 'Formato de arquivo não reconhecido.');
+                    return;
+                }
+
+                // 1. Encontrar o Cabeçalho (Nome e Data) ignorando linhas em branco
+                let nomeRelogio = null;
+                let mesAnoRelogio = null;
+                let anoStr = null;
+                let mesStr = null;
+
+                for (let i = 0; i < Math.min(15, jsonData.length); i++) {
+                    const linhaStr = (jsonData[i] || []).map(c => c || '').join('  ');
+
+                    if (linhaStr.includes('Nome:') || linhaStr.includes('Data:')) {
+                        const matchNome = linhaStr.match(/Nome:\s*(.+?)(?=\s\s|ID:|$)/i);
+                        if (matchNome && !nomeRelogio) nomeRelogio = matchNome[1].trim();
+
+                        const matchData = linhaStr.match(/Data:\s*(\d{2})\.(\d{2})\./i);
+                        if (matchData && !mesAnoRelogio) {
+                            anoStr = "20" + matchData[1];
+                            mesStr = matchData[2];
+                            mesAnoRelogio = `${anoStr}-${mesStr}`;
+                        }
+                    }
+                }
+
+                if (!nomeRelogio || !mesAnoRelogio) {
+                    ModalRH.show('Erro', 'Não foi possível identificar o Nome ou o Mês de Referência (Data) no cabeçalho do arquivo.');
+                    return;
+                }
+
+                const db = RHDb.get();
+                const func = db.funcionarios.find(f => f.nome.toLowerCase() === nomeRelogio.toLowerCase());
+
+                if (!func) {
+                    ModalRH.show('Erro', `Funcionário "${nomeRelogio}" não encontrado no sistema. O nome deve estar idêntico.`);
+                    return;
+                }
+
+                // 2. Encontrar onde começam os dados de ponto (dias)
+                let startIndex = -1;
+                for (let i = 0; i < jsonData.length; i++) {
+                    const col0 = String((jsonData[i] || [])[0] || '').trim();
+                    if (/^\d{2}\.\d{2}$/.test(col0)) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+
+                if (startIndex === -1) {
+                    ModalRH.show('Erro', 'Não foi possível encontrar as datas de ponto no arquivo.');
+                    return;
+                }
+
+                ModalRH.show('Confirmar Importação', `Deseja importar as horas de ${nomeRelogio} para ${mesStr}/${anoStr}? Isso não apagará os dados já existentes, apenas adicionará novos pontos.`, 'confirm', () => {
+
+                    let pontosAdicionados = 0;
+
+                    for (let i = startIndex; i < jsonData.length; i++) {
+                        const row = jsonData[i] || [];
+                        if (row.length === 0) continue;
+
+                        const processarDia = (dataColIndex, in1Idx, out1Idx, in2Idx, out2Idx) => {
+                            const dataCelula = row[dataColIndex];
+                            if (!dataCelula) return;
+
+                            const diaMatch = dataCelula.toString().trim().match(/^(\d{2})\.(\d{2})$/);
+                            if (!diaMatch) return;
+
+                            const diaStr = diaMatch[2]; // Captura apenas o DIA (Ex: 04.01 -> 01)
+
+                            const limparHora = (horaRaw) => {
+                                if (!horaRaw) return null;
+                                const hStr = horaRaw.toString().replace(/\*/g, '').trim();
+                                if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(hStr)) return hStr;
+                                return null;
+                            };
+
+                            // CORREÇÃO: Cria a data considerando o Fuso Horário local antes de salvar no sistema
+                            const criarDataIsoLocal = (horaLimpa) => {
+                                if (!horaLimpa) return null;
+                                const [h, m] = horaLimpa.split(':');
+                                return new Date(parseInt(anoStr), parseInt(mesStr) - 1, parseInt(diaStr), parseInt(h), parseInt(m)).toISOString();
+                            };
+
+                            const in1Iso = criarDataIsoLocal(limparHora(row[in1Idx]));
+                            const out1Iso = criarDataIsoLocal(limparHora(row[out1Idx]));
+                            const in2Iso = criarDataIsoLocal(limparHora(row[in2Idx]));
+                            const out2Iso = criarDataIsoLocal(limparHora(row[out2Idx]));
+
+                            if (in1Iso && out1Iso) {
+                                db.pontos.push({
+                                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                                    idFunc: func.id,
+                                    entrada: in1Iso,
+                                    saida: out1Iso
+                                });
+                                pontosAdicionados++;
+                            }
+
+                            if (in2Iso && out2Iso) {
+                                db.pontos.push({
+                                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                                    idFunc: func.id,
+                                    entrada: in2Iso,
+                                    saida: out2Iso
+                                });
+                                pontosAdicionados++;
+                            }
+                        };
+
+                        // Metade esquerda da tabela (Colunas: Data=0, Entrada1=2, Saida1=3, Entrada2=4, Saida2=5)
+                        processarDia(0, 2, 3, 4, 5);
+
+                        // Metade direita da tabela (Colunas: Data=8, Entrada1=10, Saida1=11, Entrada2=12, Saida2=13)
+                        processarDia(8, 10, 11, 12, 13);
+                    }
+
+                    RHDb.save(db);
+
+                    document.getElementById('fechamento-func').value = func.id;
+                    document.getElementById('fechamento-mes').value = mesAnoRelogio;
+                    RH.calcularFechamento();
+
+                    ModalRH.show('Sucesso', `${pontosAdicionados} turnos importados com sucesso!`);
+                    fileInput.value = '';
+                });
+
+            } catch (error) {
+                console.error(error);
+                ModalRH.show('Erro', 'Ocorreu um erro ao processar o arquivo.');
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    },
+
     adicionarDescontoManual: function () {
         const desc = document.getElementById('desc-nome').value;
         const valor = parseFloat(document.getElementById('desc-valor').value);

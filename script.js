@@ -182,7 +182,12 @@ const DriveAPI = {
     }
 };
 
+// Variáveis Globais do Sistema
 let itensNotaAtual = [];
+let itemNotaEmEdicaoIndex = null;
+let idNotaAtual = null;
+let sugestaoIndexNota = -1;  // Guarda a posição do cursor na lista da Nota
+let sugestaoIndexBusca = -1; // Guarda a posição do cursor na lista da Busca
 
 const LogicaNegocio = {
     salvarProduto: function () {
@@ -381,9 +386,13 @@ const LogicaNegocio = {
     },
 
     buscarProduto: function () {
-        const cod = document.getElementById('busca-codigo').value;
+        const cod = document.getElementById('busca-codigo').value.trim();
         const prod = DB.get().produtos.find(p => p.codigo === cod);
         const div = document.getElementById('busca-resultado');
+
+        const listaSugestoes = document.getElementById('lista-sugestoes-busca');
+        if (listaSugestoes) listaSugestoes.style.display = 'none';
+
         div.style.display = 'block';
 
         if (prod) {
@@ -400,9 +409,204 @@ const LogicaNegocio = {
         }
     },
 
+    // ==========================================
+    // SISTEMA AVANÇADO DE AUTO-COMPLETE COM SETAS
+    // ==========================================
+
+    navegarSugestoes: function (event, tipo) {
+        // Intercepta apenas teclas relevantes para navegação e seleção
+        if (!['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+
+        const listId = tipo === 'nota' ? 'lista-sugestoes-produtos' : 'lista-sugestoes-busca';
+        const lista = document.getElementById(listId);
+
+        // Se a lista não estiver visível e a tecla for Enter/Tab, usa a primeira opção silenciosamente
+        if (!lista || lista.style.display === 'none') {
+            if (event.key === 'Enter' || event.key === 'Tab') {
+                event.preventDefault();
+                if (tipo === 'nota') this.selecionarPrimeiraSugestao();
+                else this.selecionarPrimeiraSugestaoBusca();
+            }
+            return;
+        }
+
+        const items = lista.getElementsByTagName('li');
+        if (items.length === 0) return;
+
+        let indexAtual = tipo === 'nota' ? sugestaoIndexNota : sugestaoIndexBusca;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault(); // Impede o cursor de ir pro fim do texto
+            indexAtual++;
+            if (indexAtual >= items.length) indexAtual = 0; // Se passou do limite, volta pro topo
+            this.atualizarSelecaoVisual(items, indexAtual);
+        }
+        else if (event.key === 'ArrowUp') {
+            event.preventDefault(); // Impede o cursor de ir pro começo do texto
+            indexAtual--;
+            if (indexAtual < 0) indexAtual = items.length - 1; // Se subiu do topo, vai pro último
+            this.atualizarSelecaoVisual(items, indexAtual);
+        }
+        else if (event.key === 'Enter' || event.key === 'Tab') {
+            event.preventDefault();
+            if (indexAtual >= 0 && indexAtual < items.length) {
+                items[indexAtual].click(); // Simula o clique na opção focada
+            } else {
+                // Se a lista tá aberta mas nenhuma seta foi usada, pega a primeira
+                if (tipo === 'nota') this.selecionarPrimeiraSugestao();
+                else this.selecionarPrimeiraSugestaoBusca();
+            }
+        }
+
+        // Salva a posição globalmente
+        if (tipo === 'nota') sugestaoIndexNota = indexAtual;
+        else sugestaoIndexBusca = indexAtual;
+    },
+
+    atualizarSelecaoVisual: function (items, indexAtual) {
+        // Limpa a classe de todos
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.remove('selecionado');
+        }
+        // Aplica na atual
+        if (indexAtual >= 0 && indexAtual < items.length) {
+            const selecionado = items[indexAtual];
+            selecionado.classList.add('selecionado');
+            // Mantém a opção focada visível se a lista tiver scroll
+            selecionado.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    },
+
+    filtrarProdutosNota: function (event) {
+        // Ignora o processamento do texto se o usuário apertou uma tecla de navegação (para não resetar o cursor)
+        if (event && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+
+        sugestaoIndexNota = -1; // Reseta a navegação sempre que digitar algo novo
+
+        const codigoInput = document.getElementById('nota-item-codigo');
+        const termoBusca = codigoInput.value.trim().toLowerCase();
+        const listaSugestoes = document.getElementById('lista-sugestoes-produtos');
+        const db = DB.get();
+
+        if (!termoBusca) {
+            listaSugestoes.style.display = 'none';
+            this.limparFormularioItemNota();
+            return;
+        }
+
+        const produtosFiltrados = db.produtos.filter(p => String(p.codigo).trim().toLowerCase().startsWith(termoBusca));
+
+        if (produtosFiltrados.length > 0) {
+            listaSugestoes.innerHTML = '';
+            produtosFiltrados.forEach((prod, index) => {
+                const li = document.createElement('li');
+                li.innerText = `${prod.codigo} - ${prod.nome}`;
+                li.className = 'sugestao-item';
+                li.dataset.codigo = prod.codigo;
+
+                const regex = new RegExp(`^(${termoBusca})`, "i");
+                li.innerHTML = li.innerText.replace(regex, "<strong>$1</strong>");
+
+                // Sincroniza a posição da navegação com o mouse
+                li.onmouseenter = () => {
+                    sugestaoIndexNota = index;
+                    this.atualizarSelecaoVisual(listaSugestoes.getElementsByTagName('li'), index);
+                };
+
+                li.onclick = () => {
+                    codigoInput.value = prod.codigo;
+                    listaSugestoes.style.display = 'none';
+                    this.autoPreencherItemNota();
+                };
+                listaSugestoes.appendChild(li);
+            });
+            listaSugestoes.style.display = 'block';
+        } else {
+            listaSugestoes.style.display = 'none';
+            this.limparFormularioItemNota();
+        }
+    },
+
+    filtrarProdutosBusca: function (event) {
+        if (event && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+
+        sugestaoIndexBusca = -1;
+
+        const codigoInput = document.getElementById('busca-codigo');
+        const termoBusca = codigoInput.value.trim().toLowerCase();
+        const listaSugestoes = document.getElementById('lista-sugestoes-busca');
+        const db = DB.get();
+
+        if (!termoBusca) {
+            listaSugestoes.style.display = 'none';
+            document.getElementById('busca-resultado').style.display = 'none';
+            return;
+        }
+
+        const produtosFiltrados = db.produtos.filter(p => String(p.codigo).trim().toLowerCase().startsWith(termoBusca));
+
+        if (produtosFiltrados.length > 0) {
+            listaSugestoes.innerHTML = '';
+            produtosFiltrados.forEach((prod, index) => {
+                const li = document.createElement('li');
+                li.innerText = `${prod.codigo} - ${prod.nome}`;
+                li.className = 'sugestao-item';
+                li.dataset.codigo = prod.codigo;
+
+                const regex = new RegExp(`^(${termoBusca})`, "i");
+                li.innerHTML = li.innerText.replace(regex, "<strong>$1</strong>");
+
+                li.onmouseenter = () => {
+                    sugestaoIndexBusca = index;
+                    this.atualizarSelecaoVisual(listaSugestoes.getElementsByTagName('li'), index);
+                };
+
+                li.onclick = () => {
+                    codigoInput.value = prod.codigo;
+                    listaSugestoes.style.display = 'none';
+                    this.buscarProduto();
+                };
+                listaSugestoes.appendChild(li);
+            });
+            listaSugestoes.style.display = 'block';
+        } else {
+            listaSugestoes.style.display = 'none';
+        }
+    },
+
+    selecionarPrimeiraSugestao: function () {
+        const listaSugestoes = document.getElementById('lista-sugestoes-produtos');
+        if (listaSugestoes.style.display === 'block' && listaSugestoes.firstChild) {
+            const primeiroCodigo = listaSugestoes.firstChild.dataset.codigo;
+            document.getElementById('nota-item-codigo').value = primeiroCodigo;
+            listaSugestoes.style.display = 'none';
+            this.autoPreencherItemNota();
+        } else {
+            this.autoPreencherItemNota();
+        }
+    },
+
+    selecionarPrimeiraSugestaoBusca: function () {
+        const listaSugestoes = document.getElementById('lista-sugestoes-busca');
+        if (listaSugestoes.style.display === 'block' && listaSugestoes.firstChild) {
+            const primeiroCodigo = listaSugestoes.firstChild.dataset.codigo;
+            document.getElementById('busca-codigo').value = primeiroCodigo;
+            listaSugestoes.style.display = 'none';
+            this.buscarProduto();
+        } else {
+            this.buscarProduto();
+        }
+    },
+
+    limparFormularioItemNota: function () {
+        document.getElementById('nota-item-nome').value = '';
+        document.getElementById('nota-item-valor').value = '';
+        document.getElementById('nota-item-variacao').innerHTML = '<option value="">--</option>';
+    },
+
     autoPreencherItemNota: function () {
-        const codigoInput = document.getElementById('nota-item-codigo').value;
-        const prod = DB.get().produtos.find(p => p.codigo === codigoInput);
+        const codigoInput = document.getElementById('nota-item-codigo').value.trim();
+        const prod = DB.get().produtos.find(p => String(p.codigo) === String(codigoInput));
         const selectVariacao = document.getElementById('nota-item-variacao');
 
         selectVariacao.innerHTML = '';
@@ -415,10 +619,11 @@ const LogicaNegocio = {
             variacoesDaPeca.forEach(v => {
                 selectVariacao.innerHTML += `<option value="${v}">${v}</option>`;
             });
+
+            document.getElementById('nota-item-qtd').focus();
+            document.getElementById('lista-sugestoes-produtos').style.display = 'none';
         } else {
-            document.getElementById('nota-item-nome').value = '';
-            document.getElementById('nota-item-valor').value = '';
-            selectVariacao.innerHTML = '<option value="">--</option>';
+            this.limparFormularioItemNota();
         }
     },
 
@@ -437,33 +642,83 @@ const LogicaNegocio = {
         const repeticoes = parseInt(document.getElementById('nota-item-repeticoes').value) || 1;
 
         if (!codigo || !nomeBase || !variacaoSelecionada || isNaN(valor) || isNaN(qtd) || qtd < 1) {
-            CustomModal.show('Verifique os dados do item. O código digitado precisa ser válido.');
+            CustomModal.show('Verifique os dados do item. A quantidade deve ser no mínimo 1.');
             return;
         }
 
         const nomeFinalNaNota = `${nomeBase} - ${variacaoSelecionada}`;
+        const subtotal = valor * qtd;
 
-        for (let i = 0; i < repeticoes; i++) {
-            itensNotaAtual.push({
+        if (itemNotaEmEdicaoIndex !== null) {
+            itensNotaAtual[itemNotaEmEdicaoIndex] = {
                 codigo: codigo,
                 nome: nomeFinalNaNota,
                 valor: valor,
                 qtd: qtd,
                 perca: perca,
-                subtotal: valor * qtd
-            });
+                subtotal: subtotal,
+                variacaoBruta: variacaoSelecionada
+            };
+            itemNotaEmEdicaoIndex = null;
+            document.getElementById('btn-add-item-nota').innerText = "Adicionar";
+            document.getElementById('btn-add-item-nota').classList.remove('btn-success');
+            document.getElementById('btn-add-item-nota').classList.add('btn-outline');
+            document.getElementById('btn-add-item-nota').style.borderColor = 'var(--border-color)';
+            document.getElementById('btn-add-item-nota').style.color = 'var(--text-main)';
+        } else {
+            for (let i = 0; i < repeticoes; i++) {
+                itensNotaAtual.push({
+                    codigo: codigo,
+                    nome: nomeFinalNaNota,
+                    valor: valor,
+                    qtd: qtd,
+                    perca: perca,
+                    subtotal: subtotal,
+                    variacaoBruta: variacaoSelecionada
+                });
+            }
         }
 
         document.getElementById('nota-item-codigo').value = '';
         document.getElementById('nota-item-nome').value = '';
         document.getElementById('nota-item-valor').value = '';
-        document.getElementById('nota-item-qtd').value = '1';
+        document.getElementById('nota-item-qtd').value = '';
         document.getElementById('nota-item-perca').value = '0';
         document.getElementById('nota-item-repeticoes').value = '1';
         document.getElementById('nota-item-variacao').innerHTML = '<option value="">--</option>';
+        document.getElementById('lista-sugestoes-produtos').style.display = 'none';
 
         UI.renderItensNota();
         document.getElementById('nota-item-codigo').focus();
+    },
+
+    editarItemNota: function (index) {
+        const item = itensNotaAtual[index];
+        if (!item) return;
+
+        document.getElementById('nota-item-codigo').value = item.codigo;
+
+        this.autoPreencherItemNota();
+
+        setTimeout(() => {
+            const selectVariacao = document.getElementById('nota-item-variacao');
+            if (item.variacaoBruta) {
+                selectVariacao.value = item.variacaoBruta;
+            }
+        }, 50);
+
+        document.getElementById('nota-item-qtd').value = item.qtd;
+        document.getElementById('nota-item-perca').value = item.perca;
+        document.getElementById('nota-item-repeticoes').value = '1';
+
+        itemNotaEmEdicaoIndex = index;
+
+        const btnAdd = document.getElementById('btn-add-item-nota');
+        btnAdd.innerText = "Salvar Edição";
+        btnAdd.classList.remove('btn-outline');
+        btnAdd.classList.add('btn-success');
+        btnAdd.style.borderColor = 'var(--success-color)';
+        btnAdd.style.color = 'var(--success-color)';
     },
 
     removerItemNota: function (index) {
@@ -474,8 +729,19 @@ const LogicaNegocio = {
     limparNota: function () {
         CustomModal.show('Deseja realmente apagar todos os itens desta nota e começar de novo?', true, () => {
             itensNotaAtual = [];
+            itemNotaEmEdicaoIndex = null;
+            idNotaAtual = null; // Reseta a variável de ID da nota
             UI.renderItensNota();
             document.getElementById('nota-cliente').value = '';
+            document.getElementById('nota-data').value = new Date().toISOString().split('T')[0];
+
+            const btnAdd = document.getElementById('btn-add-item-nota');
+            btnAdd.innerText = "Adicionar";
+            btnAdd.classList.remove('btn-success');
+            btnAdd.classList.add('btn-outline');
+            btnAdd.style.borderColor = 'var(--border-color)';
+            btnAdd.style.color = 'var(--text-main)';
+
             CustomModal.show('Nota limpa com sucesso!');
         });
     },
@@ -483,7 +749,7 @@ const LogicaNegocio = {
     gerarEImprimirNota: function () {
         const codigoPendente = document.getElementById('nota-item-codigo').value;
         if (codigoPendente.trim() !== "") {
-            CustomModal.show('ATENÇÃO: Você digitou um código no campo (' + codigoPendente + ') mas esqueceu de clicar em Adicionar. Por favor, adicione antes de gerar a nota!');
+            CustomModal.show('ATENÇÃO: Você tem um código (' + codigoPendente + ') digitado que não foi adicionado ou salvo. Verifique antes de gerar a nota!');
             return;
         }
 
@@ -496,8 +762,19 @@ const LogicaNegocio = {
         }
 
         const cliente = DB.get().clientes[clIndex];
-        const idNota = Math.floor(10000 + Math.random() * 90000).toString();
-        const dataAtual = new Date().toLocaleDateString('pt-BR');
+
+        if (!idNotaAtual) {
+            idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
+        }
+        const idNota = idNotaAtual;
+
+        const dataInputRaw = document.getElementById('nota-data').value;
+        let dataImpressao = new Date().toLocaleDateString('pt-BR');
+        if (dataInputRaw) {
+            const partes = dataInputRaw.split('-');
+            dataImpressao = `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+
         const total = itensNotaAtual.reduce((acc, item) => acc + item.subtotal, 0);
 
         const generateVia = (viaName) => `
@@ -516,7 +793,7 @@ const LogicaNegocio = {
                     </div>
                     <div style="text-align: right; font-size: 11px; color: black;">
                         <div style="margin-bottom: 4px;">N.º <span style="font-weight: bold; font-size: 14px; color: black;">${idNota}</span></div>
-                        <div>Data: ${dataAtual}</div>
+                        <div>Data: ${dataImpressao}</div>
                     </div>
                 </div>
 
@@ -596,6 +873,7 @@ const LogicaNegocio = {
 
         setTimeout(() => {
             window.print();
+            document.title = tituloOriginal;
         }, 500);
     }
 };
@@ -769,6 +1047,12 @@ const UI = {
         if (document.getElementById('nota-cliente')) this.renderSelectClientes();
         if (document.getElementById('prod-fornecedor')) this.renderSelectFornecedorProduto();
         if (document.getElementById('tabela-fornecedor')) this.renderSelectsFornecedoresTabelas();
+
+        // Define a data atual no input de data da nota
+        const inputData = document.getElementById('nota-data');
+        if (inputData) {
+            inputData.value = new Date().toISOString().split('T')[0];
+        }
     },
     switchTab: function (tabId) {
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -860,14 +1144,26 @@ const UI = {
         let total = 0;
         itensNotaAtual.forEach((item, i) => {
             total += item.subtotal;
-            tbody.innerHTML += `<tr>
+            // Destaque visual se for o item sendo editado
+            const trClass = (itemNotaEmEdicaoIndex === i) ? 'style="background-color: rgba(16, 185, 129, 0.1); border-left: 3px solid var(--success-color);"' : '';
+
+            tbody.innerHTML += `<tr ${trClass}>
                 <td>${item.codigo}</td>
                 <td>${item.nome}</td>
                 <td>R$ ${item.valor.toFixed(2)}</td>
                 <td>${item.qtd}</td>
                 <td style="color: var(--text-main); font-weight: ${item.perca > 0 ? 'bold' : 'normal'};">${item.perca > 0 ? item.perca : '-'}</td>
                 <td>R$ ${item.subtotal.toFixed(2)}</td>
-                <td><button class="btn-danger" onclick="LogicaNegocio.removerItemNota(${i})"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button></td>
+                <td>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-outline" style="border-color: var(--primary-color); color: var(--primary-color); padding: 4px;" onclick="LogicaNegocio.editarItemNota(${i})" title="Editar Item">
+                            <i data-lucide="pencil" style="width: 14px; height: 14px;"></i>
+                        </button>
+                        <button class="btn-danger" style="padding: 4px;" onclick="LogicaNegocio.removerItemNota(${i})" title="Remover">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </td>
             </tr>`;
         });
         document.getElementById('nota-total-display').innerText = `R$ ${total.toFixed(2)}`;

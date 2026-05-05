@@ -200,11 +200,15 @@
 
             <section id="tab-busca" class="tab-content">
                 <h2>Busca Rápida</h2>
-                <div class="card">
-                    <div class="flex" style="align-items: flex-end;">
-                        <div style="flex: 1; min-width: 200px;">
+                <div class="card" style="overflow: visible;"> <!-- Libera o limite visual do card -->
+                    <div style="display: flex; gap: 15px; align-items: flex-end;">
+                        <div style="flex: 1; min-width: 200px; position: relative;">
                             <label>Digite o Código único</label>
-                            <input type="text" id="busca-codigo" placeholder="Ex: 100" style="margin-bottom: 0;">
+                            <input type="text" id="busca-codigo" onkeyup="LogicaNegocio.filtrarProdutosBusca(event)"
+                                onkeydown="LogicaNegocio.navegarSugestoes(event, 'busca')" autocomplete="off"
+                                placeholder="Ex: 100" style="margin-bottom: 0;">
+
+                            <ul id="lista-sugestoes-busca" class="sugestao-lista" style="display: none;"></ul>
                         </div>
                         <button class="btn-primary" onclick="LogicaNegocio.buscarProduto()">
                             <i data-lucide="search" style="width: 18px; height: 18px;"></i> Buscar
@@ -220,20 +224,33 @@
                 <h2>Emissão de Nota</h2>
 
                 <div class="card">
-                    <label>1. Destinatário</label>
-                    <select id="nota-cliente" required>
-                        <option value="">-- Selecione --</option>
-                    </select>
+                    <div class="grid-2">
+                        <div>
+                            <label>1. Destinatário</label>
+                            <select id="nota-cliente" required>
+                                <option value="">-- Selecione --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Data da Nota (Edite se necessário)</label>
+                            <input type="date" id="nota-data" required>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="card">
                     <label>2. Adicionar Itens</label>
-                    <div class="flex" style="align-items: flex-end; margin-top: 10px; gap: 10px;">
-                        <div style="flex: 1; min-width: 80px;">
+                    <div class="flex" style="align-items: flex-end; margin-top: 10px; gap: 10px; position: relative;">
+
+                        <div style="flex: 1; min-width: 80px; position: relative;">
                             <label>Código</label>
-                            <input type="text" id="nota-item-codigo" onblur="LogicaNegocio.autoPreencherItemNota()"
+                            <input type="text" id="nota-item-codigo" onkeyup="LogicaNegocio.filtrarProdutosNota(event)"
+                                onkeydown="LogicaNegocio.navegarSugestoes(event, 'nota')" autocomplete="off"
                                 placeholder="Ex: 100" style="margin-bottom: 0;">
+
+                            <ul id="lista-sugestoes-produtos" class="sugestao-lista" style="display: none;"></ul>
                         </div>
+
                         <div style="flex: 2; min-width: 150px;">
                             <label>Produto (Base)</label>
                             <input type="text" id="nota-item-nome" readonly
@@ -254,7 +271,8 @@
                         </div>
                         <div style="flex: 1; min-width: 60px;">
                             <label>Qtd</label>
-                            <input type="number" id="nota-item-qtd" min="1" value="1" style="margin-bottom: 0;">
+                            <!-- Removido o value="1" para iniciar vazio -->
+                            <input type="number" id="nota-item-qtd" min="1" style="margin-bottom: 0;">
                         </div>
                         <div style="flex: 1; min-width: 70px;">
                             <label>Perca</label>
@@ -266,7 +284,7 @@
                                 title="Adicionar multiplas vezes" style="margin-bottom: 0;">
                         </div>
 
-                        <button class="btn-outline" onclick="LogicaNegocio.adicionarItemNota()"
+                        <button id="btn-add-item-nota" class="btn-outline" onclick="LogicaNegocio.adicionarItemNota()"
                             style="height: 42px;">Adicionar</button>
                     </div>
 
@@ -279,7 +297,7 @@
                                 <th>Qtd.</th>
                                 <th>Perca</th>
                                 <th>Total</th>
-                                <th style="width: 50px;">Ação</th>
+                                <th style="width: 80px;">Ação</th>
                             </tr>
                         </thead>
                         <tbody id="lista-itens-nota"></tbody>
