@@ -88,17 +88,17 @@
                 <a href="index.html" class="nav-btn btn-switch-module"><i data-lucide="arrow-left"
                         style="margin-right:8px;"></i> Voltar para ERP</a>
                 <div class="nav-divider"></div>
-                <button class="nav-btn active" onclick="RH_UI.switchTab('equipe')"><i data-lucide="users"></i> Gestão de
+                <button class="nav-btn" onclick="RH_UI.switchTab('equipe')"><i data-lucide="users"></i> Gestão de
                     Equipe</button>
                 <button class="nav-btn" onclick="RH_UI.switchTab('ponto')"><i data-lucide="clock"></i> Bater
                     Ponto</button>
-                <button class="nav-btn" onclick="RH_UI.switchTab('fechamento')"><i data-lucide="calculator"></i>
+                <button class="nav-btn active" onclick="RH_UI.switchTab('fechamento')"><i data-lucide="calculator"></i>
                     Fechamento Mensal</button>
             </nav>
         </aside>
 
         <main class="main-content">
-            <section id="tab-equipe" class="tab-content active">
+            <section id="tab-equipe" class="tab-content">
                 <h2>Gestão de Equipe</h2>
                 <div class="card">
                     <form id="form-func" onsubmit="event.preventDefault(); RH.salvarFuncionario();">
@@ -143,7 +143,7 @@
                 <div class="card" id="lista-pontos"></div>
             </section>
 
-            <section id="tab-fechamento" class="tab-content">
+            <section id="tab-fechamento" class="tab-content active">
                 <div class="card">
                     <div class="grid-2">
                         <div><label>Mês de Referência</label><input type="month" id="fechamento-mes"
