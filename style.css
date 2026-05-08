@@ -540,19 +540,6 @@ tbody tr:hover {
     padding-right: 15px;
 }
 
-/* Destaque para navegação por teclado nos botões do modal */
-#custom-modal button:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-    box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
-    /* Um brilho amarelado suave */
-}
-
-/* Tira o outline feio padrão do navegador */
-#custom-modal button:focus-visible {
-    outline: 2px solid var(--primary-color);
-}
-
 /* =========================================
    MASTER RESPONSIVIDADE MOBILE (MENOR QUE 768px)
    ========================================= */

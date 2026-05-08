@@ -21,19 +21,15 @@ const CLIENT_ID = '697049729115-is5ih1sfs77cib7u3nqte5pktlqfgkbq.apps.googleuser
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 const CustomModal = {
-    keydownListener: null,
-
     show: function (msg, isConfirm = false, onConfirm = null) {
         document.getElementById('modal-message').innerText = msg;
-        const modalEl = document.getElementById('custom-modal');
-        modalEl.style.display = 'flex';
+        document.getElementById('custom-modal').style.display = 'flex';
 
         const btnCancel = document.getElementById('modal-btn-cancel');
         const btnConfirm = document.getElementById('modal-btn-confirm');
 
         btnCancel.style.display = isConfirm ? 'inline-block' : 'none';
 
-        // Garante que nenhum evento antigo fique pendurado
         btnConfirm.onclick = () => {
             this.hide();
             if (onConfirm) onConfirm();
@@ -42,60 +38,9 @@ const CustomModal = {
         btnCancel.onclick = () => {
             this.hide();
         };
-
-        // Foca automaticamente no botão Confirmar para o Enter funcionar de primeira
-        btnConfirm.focus();
-
-        // Remove listener antigo se existir (para evitar duplicação)
-        if (this.keydownListener) {
-            document.removeEventListener('keydown', this.keydownListener);
-        }
-
-        // Cria o ouvinte de teclado exclusivo para o Modal
-        this.keydownListener = (e) => {
-            if (modalEl.style.display === 'flex') {
-                if (e.key === 'Enter') {
-                    // O Enter vai acionar o botão que estiver focado atualmente
-                    // Como focamos o Confirmar ao abrir, ele é o padrão.
-                    e.preventDefault();
-                    if (document.activeElement === btnCancel) {
-                        btnCancel.click();
-                    } else {
-                        btnConfirm.click();
-                    }
-                }
-                else if (e.key === 'Escape') {
-                    // Esc = Cancelar/Fechar
-                    e.preventDefault();
-                    if (isConfirm) {
-                        btnCancel.click();
-                    } else {
-                        btnConfirm.click();
-                    }
-                }
-                else if (isConfirm && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-                    // Alterna o foco entre Cancelar e OK
-                    e.preventDefault();
-                    if (document.activeElement === btnConfirm) {
-                        btnCancel.focus();
-                    } else {
-                        btnConfirm.focus();
-                    }
-                }
-            }
-        };
-
-        // Adiciona o ouvinte
-        document.addEventListener('keydown', this.keydownListener);
     },
-
     hide: function () {
         document.getElementById('custom-modal').style.display = 'none';
-        // Remove o ouvinte quando fecha para não interferir no resto do sistema
-        if (this.keydownListener) {
-            document.removeEventListener('keydown', this.keydownListener);
-            this.keydownListener = null;
-        }
     }
 };
 
@@ -245,48 +190,17 @@ let sugestaoIndexNota = -1;  // Guarda a posição do cursor na lista da Nota
 let sugestaoIndexBusca = -1; // Guarda a posição do cursor na lista da Busca
 
 const LogicaNegocio = {
-
-    // === NAVEGAÇÃO RÁPIDA NA NOTA (ENTER = TAB) ===
-    // === NAVEGAÇÃO RÁPIDA NA NOTA (ENTER = AVANÇAR | ESC = VOLTAR) ===
-    focarProximoCampo: function (event, proximoId, anteriorId) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            const proximoCampo = document.getElementById(proximoId);
-            if (proximoCampo) {
-                if (proximoId === 'btn-add-item-nota') {
-                    proximoCampo.click();
-                } else {
-                    proximoCampo.focus();
-                    if (proximoCampo.tagName === 'INPUT') {
-                        proximoCampo.select();
-                    }
-                }
-            }
-        }
-        else if (event.key === 'Escape' && anteriorId) {
-            event.preventDefault(); // Impede outros comportamentos padrão do ESC
-            const campoAnterior = document.getElementById(anteriorId);
-            if (campoAnterior) {
-                campoAnterior.focus();
-                if (campoAnterior.tagName === 'INPUT') {
-                    campoAnterior.select();
-                }
-            }
-        }
-    },
-
     salvarProduto: function () {
         const db = DB.get();
         const codigoBase = document.getElementById('prod-codigo').value.trim();
         const nomeBase = document.getElementById('prod-nome').value.trim();
         const fornecedor = document.getElementById('prod-fornecedor').value.trim();
         const valVenda = parseFloat(document.getElementById('prod-val-venda').value);
-        const valProducao = parseFloat(document.getElementById('prod-val-producao').value) || 0;
 
         const varPintura = document.getElementById('var-pintura').checked;
         const varPolida = document.getElementById('var-polida').checked;
 
-        if (db.produtos.find(p => String(p.codigo) === codigoBase)) { CustomModal.show(`O código ${codigoBase} já existe!`); return; }
+        if (db.produtos.find(p => p.codigo === codigoBase)) { CustomModal.show(`O código ${codigoBase} já existe!`); return; }
 
         let variacoesArray = ["Cromada"];
         if (varPintura) variacoesArray.push("Pintura");
@@ -297,20 +211,18 @@ const LogicaNegocio = {
             nome: nomeBase,
             fornecedor: fornecedor,
             valVenda: valVenda,
-            valProducao: valProducao, // Adicionado o salvamento
             variacoes: variacoesArray
         });
 
         DB.save(db);
 
         document.getElementById('prod-codigo').value = '';
-        document.getElementById('prod-val-producao').value = '';
         document.getElementById('var-pintura').checked = false;
         document.getElementById('var-polida').checked = false;
         document.getElementById('prod-codigo').focus();
 
         UI.renderTabelaProdutos();
-        CustomModal.show(`Produto salvo com sucesso!`);
+        CustomModal.show(`Produto salvo com sucesso! Variações ativas: ${variacoesArray.join(', ')}`);
     },
 
     excluirProduto: function (codigo) {
@@ -335,7 +247,6 @@ const LogicaNegocio = {
 
         const hasPintura = prod.variacoes && prod.variacoes.includes("Pintura") ? 'checked' : '';
         const hasPolida = prod.variacoes && prod.variacoes.includes("Polida") ? 'checked' : '';
-        const valProducaoAtual = prod.valProducao || 0;
 
         const tr = document.getElementById(`tr-produto-${codigo}`);
         tr.innerHTML = `
@@ -349,7 +260,6 @@ const LogicaNegocio = {
             </td>
             <td><select id="edit-prod-forn-${codigo}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;">${optionsForn}</select></td>
             <td><input type="number" id="edit-prod-val-${codigo}" value="${prod.valVenda}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px;"></td>
-            <td><input type="number" id="edit-prod-producao-${codigo}" value="${valProducaoAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px;"></td>
             <td>
                 <div style="display: flex; gap: 4px;">
                     <button onclick="LogicaNegocio.salvarEdicaoProduto('${codigo}')" style="background: var(--success-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Salvar">
@@ -369,7 +279,6 @@ const LogicaNegocio = {
         const novoNome = document.getElementById(`edit-prod-nome-${codigoAntigo}`).value.trim();
         const novoForn = document.getElementById(`edit-prod-forn-${codigoAntigo}`).value.trim();
         const novoVal = parseFloat(document.getElementById(`edit-prod-val-${codigoAntigo}`).value);
-        const novoValProducao = parseFloat(document.getElementById(`edit-prod-producao-${codigoAntigo}`).value) || 0;
 
         const varPintura = document.getElementById(`edit-prod-var-pintura-${codigoAntigo}`).checked;
         const varPolida = document.getElementById(`edit-prod-var-polida-${codigoAntigo}`).checked;
@@ -397,7 +306,6 @@ const LogicaNegocio = {
                 nome: novoNome,
                 fornecedor: novoForn,
                 valVenda: novoVal,
-                valProducao: novoValProducao, // Atualiza o valor de produção editado
                 variacoes: variacoesArray
             };
             DB.save(db);
@@ -712,7 +620,7 @@ const LogicaNegocio = {
                 selectVariacao.innerHTML += `<option value="${v}">${v}</option>`;
             });
 
-            document.getElementById('nota-item-variacao').focus();
+            document.getElementById('nota-item-qtd').focus();
             document.getElementById('lista-sugestoes-produtos').style.display = 'none';
         } else {
             this.limparFormularioItemNota();
@@ -781,13 +689,7 @@ const LogicaNegocio = {
         document.getElementById('lista-sugestoes-produtos').style.display = 'none';
 
         UI.renderItensNota();
-
-        // Garante que o foco volte e limpe o menu
-        setTimeout(() => {
-            const inputCodigo = document.getElementById('nota-item-codigo');
-            inputCodigo.focus();
-            sugestaoIndexNota = -1; // Reseta o cursor do menu
-        }, 50);
+        document.getElementById('nota-item-codigo').focus();
     },
 
     editarItemNota: function (index) {
@@ -1166,7 +1068,6 @@ const UI = {
         document.getElementById('dash-prod-count').innerText = db.produtos.length;
         document.getElementById('dash-cli-count').innerText = db.clientes.length;
     },
-
     renderTabelaProdutos: function () {
         const tbody = document.querySelector('#tabela-produtos tbody');
         tbody.innerHTML = '';
@@ -1177,7 +1078,6 @@ const UI = {
                 <td>${p.nome} <br><small style="color:var(--text-muted); font-size: 12px;">(${varsFormatadas})</small></td>
                 <td>${p.fornecedor || '-'}</td>
                 <td>R$ ${p.valVenda.toFixed(2)}</td>
-                <td style="color: var(--success-color); font-weight: bold;">R$ ${(p.valProducao || 0).toFixed(2)}</td>
                 <td>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <button onclick="LogicaNegocio.iniciarEdicaoProduto('${p.codigo}')" style="background: transparent; border: none; cursor: pointer; color: var(--primary-color); padding: 0;" title="Editar Produto">
@@ -1190,7 +1090,6 @@ const UI = {
         });
         lucide.createIcons();
     },
-
     renderTabelaClientes: function () {
         const tbody = document.querySelector('#tabela-clientes tbody');
         tbody.innerHTML = '';
