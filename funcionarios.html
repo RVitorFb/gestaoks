@@ -71,12 +71,20 @@
                 style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #1e293b; padding-top: 20px;">
                 <button class="btn-outline-secondary"
                     onclick="document.getElementById('modal-relatorio').style.display='none'">Ajustar Dados</button>
-                <button class="btn-primary-yellow" onclick="RH.imprimirHolerite()">
+
+                <button id="btn-imprimir-extrato" class="btn-outline" onclick="RH.imprimirExtrato()"
+                    style="border-color: #38bdf8; color: #38bdf8;">
+                    <i data-lucide="file-text" style="width: 20px; vertical-align: middle; margin-right: 8px;"></i>
+                    Imprimir Relatório
+                </button>
+
+                <button class="btn-primary-yellow" onclick="RH.gerarPDFHolerite()">
                     <i data-lucide="printer" style="width: 20px; vertical-align: middle; margin-right: 8px;"></i> Emitir
                     Holerite Oficial
                 </button>
             </div>
         </div>
+    </div>
     </div>
 
     <div class="app-container" id="app-ui">
@@ -85,15 +93,27 @@
                 <h1>KS RH</h1>
             </div>
             <nav class="nav-menu">
-                <a href="index.html" class="nav-btn btn-switch-module"><i data-lucide="arrow-left"
-                        style="margin-right:8px;"></i> Voltar para ERP</a>
-                <div class="nav-divider"></div>
                 <button class="nav-btn" onclick="RH_UI.switchTab('equipe')"><i data-lucide="users"></i> Gestão de
                     Equipe</button>
-                <button class="nav-btn" onclick="RH_UI.switchTab('ponto')"><i data-lucide="clock"></i> Bater
-                    Ponto</button>
-                <button class="nav-btn active" onclick="RH_UI.switchTab('fechamento')"><i data-lucide="calculator"></i>
+                <button class="nav-btn" onclick="RH_UI.switchTab('producao')"><i data-lucide="hammer"></i> Lançar
+                    Produção</button>
+                <button class="nav-btn active" onclick="RH_UI.switchTab('fechamento')"><i
+                        data-lucide="file-check-2"></i>
                     Fechamento Mensal</button>
+
+                <hr style="border-color: #334155; margin: 10px 0;"> <button class="nav-btn"
+                    onclick="RH_UI.switchTab('empreita')"><i data-lucide="hard-hat"></i> Pagamento Empreita</button>
+
+                <hr style="border-color: #334155; margin: 10px 0;"> <button class="nav-btn"
+                    onclick="RH_UI.switchTab('turnos')"><i data-lucide="clock"></i> Turnos</button>
+                <button class="nav-btn" onclick="RH_UI.switchTab('cargos')"><i data-lucide="briefcase"></i> Cargos /
+                    Escalas</button>
+                <button class="nav-btn" onclick="RH_UI.switchTab('arquivo')"><i data-lucide="folder-open"></i> Arquivo
+                    Central</button>
+
+                <hr style="border-color: #334155; margin: 10px 0;">
+                <button class="nav-btn" onclick="window.location.href='index.html'"
+                    style="color: var(--danger-color);"><i data-lucide="arrow-left"></i> Voltar ao ERP</button>
             </nav>
         </aside>
 
@@ -102,23 +122,33 @@
                 <h2>Gestão de Equipe</h2>
                 <div class="card">
                     <form id="form-func" onsubmit="event.preventDefault(); RH.salvarFuncionario();">
-                        <input type="hidden" id="func-id">
                         <div class="grid-2">
+                            <input type="hidden" id="func-id">
                             <div><label>Nome Completo</label><input type="text" id="func-nome" required></div>
-                            <div><label>Cargo</label><input type="text" id="func-cargo" required></div>
                             <div><label>Data de Admissão</label><input type="date" id="func-admissao" required></div>
+
                             <div>
-                                <label>Tipo de Remuneração</label>
-                                <select id="func-tipo" required>
-                                    <option value="Mensalista">Mensalista</option>
-                                    <option value="Horista">Horista</option>
+                                <label>Tipo de Contrato</label>
+                                <select id="func-tipo" required onchange="RH.toggleCamposFuncionario()">
+                                    <option value="Mensalista">Mensalista (Por Cargo/Turno)</option>
+                                    <option value="Produção">Por Produção (Sem Turno Fixo)</option>
                                 </select>
                             </div>
-                            <div><label>Valor Base (R$)</label><input type="number" step="0.01" id="func-valor"
-                                    required></div>
-                            <div><label>Carga Horária Mensal</label><input type="number" id="func-carga" required></div>
+
+                            <div id="div-func-cargo">
+                                <label>Cargo Associado (Define a Escala)</label>
+                                <select id="func-cargo" required>
+                                    <option value="">-- Cadastre os Cargos Primeiro --</option>
+                                </select>
+                            </div>
+
+                            <div id="div-func-salario">
+                                <label>Salário Base Mensal (R$)</label>
+                                <input type="number" step="0.01" id="func-salario" required>
+                            </div>
                         </div>
-                        <button type="submit" class="btn-primary mt-4">Salvar Funcionário</button>
+                        <button type="submit" class="btn-primary mt-4" style="width: auto;"><i data-lucide="save"></i>
+                            Salvar Funcionário</button>
                     </form>
                 </div>
                 <div class="card">
@@ -126,21 +156,16 @@
                         <thead>
                             <tr>
                                 <th>Nome</th>
-                                <th>Cargo</th>
                                 <th>Admissão</th>
                                 <th>Tipo</th>
-                                <th>Valor Base</th>
-                                <th>Carga (H)</th>
-                                <th>Ações</th>
+                                <th>Cargo</th>
+                                <th>Salário Base</th>
+                                <th style="width: 80px;">Ação</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
-            </section>
-
-            <section id="tab-ponto" class="tab-content">
-                <div class="card" id="lista-pontos"></div>
             </section>
 
             <section id="tab-fechamento" class="tab-content active">
@@ -217,6 +242,208 @@
                     </div>
                 </div>
             </section>
+
+            <section id="tab-producao" class="tab-content">
+                <h2>Lançamentos de Produção</h2>
+                <div class="card" style="overflow: visible;">
+                    <form id="form-producao" onsubmit="event.preventDefault(); RH.salvarLancamentoProducao();">
+                        <div class="flex" style="align-items: flex-end; gap: 10px;">
+                            <div style="flex: 1.5; min-width: 150px;">
+                                <label>Funcionário</label>
+                                <select id="prod-id-func" required style="margin-bottom: 0;"></select>
+                            </div>
+                            <div style="flex: 1; min-width: 120px;">
+                                <label>Data</label>
+                                <input type="date" id="prod-data" required style="margin-bottom: 0;">
+                            </div>
+                            <div style="flex: 1; min-width: 100px; position: relative;">
+                                <label>Cód. Peça</label>
+                                <input type="text" id="prod-peca-codigo" onkeyup="RH.filtrarPecasProducao(event)"
+                                    onkeydown="RH.navegarSugestoesProducao(event)" autocomplete="off" required
+                                    style="margin-bottom: 0;">
+                                <ul id="sugestoes-pecas-rh" class="sugestao-lista"
+                                    style="display: none; top: calc(100% + 2px);"></ul>
+                            </div>
+                            <div style="flex: 0.8; min-width: 80px;">
+                                <label>Qtd.</label>
+                                <input type="number" id="prod-qtd" min="1" required style="margin-bottom: 0;">
+                            </div>
+
+                            <div style="flex: 0.8; min-width: 70px;">
+                                <label>Caixas</label>
+                                <input type="number" id="prod-caixas" min="1" value="1" required
+                                    style="margin-bottom: 0;" title="Adicionar múltiplas caixas iguais">
+                            </div>
+
+                            <button type="submit" class="btn-primary-yellow"
+                                style="height: 42px; padding: 0 25px; margin-bottom: 0;">Registrar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Histórico / Revisão de Produção</h3>
+                    <table id="tabela-revisao-producao">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Funcionário</th>
+                                <th>Peça</th>
+                                <th>Qtd</th>
+                                <th>Unit.</th>
+                                <th>Total</th>
+                                <th style="width: 80px;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-turnos" class="tab-content">
+                <h2>Configuração de Turnos</h2>
+                <div class="card">
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Cadastre os modelos de
+                        horários praticados na fábrica.</p>
+                    <form id="form-turno" onsubmit="event.preventDefault(); RH_Turnos.salvarTurno();">
+                        <div class="grid-2">
+                            <input type="hidden" id="turno-id">
+                            <div><label>Nome do Turno</label><input type="text" id="turno-nome"
+                                    placeholder="Ex: Seg a Qui Padrão" required></div>
+                            <div></div>
+                            <div><label>Entrada Manhã</label><input type="time" id="turno-e1" required></div>
+                            <div><label>Saída Almoço</label><input type="time" id="turno-s1" required></div>
+                            <div><label>Volta Almoço</label><input type="time" id="turno-e2" required></div>
+                            <div><label>Saída Final</label><input type="time" id="turno-s2" required></div>
+                        </div>
+                        <button type="submit" class="btn-primary mt-4" style="width: auto;"><i data-lucide="save"></i>
+                            Salvar Turno</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>Turnos Cadastrados</h3>
+                    <table id="tabela-turnos">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>E1</th>
+                                <th>S1</th>
+                                <th>E2</th>
+                                <th>S2</th>
+                                <th>Carga Exigida</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-cargos" class="tab-content">
+                <h2>Cargos e Escalas</h2>
+                <div class="card">
+                    <form id="form-cargo" onsubmit="event.preventDefault(); RH_Cargos.salvarCargo();">
+                        <input type="hidden" id="cargo-id">
+                        <div style="margin-bottom: 15px;">
+                            <label>Nome do Cargo</label>
+                            <input type="text" id="cargo-nome" placeholder="Ex: Afinador" required style="width: 50%;">
+                        </div>
+                        <h4 style="margin-bottom: 10px; color: var(--primary-color);">Vincular Turnos na Semana:</h4>
+                        <div class="grid-2" style="gap: 10px; background: #0b1017; padding: 15px; border-radius: 8px;">
+                            <div><label>Segunda-feira</label><select id="cargo-seg">
+                                    <option value="">-- Folga / Extra --</option>
+                                </select></div>
+                            <div><label>Terça-feira</label><select id="cargo-ter">
+                                    <option value="">-- Folga / Extra --</option>
+                                </select></div>
+                            <div><label>Quarta-feira</label><select id="cargo-qua">
+                                    <option value="">-- Folga / Extra --</option>
+                                </select></div>
+                            <div><label>Quinta-feira</label><select id="cargo-qui">
+                                    <option value="">-- Folga / Extra --</option>
+                                </select></div>
+                            <div><label>Sexta-feira</label><select id="cargo-sex">
+                                    <option value="">-- Folga / Extra --</option>
+                                </select></div>
+                            <div><label>Sábado</label><select id="cargo-sab">
+                                    <option value="">-- Folga / Extra --</option>
+                                </select></div>
+                            <div><label>Domingo</label><select id="cargo-dom">
+                                    <option value="">-- Folga / Extra --</option>
+                                </select></div>
+                        </div>
+                        <button type="submit" class="btn-primary mt-4" style="width: auto;"><i data-lucide="save"></i>
+                            Salvar Cargo</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>Cargos Cadastrados</h3>
+                    <table id="tabela-cargos">
+                        <thead>
+                            <tr>
+                                <th>Cargo</th>
+                                <th>Escala Resumo</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-empreita" class="tab-content">
+                <h2>Pagamento de Empreita (Terceirizados)</h2>
+                <div class="card" style="overflow: visible;">
+                    <div style="margin-bottom: 20px;">
+                        <label>Nome do Prestador (Sem necessidade de cadastro prévio)</label>
+                        <input type="text" id="emp-nome" placeholder="Ex: João da Silva" style="width: 50%;" required>
+                    </div>
+                    <hr style="border-color: var(--border-color); margin-bottom: 20px;">
+                    <div class="flex" style="align-items: flex-end; gap: 10px; flex-wrap: nowrap;">
+                        <div style="width: 150px;">
+                            <label>Formato</label>
+                            <select id="emp-formato" onchange="RH_Empreita.toggleCampos()">
+                                <option value="hora">Por Hora</option>
+                                <option value="producao">Por Produção</option>
+                            </select>
+                        </div>
+                        <div id="emp-campos-dinamicos" class="flex" style="gap: 10px; flex: 1;"></div>
+
+                        <button id="btn-add-empreita" class="btn-outline"
+                            style="height: 42px; min-width: 100px;">Adicionar</button>
+                    </div>
+
+                    <div style="overflow-x: auto; margin-top: 20px;">
+                        <table id="tabela-empreita-itens" style="min-width: 600px;">
+                            <thead>
+                                <tr>
+                                    <th>Descrição / Peça</th>
+                                    <th>Qtd / Horas</th>
+                                    <th>Val. Unit.</th>
+                                    <th>Total</th>
+                                    <th style="width: 80px;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-itens-empreita"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="text-right mt-4" style="padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <h3 style="font-size: 18px;">Total a Pagar: <span id="empreita-total-display"
+                                style="color: var(--success-color);">R$ 0,00</span></h3>
+                        <button class="btn-primary mt-2" onclick="RH_Empreita.gerarRecibo()"><i
+                                data-lucide="printer"></i> Gerar Recibo</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-arquivo" class="tab-content">
+                <h2>Arquivo Central (Histórico)</h2>
+                <div class="card">
+                    <p style="color: var(--text-muted);">Módulo em construção para a Fase 4.</p>
+                </div>
+            </section>
+
         </main>
     </div>
     <div id="print-area-holerite" style="display: none;"></div>

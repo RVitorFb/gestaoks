@@ -1,12 +1,23 @@
 // Inicializa ícones na carga inicial
 lucide.createIcons();
 
+let sugestaoIndexProdRH = -1;
+
 const RHDb = {
     KEY: 'ks_rh_dados',
     get: function () {
         const data = localStorage.getItem(this.KEY);
-        const parsed = data ? JSON.parse(data) : { funcionarios: [], pontos: [] };
+        const parsed = data ? JSON.parse(data) : {
+            funcionarios: [],
+            pontos: [],
+            lancamentosProducao: [],
+            turnos: [], // <- NOVO
+            cargos: []  // <- NOVO
+        };
         if (!parsed.descontosFechamento) parsed.descontosFechamento = [];
+        if (!parsed.lancamentosProducao) parsed.lancamentosProducao = [];
+        if (!parsed.turnos) parsed.turnos = []; // <- NOVO
+        if (!parsed.cargos) parsed.cargos = []; // <- NOVO
         return parsed;
     },
     save: function (data) {
@@ -20,116 +31,588 @@ const RHDb = {
 };
 
 const ModalRH = {
+    keydownListener: null,
+
     show: function (title, message, type = 'alert', onConfirm = null) {
         const modal = document.getElementById('custom-modal');
         document.getElementById('modal-title').innerText = title;
         document.getElementById('modal-message').innerText = message;
+
         const btnCancel = document.getElementById('modal-btn-cancel');
         const btnConfirm = document.getElementById('modal-btn-confirm');
-        btnConfirm.onclick = () => { modal.style.display = 'none'; if (onConfirm) onConfirm(); };
-        btnCancel.style.display = (type === 'confirm') ? 'inline-block' : 'none';
-        btnCancel.onclick = () => modal.style.display = 'none';
+
+        const isConfirm = type === 'confirm';
+        btnCancel.style.display = isConfirm ? 'inline-block' : 'none';
+
+        btnConfirm.onclick = () => {
+            this.hide();
+            if (onConfirm) onConfirm();
+        };
+
+        btnCancel.onclick = () => {
+            this.hide();
+        };
+
         modal.style.display = 'flex';
+        btnConfirm.focus();
+
+        if (this.keydownListener) {
+            document.removeEventListener('keydown', this.keydownListener);
+        }
+
+        this.keydownListener = (e) => {
+            if (modal.style.display === 'flex') {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (document.activeElement === btnCancel) {
+                        btnCancel.click();
+                    } else {
+                        btnConfirm.click();
+                    }
+                }
+                else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    if (isConfirm) {
+                        btnCancel.click();
+                    } else {
+                        btnConfirm.click();
+                    }
+                }
+                else if (isConfirm && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                    e.preventDefault();
+                    if (document.activeElement === btnConfirm) {
+                        btnCancel.focus();
+                    } else {
+                        btnConfirm.focus();
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('keydown', this.keydownListener);
+    },
+
+    promptEdicaoHoras: function (title, horasIniciais, onConfirm) {
+        const modal = document.getElementById('custom-modal');
+        document.getElementById('modal-title').innerText = title;
+
+        const h = horasIniciais || ['', '', '', ''];
+
+        // Desenha a tela exatamente como nas suas fotos (Grid com 4 campos separados)
+        document.getElementById('modal-message').innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; margin-top: 10px;">
+                <div>
+                    <label style="color: var(--text-muted); font-size: 12px; font-weight: bold;">Entrada 1</label>
+                    <input type="time" id="edit-e1" value="${h[0]}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; outline: none; font-size: 16px; margin-top: 4px;">
+                </div>
+                <div>
+                    <label style="color: var(--text-muted); font-size: 12px; font-weight: bold;">Saída 1</label>
+                    <input type="time" id="edit-s1" value="${h[1]}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; outline: none; font-size: 16px; margin-top: 4px;">
+                </div>
+                <div>
+                    <label style="color: var(--text-muted); font-size: 12px; font-weight: bold;">Entrada 2</label>
+                    <input type="time" id="edit-e2" value="${h[2]}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; outline: none; font-size: 16px; margin-top: 4px;">
+                </div>
+                <div>
+                    <label style="color: var(--text-muted); font-size: 12px; font-weight: bold;">Saída 2</label>
+                    <input type="time" id="edit-s2" value="${h[3]}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; outline: none; font-size: 16px; margin-top: 4px;">
+                </div>
+            </div>
+        `;
+
+        const btnCancel = document.getElementById('modal-btn-cancel');
+        const btnConfirm = document.getElementById('modal-btn-confirm');
+
+        btnCancel.style.display = 'inline-block';
+
+        btnConfirm.onclick = () => {
+            const val = [
+                document.getElementById('edit-e1').value,
+                document.getElementById('edit-s1').value,
+                document.getElementById('edit-e2').value,
+                document.getElementById('edit-s2').value
+            ];
+            this.hide();
+            document.getElementById('modal-message').innerHTML = '';
+            if (onConfirm) onConfirm(val);
+        };
+
+        btnCancel.onclick = () => {
+            this.hide();
+            document.getElementById('modal-message').innerHTML = '';
+        };
+
+        modal.style.display = 'flex';
+
+        if (this.keydownListener) {
+            document.removeEventListener('keydown', this.keydownListener);
+        }
+
+        this.keydownListener = (e) => {
+            if (modal.style.display === 'flex') {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    btnConfirm.click();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    btnCancel.click();
+                }
+            }
+        };
+        document.addEventListener('keydown', this.keydownListener);
+    },
+
+    hide: function () {
+        document.getElementById('custom-modal').style.display = 'none';
+        if (this.keydownListener) {
+            document.removeEventListener('keydown', this.keydownListener);
+            this.keydownListener = null;
+        }
     }
 };
 
 const RH_UI = {
     switchTab: function (tabId) {
-        document.querySelectorAll('.nav-btn, .tab-content').forEach(el => el.classList.remove('active'));
-        const btn = document.querySelector(`button[onclick*="${tabId}"]`);
-        if (btn) btn.classList.add('active');
-        const content = document.getElementById(`tab-${tabId}`);
-        if (content) content.classList.add('active');
-        if (tabId === 'ponto') RH.renderPontoCards();
-        if (tabId === 'fechamento') RH.renderSelectFechamento();
+        // As novas abas incluídas aqui
+        const tabs = ['equipe', 'producao', 'fechamento', 'turnos', 'cargos', 'empreita', 'arquivo'];
+        tabs.forEach(t => {
+            const el = document.getElementById(`tab-${t}`);
+            if (el) el.classList.remove('active');
+        });
+        const activeEl = document.getElementById(`tab-${tabId}`);
+        if (activeEl) activeEl.classList.add('active');
+
+        const btns = document.querySelectorAll('.nav-btn');
+        btns.forEach(b => b.classList.remove('active'));
+        const eventBtn = event ? event.currentTarget : null;
+        if (eventBtn && eventBtn.tagName === 'BUTTON') eventBtn.classList.add('active');
+
+        // Carregar dados de acordo com a aba
+        if (tabId === 'equipe') {
+            RH.renderTabelaFuncionarios();
+            RH.popularSelectCargos();
+        }
+        if (tabId === 'producao') RH.renderTabelaProducao();
+        if (tabId === 'fechamento') RH.renderSelectFechamento(); // <-- NOME CORRIGIDO AQUI
+        if (tabId === 'turnos') RH_Turnos.renderTabela();
+        if (tabId === 'cargos') {
+            RH_Cargos.renderTabela();
+            RH_Cargos.popularSelectsTurnos();
+        }
     }
 };
 
 const RH = {
+
+    renderSelectFuncProducao: function () {
+        const db = RHDb.get();
+        const funcs = db.funcionarios.filter(f => f.tipo === 'Produção');
+        document.getElementById('prod-id-func').innerHTML = funcs.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+    },
+
+    navegarSugestoesProducao: function (event) {
+        if (!['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+
+        const lista = document.getElementById('sugestoes-pecas-rh');
+
+        if (!lista || lista.style.display === 'none') {
+            if (event.key === 'Enter' || event.key === 'Tab') {
+                event.preventDefault();
+                this.selecionarPrimeiraPeca();
+            }
+            return;
+        }
+
+        const items = lista.getElementsByTagName('li');
+        if (items.length === 0) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            sugestaoIndexProdRH++;
+            if (sugestaoIndexProdRH >= items.length) sugestaoIndexProdRH = 0;
+            this.atualizarSelecaoVisualProducao(items, sugestaoIndexProdRH);
+        }
+        else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            sugestaoIndexProdRH--;
+            if (sugestaoIndexProdRH < 0) sugestaoIndexProdRH = items.length - 1;
+            this.atualizarSelecaoVisualProducao(items, sugestaoIndexProdRH);
+        }
+        else if (event.key === 'Enter' || event.key === 'Tab') {
+            event.preventDefault();
+            if (sugestaoIndexProdRH >= 0 && sugestaoIndexProdRH < items.length) {
+                items[sugestaoIndexProdRH].click();
+            } else {
+                this.selecionarPrimeiraPeca();
+            }
+        }
+    },
+
+    atualizarSelecaoVisualProducao: function (items, indexAtual) {
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.remove('selecionado');
+        }
+        if (indexAtual >= 0 && indexAtual < items.length) {
+            const selecionado = items[indexAtual];
+            selecionado.classList.add('selecionado');
+            selecionado.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    },
+
+    filtrarPecasProducao: function (event) {
+        if (event && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+
+        sugestaoIndexProdRH = -1;
+
+        const input = document.getElementById('prod-peca-codigo');
+        const termo = input.value.trim().toLowerCase();
+        const lista = document.getElementById('sugestoes-pecas-rh');
+        const dadosERP = JSON.parse(localStorage.getItem('ks_afinacoes_dados')) || { produtos: [] };
+
+        if (!termo) { lista.style.display = 'none'; return; }
+
+        const filtrados = dadosERP.produtos.filter(p => String(p.codigo).toLowerCase().startsWith(termo));
+
+        if (filtrados.length > 0) {
+            lista.innerHTML = '';
+            filtrados.forEach((prod, index) => {
+                const li = document.createElement('li');
+                li.innerText = `${prod.codigo} - ${prod.nome}`;
+                li.className = 'sugestao-item';
+                li.dataset.codigo = prod.codigo;
+
+                const regex = new RegExp(`^(${termo})`, "i");
+                li.innerHTML = li.innerText.replace(regex, "<strong>$1</strong>");
+
+                li.onmouseenter = () => {
+                    sugestaoIndexProdRH = index;
+                    this.atualizarSelecaoVisualProducao(lista.getElementsByTagName('li'), index);
+                };
+
+                li.onclick = () => {
+                    this.selecionarPecaProducao(prod.codigo);
+                };
+                lista.appendChild(li);
+            });
+            lista.style.display = 'block';
+        } else {
+            lista.style.display = 'none';
+        }
+    },
+
+    selecionarPrimeiraPeca: function () {
+        const lista = document.getElementById('sugestoes-pecas-rh');
+        if (lista.style.display === 'block' && lista.firstChild) {
+            this.selecionarPecaProducao(lista.firstChild.dataset.codigo);
+        }
+    },
+
+    selecionarPecaProducao: function (codigo) {
+        document.getElementById('prod-peca-codigo').value = codigo;
+        document.getElementById('sugestoes-pecas-rh').style.display = 'none';
+        document.getElementById('prod-qtd').focus();
+    },
+
+    salvarLancamentoProducao: function () {
+        const idFunc = document.getElementById('prod-id-func').value;
+        const data = document.getElementById('prod-data').value;
+        const codigo = document.getElementById('prod-peca-codigo').value;
+        const qtd = parseInt(document.getElementById('prod-qtd').value);
+        const caixas = parseInt(document.getElementById('prod-caixas').value) || 1; // Puxa a quantidade de caixas
+
+        if (!idFunc) { ModalRH.show('Erro', 'Selecione um funcionário de Produção primeiro.'); return; }
+
+        const dadosERP = JSON.parse(localStorage.getItem('ks_afinacoes_dados')) || { produtos: [] };
+        const peca = dadosERP.produtos.find(p => String(p.codigo) === String(codigo));
+
+        if (!peca) { ModalRH.show('Erro', 'Peça não encontrada no cadastro do sistema ERP.'); return; }
+
+        const db = RHDb.get();
+
+        // Loop para registrar cada caixa como uma linha separada no histórico
+        for (let i = 0; i < caixas; i++) {
+            db.lancamentosProducao.push({
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // ID único gerado para não dar conflito
+                idFunc,
+                data,
+                pecaNome: peca.nome,
+                pecaCodigo: peca.codigo,
+                valorUnit: peca.valProducao || 0,
+                qtd,
+                total: (peca.valProducao || 0) * qtd
+            });
+        }
+
+        RHDb.save(db);
+
+        // Limpa os campos para o próximo lançamento
+        document.getElementById('prod-peca-codigo').value = '';
+        document.getElementById('prod-qtd').value = '';
+        document.getElementById('prod-caixas').value = '1';
+
+        this.renderTabelaProducao();
+        ModalRH.show('Sucesso', `${caixas} caixa(s) registrada(s) com sucesso!`);
+    },
+
+    renderTabelaProducao: function () {
+        const db = RHDb.get();
+        const tbody = document.querySelector('#tabela-revisao-producao tbody');
+        const logs = [...db.lancamentosProducao].sort((a, b) => new Date(b.data) - new Date(a.data));
+
+        tbody.innerHTML = logs.map(l => {
+            const f = db.funcionarios.find(func => func.id === l.idFunc);
+            return `<tr>
+             <td>${l.data.split('-').reverse().join('/')}</td>
+             <td>${f ? f.nome : 'Excluído'}</td>
+             <td>${l.pecaCodigo} - ${l.pecaNome}</td>
+             <td>${l.qtd}</td>
+             <td>R$ ${l.valorUnit.toFixed(2)}</td>
+             <td style="color:var(--success-color); font-weight:bold;">R$ ${l.total.toFixed(2)}</td>
+             <td>
+                 <div style="display: flex; gap: 8px; align-items: center;">
+                     <button onclick="RH.iniciarEdicaoLancamento('${l.id}')" style="background: transparent; border: none; cursor: pointer; color: #eab308; padding: 0;" title="Editar"><i data-lucide="pencil" style="width: 14px;"></i></button>
+                     <button class="btn-danger" onclick="RH.excluirLancamentoProducao('${l.id}')" style="padding:4px;" title="Excluir"><i data-lucide="trash-2" style="width:14px;"></i></button>
+                 </div>
+             </td>
+         </tr>`;
+        }).join('');
+        lucide.createIcons();
+    },
+
+    excluirLancamentoProducao: function (id) {
+        ModalRH.show('Excluir', 'Deseja remover este registro de produção?', 'confirm', () => {
+            const db = RHDb.get();
+            db.lancamentosProducao = db.lancamentosProducao.filter(l => l.id !== id);
+            RHDb.save(db);
+            this.renderTabelaProducao();
+        });
+    },
+
+    iniciarEdicaoLancamento: function (id) {
+        const db = RHDb.get();
+        const l = db.lancamentosProducao.find(log => log.id === id);
+        if (!l) return;
+
+        // Puxa lista de funcionários para o select
+        const funcs = db.funcionarios.filter(f => f.tipo === 'Produção');
+        let optionsFunc = '';
+        funcs.forEach(f => {
+            let selected = (f.id === l.idFunc) ? 'selected' : '';
+            optionsFunc += `<option value="${f.id}" ${selected}>${f.nome}</option>`;
+        });
+
+        // Tenta achar o funcionário original (caso ele tenha sido excluído)
+        const funcOriginal = db.funcionarios.find(f => f.id === l.idFunc);
+        if (!funcOriginal) {
+            optionsFunc += `<option value="${l.idFunc}" selected>Excluído</option>`;
+        }
+
+        // Seleciona a linha (precisamos colocar um ID nela no render, vamos arrumar na próxima etapa se precisar, mas aqui pegamos pelo botão clicado ou só recriamos via seletor)
+        // Para simplificar, vou recriar a tabela toda com os campos apenas na linha certa
+        const tbody = document.querySelector('#tabela-revisao-producao tbody');
+        const logs = [...db.lancamentosProducao].sort((a, b) => new Date(b.data) - new Date(a.data));
+
+        tbody.innerHTML = logs.map(log => {
+            if (log.id === id) {
+                // LINHA EM MODO DE EDIÇÃO
+                return `<tr style="background-color: rgba(234, 179, 8, 0.1);">
+                    <td><input type="date" id="edit-prod-data-${id}" value="${log.data}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
+                    <td><select id="edit-prod-func-${id}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;">${optionsFunc}</select></td>
+                    <td>${log.pecaCodigo} - ${log.pecaNome}</td>
+                    <td><input type="number" id="edit-prod-qtd-${id}" value="${log.qtd}" min="1" style="width:60px; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
+                    <td>R$ ${log.valorUnit.toFixed(2)}</td>
+                    <td style="color:var(--success-color); font-weight:bold;">R$ ${(log.qtd * log.valorUnit).toFixed(2)}</td>
+                    <td>
+                        <div style="display: flex; gap: 4px;">
+                            <button onclick="RH.salvarEdicaoLancamento('${id}')" style="background: #10b981; border: none; color: #fff; padding: 6px; border-radius:4px; cursor:pointer;" title="Salvar"><i data-lucide="check" style="width: 14px;"></i></button>
+                            <button onclick="RH.renderTabelaProducao()" style="background: #ef4444; border: none; color: #fff; padding: 6px; border-radius:4px; cursor:pointer;" title="Cancelar"><i data-lucide="x" style="width: 14px;"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            } else {
+                // LINHA NORMAL
+                const f = db.funcionarios.find(func => func.id === log.idFunc);
+                return `<tr>
+                    <td>${log.data.split('-').reverse().join('/')}</td>
+                    <td>${f ? f.nome : 'Excluído'}</td>
+                    <td>${log.pecaCodigo} - ${log.pecaNome}</td>
+                    <td>${log.qtd}</td>
+                    <td>R$ ${log.valorUnit.toFixed(2)}</td>
+                    <td style="color:var(--success-color); font-weight:bold;">R$ ${log.total.toFixed(2)}</td>
+                    <td>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button onclick="RH.iniciarEdicaoLancamento('${log.id}')" style="background: transparent; border: none; cursor: pointer; color: #eab308; padding: 0;" title="Editar"><i data-lucide="pencil" style="width: 14px;"></i></button>
+                            <button class="btn-danger" onclick="RH.excluirLancamentoProducao('${log.id}')" style="padding:4px;" title="Excluir"><i data-lucide="trash-2" style="width:14px;"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }
+        }).join('');
+        lucide.createIcons();
+    },
+
+    salvarEdicaoLancamento: function (id) {
+        const data = document.getElementById(`edit-prod-data-${id}`).value;
+        const idFunc = document.getElementById(`edit-prod-func-${id}`).value;
+        const qtd = parseInt(document.getElementById(`edit-prod-qtd-${id}`).value);
+
+        if (!data || isNaN(qtd) || qtd < 1) {
+            ModalRH.show('Aviso', 'Preencha a data e uma quantidade válida.');
+            return;
+        }
+
+        const db = RHDb.get();
+        const lIndex = db.lancamentosProducao.findIndex(log => log.id === id);
+
+        if (lIndex > -1) {
+            db.lancamentosProducao[lIndex].data = data;
+            db.lancamentosProducao[lIndex].idFunc = idFunc;
+            db.lancamentosProducao[lIndex].qtd = qtd;
+            // Recalcula o total baseado na nova quantidade e no valor unitário existente
+            db.lancamentosProducao[lIndex].total = db.lancamentosProducao[lIndex].valorUnit * qtd;
+
+            RHDb.save(db);
+            this.renderTabelaProducao();
+        }
+    },
+
     init: function () {
         this.renderTabelaFuncionarios();
+        this.renderSelectFechamento();   // <-- NOME CORRIGIDO AQUI
+        this.renderSelectFuncProducao(); // <-- NOME CORRIGIDO AQUI
+
         const hoje = new Date();
         document.getElementById('fechamento-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+
+        // Puxa a data atual por padrão no lançamento de produção
+        const campoDataProd = document.getElementById('prod-data');
+        if (campoDataProd) {
+            const dataLocal = new Date(hoje.getTime() - (hoje.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            campoDataProd.value = dataLocal;
+        }
+    },
+
+    toggleCamposFuncionario: function () {
+        const tipo = document.getElementById('func-tipo').value;
+        const divCargo = document.getElementById('div-func-cargo');
+        const divSalario = document.getElementById('div-func-salario');
+
+        if (tipo === 'Mensalista') {
+            divCargo.style.display = 'block';
+            divSalario.style.display = 'block';
+            document.getElementById('func-cargo').required = true;
+            document.getElementById('func-salario').required = true;
+        } else {
+            divCargo.style.display = 'none';
+            divSalario.style.display = 'none';
+            document.getElementById('func-cargo').required = false;
+            document.getElementById('func-salario').required = false;
+        }
+    },
+
+    popularSelectCargos: function () {
+        const db = RHDb.get();
+        const sel = document.getElementById('func-cargo');
+        if (!sel) return;
+
+        const val = sel.value;
+        sel.innerHTML = `<option value="">-- Selecione o Cargo --</option>` +
+            db.cargos.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        sel.value = val;
     },
 
     salvarFuncionario: function () {
+        const id = document.getElementById('func-id').value;
+        const nome = document.getElementById('func-nome').value.trim();
+        const admissao = document.getElementById('func-admissao').value;
+        const tipo = document.getElementById('func-tipo').value;
+
+        const cargoId = tipo === 'Mensalista' ? document.getElementById('func-cargo').value : null;
+        const salarioBase = tipo === 'Mensalista' ? parseFloat(document.getElementById('func-salario').value) : 0;
+
+        if (!nome || !admissao) {
+            ModalRH.show('Erro', 'Preencha os campos obrigatórios.');
+            return;
+        }
+
         const db = RHDb.get();
-        const id = document.getElementById('func-id').value || Date.now().toString();
-        const func = {
-            id,
-            nome: document.getElementById('func-nome').value.trim(),
-            cargo: document.getElementById('func-cargo').value.trim(),
-            dataAdmissao: document.getElementById('func-admissao').value,
-            tipo: document.getElementById('func-tipo').value,
-            valorBase: parseFloat(document.getElementById('func-valor').value),
-            cargaHoraria: parseFloat(document.getElementById('func-carga').value)
+        const funcObj = {
+            id: id || 'F_' + Date.now(),
+            nome,
+            admissao,
+            tipo,
+            cargoId,
+            salarioBase,
+            status: 'Ativo'
         };
-        const idx = db.funcionarios.findIndex(f => f.id === id);
-        if (idx > -1) db.funcionarios[idx] = func; else db.funcionarios.push(func);
+
+        if (id) {
+            const index = db.funcionarios.findIndex(f => f.id === id);
+            if (index > -1) db.funcionarios[index] = funcObj;
+        } else {
+            db.funcionarios.push(funcObj);
+        }
+
         RHDb.save(db);
         document.getElementById('form-func').reset();
         document.getElementById('func-id').value = '';
+        this.toggleCamposFuncionario();
         this.renderTabelaFuncionarios();
+        this.renderSelectFechamento();   // <-- NOME CORRIGIDO AQUI
+        this.renderSelectFuncProducao(); // <-- NOME CORRIGIDO AQUI
     },
 
     renderTabelaFuncionarios: function () {
         const db = RHDb.get();
         const tbody = document.querySelector('#tabela-funcionarios tbody');
-        tbody.innerHTML = db.funcionarios.map(f => `
-            <tr id="tr-func-${f.id}">
-                <td>${f.nome}</td>
-                <td>${f.cargo}</td>
-                <td>${f.dataAdmissao?.split('-').reverse().join('/') || '-'}</td>
-                <td>${f.tipo}</td>
-                <td>R$ ${f.valorBase.toFixed(2)}</td>
-                <td>${f.cargaHoraria}</td>
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        db.funcionarios.forEach(f => {
+            const dataBr = f.admissao.split('-').reverse().join('/');
+
+            // Busca o nome do cargo para exibir na tabela
+            let cargoNome = '-';
+            if (f.cargoId) {
+                const c = db.cargos.find(cargo => cargo.id === f.cargoId);
+                if (c) cargoNome = c.nome;
+            }
+
+            const salarioFormat = f.tipo === 'Mensalista' ? `R$ ${f.salarioBase.toFixed(2)}` : '-';
+
+            tbody.innerHTML += `<tr>
+                <td><strong>${f.nome}</strong></td>
+                <td>${dataBr}</td>
+                <td><span style="background:var(--surface-hover); padding:2px 8px; border-radius:4px; font-size:12px;">${f.tipo}</span></td>
+                <td>${cargoNome}</td>
+                <td>${salarioFormat}</td>
                 <td>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button onclick="RH.iniciarEdicaoFuncionario('${f.id}')" style="background: transparent; border: none; cursor: pointer; color: #eab308; padding: 0;"><i data-lucide="pencil" style="width: 16px;"></i></button>
-                        <button class="btn-danger" onclick="RH.excluirFuncionario('${f.id}')" style="padding: 4px;"><i data-lucide="trash-2" style="width: 16px;"></i></button>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="RH.editarFuncionario('${f.id}')" style="background:transparent; border:none; cursor:pointer; color:var(--primary-color);" title="Editar"><i data-lucide="pencil" style="width:14px;"></i></button>
+                        <button class="btn-danger" onclick="RH.excluirFuncionario('${f.id}')" style="padding:4px;" title="Excluir"><i data-lucide="trash-2" style="width:14px;"></i></button>
                     </div>
                 </td>
-            </tr>`).join('');
+            </tr>`;
+        });
         lucide.createIcons();
     },
 
-    iniciarEdicaoFuncionario: function (id) {
+    editarFuncionario: function (id) {
         const db = RHDb.get();
-        const f = db.funcionarios.find(func => func.id === id);
-        if (!f) return;
-        const tr = document.getElementById(`tr-func-${id}`);
-        tr.innerHTML = `
-            <td><input type="text" id="edit-f-nome-${id}" value="${f.nome}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
-            <td><input type="text" id="edit-f-cargo-${id}" value="${f.cargo}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
-            <td><input type="date" id="edit-f-admissao-${id}" value="${f.dataAdmissao || ''}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
-            <td><select id="edit-f-tipo-${id}" style="width:100%; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"><option value="Mensalista" ${f.tipo === 'Mensalista' ? 'selected' : ''}>Mensalista</option><option value="Horista" ${f.tipo === 'Horista' ? 'selected' : ''}>Horista</option></select></td>
-            <td><input type="number" id="edit-f-valor-${id}" value="${f.valorBase}" step="0.01" style="width:80px; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
-            <td><input type="number" id="edit-f-carga-${id}" value="${f.cargaHoraria}" style="width:60px; background:#1e293b; color:#fff; border:1px solid #334155; padding:4px;"></td>
-            <td>
-                <div style="display: flex; gap: 4px;">
-                    <button onclick="RH.salvarEdicaoFuncionario('${id}')" style="background: #10b981; border: none; color: #fff; padding: 6px; border-radius:4px; cursor:pointer;"><i data-lucide="check" style="width: 14px;"></i></button>
-                    <button onclick="RH.renderTabelaFuncionarios()" style="background: #ef4444; border: none; color: #fff; padding: 6px; border-radius:4px; cursor:pointer;"><i data-lucide="x" style="width: 14px;"></i></button>
-                </div>
-            </td>
-        `;
-        lucide.createIcons();
-    },
+        const f = db.funcionarios.find(x => x.id === id);
+        if (f) {
+            document.getElementById('func-id').value = f.id;
+            document.getElementById('func-nome').value = f.nome;
+            document.getElementById('func-admissao').value = f.admissao;
+            document.getElementById('func-tipo').value = f.tipo;
 
-    salvarEdicaoFuncionario: function (id) {
-        const db = RHDb.get();
-        const index = db.funcionarios.findIndex(f => f.id === id);
-        if (index === -1) return;
-        db.funcionarios[index] = {
-            id,
-            nome: document.getElementById(`edit-f-nome-${id}`).value.trim(),
-            cargo: document.getElementById(`edit-f-cargo-${id}`).value.trim(),
-            dataAdmissao: document.getElementById(`edit-f-admissao-${id}`).value,
-            tipo: document.getElementById(`edit-f-tipo-${id}`).value,
-            valorBase: parseFloat(document.getElementById(`edit-f-valor-${id}`).value),
-            cargaHoraria: parseFloat(document.getElementById(`edit-f-carga-${id}`).value)
-        };
-        RHDb.save(db);
-        this.renderTabelaFuncionarios();
+            this.toggleCamposFuncionario(); // Atualiza a visibilidade primeiro
+
+            if (f.tipo === 'Mensalista') {
+                document.getElementById('func-cargo').value = f.cargoId || '';
+                document.getElementById('func-salario').value = f.salarioBase || 0;
+            }
+        }
     },
 
     excluirFuncionario: function (id) {
@@ -139,28 +622,6 @@ const RH = {
             RHDb.save(db);
             this.renderTabelaFuncionarios();
         });
-    },
-
-    registrarPonto: function (idFunc, tipo) {
-        const db = RHDb.get();
-        const agora = new Date().toISOString();
-        if (tipo === 'entrada') db.pontos.push({ id: Date.now().toString(), idFunc, entrada: agora, saida: null });
-        else { const p = db.pontos.find(p => p.idFunc === idFunc && !p.saida); if (p) p.saida = agora; }
-        RHDb.save(db);
-        this.renderPontoCards();
-    },
-
-    renderPontoCards: function () {
-        const db = RHDb.get();
-        const container = document.getElementById('lista-pontos');
-        container.innerHTML = db.funcionarios.map(f => {
-            const aberto = db.pontos.find(p => p.idFunc === f.id && !p.saida);
-            return `
-                <div class="ponto-card">
-                    <div><h3>${f.nome}</h3><span class="status-badge ${aberto ? 'status-trabalhando' : 'status-ausente'}">${aberto ? 'Trabalhando' : 'Ausente'}</span></div>
-                    <button class="${aberto ? 'btn-outline' : 'btn-primary'}" onclick="RH.registrarPonto('${f.id}','${aberto ? 'saida' : 'entrada'}')">${aberto ? 'Registrar Saída' : 'Registrar Entrada'}</button>
-                </div>`;
-        }).join('') || '<p>Nenhum funcionário cadastrado.</p>';
     },
 
     renderSelectFechamento: function () {
@@ -173,7 +634,7 @@ const RH = {
         const file = fileInput.files[0];
 
         if (!file) {
-            ModalRH.show('Aviso', 'Por favor, selecione o arquivo .xls gerado pelo relógio primeiro.');
+            ModalRH.show('Aviso', 'Por favor, selecione o arquivo gerado pelo relógio primeiro.');
             return;
         }
 
@@ -182,144 +643,156 @@ const RH = {
         reader.onload = function (e) {
             const data = new Uint8Array(e.target.result);
             try {
-                // Lê o arquivo Excel
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: '' });
 
                 if (!jsonData || jsonData.length < 5) {
                     ModalRH.show('Erro', 'Formato de arquivo não reconhecido.');
                     return;
                 }
 
-                // 1. Encontrar o Cabeçalho (Nome e Data) ignorando linhas em branco
-                let nomeRelogio = null;
-                let mesAnoRelogio = null;
-                let anoStr = null;
-                let mesStr = null;
-
-                for (let i = 0; i < Math.min(15, jsonData.length); i++) {
-                    const linhaStr = (jsonData[i] || []).map(c => c || '').join('  ');
-
-                    if (linhaStr.includes('Nome:') || linhaStr.includes('Data:')) {
-                        const matchNome = linhaStr.match(/Nome:\s*(.+?)(?=\s\s|ID:|$)/i);
-                        if (matchNome && !nomeRelogio) nomeRelogio = matchNome[1].trim();
-
-                        const matchData = linhaStr.match(/Data:\s*(\d{2})\.(\d{2})\./i);
-                        if (matchData && !mesAnoRelogio) {
-                            anoStr = "20" + matchData[1];
-                            mesStr = matchData[2];
-                            mesAnoRelogio = `${anoStr}-${mesStr}`;
-                        }
-                    }
-                }
-
-                if (!nomeRelogio || !mesAnoRelogio) {
-                    ModalRH.show('Erro', 'Não foi possível identificar o Nome ou o Mês de Referência (Data) no cabeçalho do arquivo.');
-                    return;
-                }
-
-                const db = RHDb.get();
-                const func = db.funcionarios.find(f => f.nome.toLowerCase() === nomeRelogio.toLowerCase());
-
-                if (!func) {
-                    ModalRH.show('Erro', `Funcionário "${nomeRelogio}" não encontrado no sistema. O nome deve estar idêntico.`);
-                    return;
-                }
-
-                // 2. Encontrar onde começam os dados de ponto (dias)
-                let startIndex = -1;
-                for (let i = 0; i < jsonData.length; i++) {
-                    const col0 = String((jsonData[i] || [])[0] || '').trim();
-                    if (/^\d{2}\.\d{2}$/.test(col0)) {
-                        startIndex = i;
-                        break;
-                    }
-                }
-
-                if (startIndex === -1) {
-                    ModalRH.show('Erro', 'Não foi possível encontrar as datas de ponto no arquivo.');
-                    return;
-                }
-
-                ModalRH.show('Confirmar Importação', `Deseja importar as horas de ${nomeRelogio} para ${mesStr}/${anoStr}? Isso não apagará os dados já existentes, apenas adicionará novos pontos.`, 'confirm', () => {
-
+                ModalRH.show('Confirmar Importação', `Deseja importar as horas deste arquivo?`, 'confirm', () => {
+                    const db = RHDb.get();
                     let pontosAdicionados = 0;
 
-                    for (let i = startIndex; i < jsonData.length; i++) {
+                    let currentFunc = null;
+                    let currentMesAno = null;
+                    let anoStr = null;
+                    let mesStr = null;
+                    let naoEncontrados = new Set();
+
+                    for (let i = 0; i < jsonData.length; i++) {
                         const row = jsonData[i] || [];
-                        if (row.length === 0) continue;
 
-                        const processarDia = (dataColIndex, in1Idx, out1Idx, in2Idx, out2Idx) => {
-                            const dataCelula = row[dataColIndex];
-                            if (!dataCelula) return;
+                        // 1. Procurar o Nome e o Período varrendo célula por célula (Pois estão separados)
+                        for (let cell of row) {
+                            const cellStr = String(cell || '').trim();
 
-                            const diaMatch = dataCelula.toString().trim().match(/^(\d{2})\.(\d{2})$/);
-                            if (!diaMatch) return;
-
-                            const diaStr = diaMatch[2]; // Captura apenas o DIA (Ex: 04.01 -> 01)
-
-                            const limparHora = (horaRaw) => {
-                                if (!horaRaw) return null;
-                                const hStr = horaRaw.toString().replace(/\*/g, '').trim();
-                                if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(hStr)) return hStr;
-                                return null;
-                            };
-
-                            // CORREÇÃO: Cria a data considerando o Fuso Horário local antes de salvar no sistema
-                            const criarDataIsoLocal = (horaLimpa) => {
-                                if (!horaLimpa) return null;
-                                const [h, m] = horaLimpa.split(':');
-                                return new Date(parseInt(anoStr), parseInt(mesStr) - 1, parseInt(diaStr), parseInt(h), parseInt(m)).toISOString();
-                            };
-
-                            const in1Iso = criarDataIsoLocal(limparHora(row[in1Idx]));
-                            const out1Iso = criarDataIsoLocal(limparHora(row[out1Idx]));
-                            const in2Iso = criarDataIsoLocal(limparHora(row[in2Idx]));
-                            const out2Iso = criarDataIsoLocal(limparHora(row[out2Idx]));
-
-                            if (in1Iso && out1Iso) {
-                                db.pontos.push({
-                                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                                    idFunc: func.id,
-                                    entrada: in1Iso,
-                                    saida: out1Iso
-                                });
-                                pontosAdicionados++;
+                            // Tenta extrair o Nome (Ignora ID/CTPS na mesma célula, se houver)
+                            if (cellStr.toLowerCase().match(/^(nome|funcion[aá]rio|empregado|colaborador):/)) {
+                                let rawName = cellStr.replace(/^(nome|funcion[aá]rio|empregado|colaborador):\s*/i, '');
+                                rawName = rawName.replace(/^\d+\s*-\s*/, ''); // Remove "15 - "
+                                const match = rawName.match(/(.+?)(?=\s+Pis:|\s+CTPS:|\s+ID:|$)/i);
+                                if (match) {
+                                    const nomeRelogio = match[1].trim();
+                                    currentFunc = db.funcionarios.find(f => f.nome.toLowerCase() === nomeRelogio.toLowerCase());
+                                    if (!currentFunc) naoEncontrados.add(nomeRelogio);
+                                }
                             }
 
-                            if (in2Iso && out2Iso) {
-                                db.pontos.push({
-                                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                                    idFunc: func.id,
-                                    entrada: in2Iso,
-                                    saida: out2Iso
-                                });
-                                pontosAdicionados++;
+                            // Tenta extrair o Período (Aceita Data:26.04.01 ou Data: 01/04/2026)
+                            if (cellStr.toLowerCase().match(/^(data|per[ií]odo|periodo):/)) {
+                                const match1 = cellStr.match(/(?:Data|Per[ií]odo|Periodo):\s*(\d{2})\.(\d{2})\.(\d{2})/i);
+                                const match2 = cellStr.match(/(?:Data|Per[ií]odo|Periodo):\s*(?:\d{2}\/\d{2}\/\d{4}\s*a\s*)?\d{2}\/(\d{2})\/(\d{4})/i);
+
+                                if (match1) {
+                                    anoStr = "20" + match1[1]; // Converte '26' para '2026'
+                                    mesStr = match1[2]; // Pega o mês '04'
+                                    currentMesAno = `${anoStr}-${mesStr}`;
+                                } else if (match2) {
+                                    mesStr = match2[1];
+                                    anoStr = match2[2];
+                                    currentMesAno = `${anoStr}-${mesStr}`;
+                                }
                             }
-                        };
+                        }
 
-                        // Metade esquerda da tabela (Colunas: Data=0, Entrada1=2, Saida1=3, Entrada2=4, Saida2=5)
-                        processarDia(0, 2, 3, 4, 5);
+                        // 2. Processar Tabela de Horas
+                        const col0 = String(row[0] || '').trim();
+                        const col8 = String(row[8] || '').trim();
 
-                        // Metade direita da tabela (Colunas: Data=8, Entrada1=10, Saida1=11, Entrada2=12, Saida2=13)
-                        processarDia(8, 10, 11, 12, 13);
+                        // Se a linha começar com uma data válida em MM.DD ou DD/MM/YYYY
+                        if ((/^\d{2}[\.\/]\d{2}(\/\d{4})?$/.test(col0) || /^\d{2}[\.\/]\d{2}(\/\d{4})?$/.test(col8)) && currentFunc) {
+
+                            const processarDia = (dataColIndex, in1Idx, out1Idx, in2Idx, out2Idx) => {
+                                const dataCelula = String(row[dataColIndex] || '').trim();
+                                if (!dataCelula) return;
+
+                                const diaMatch1 = dataCelula.match(/^(\d{2})\.(\d{2})$/); // Formato MM.DD
+                                const diaMatch2 = dataCelula.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); // Formato DD/MM/YYYY
+
+                                let diaLinha = null;
+                                let mesLinha = null;
+                                let anoLinha = null;
+
+                                if (diaMatch1) {
+                                    mesLinha = diaMatch1[1];
+                                    diaLinha = diaMatch1[2];
+                                    anoLinha = anoStr; // Usa o ano do cabeçalho
+                                } else if (diaMatch2) {
+                                    diaLinha = diaMatch2[1];
+                                    mesLinha = diaMatch2[2];
+                                    anoLinha = diaMatch2[3];
+                                } else {
+                                    return;
+                                }
+
+                                // Prevenção: se faltar período no cabeçalho
+                                if (!currentMesAno && anoLinha && mesLinha) {
+                                    anoStr = anoLinha;
+                                    mesStr = mesLinha;
+                                    currentMesAno = `${anoStr}-${mesStr}`;
+                                }
+
+                                const limparHora = (horaRaw) => {
+                                    if (!horaRaw) return null;
+                                    const hStr = String(horaRaw).replace(/[^0-9:]/g, '').trim();
+                                    if (/^([01]?\d|2[0-3]):([0-5]\d)$/.test(hStr)) return hStr;
+                                    return null;
+                                };
+
+                                const criarDataIsoLocal = (horaLimpa) => {
+                                    if (!horaLimpa) return null;
+                                    const [h, m] = horaLimpa.split(':');
+                                    // Formato de data salva no banco
+                                    return `${anoLinha}-${mesLinha}-${diaLinha}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00.000Z`;
+                                };
+
+                                const in1Iso = criarDataIsoLocal(limparHora(row[in1Idx]));
+                                const out1Iso = criarDataIsoLocal(limparHora(row[out1Idx]));
+                                const in2Iso = criarDataIsoLocal(limparHora(row[in2Idx]));
+                                const out2Iso = criarDataIsoLocal(limparHora(row[out2Idx]));
+
+                                if (in1Iso && out1Iso) {
+                                    db.pontos.push({ id: Date.now().toString() + Math.random().toString(36).substr(2, 5), idFunc: currentFunc.id, entrada: in1Iso, saida: out1Iso });
+                                    pontosAdicionados++;
+                                }
+
+                                if (in2Iso && out2Iso) {
+                                    db.pontos.push({ id: Date.now().toString() + Math.random().toString(36).substr(2, 5), idFunc: currentFunc.id, entrada: in2Iso, saida: out2Iso });
+                                    pontosAdicionados++;
+                                }
+                            };
+
+                            // Metade esquerda da tabela (Colunas: Data=0, In1=2, Out1=3, In2=4, Out2=5)
+                            processarDia(0, 2, 3, 4, 5);
+                            // Metade direita da tabela (Colunas: Data=8, In1=10, Out1=11, In2=12, Out2=13)
+                            processarDia(8, 10, 11, 12, 13);
+                        }
                     }
 
                     RHDb.save(db);
 
-                    document.getElementById('fechamento-func').value = func.id;
-                    document.getElementById('fechamento-mes').value = mesAnoRelogio;
-                    RH.calcularFechamento();
+                    let msgFinal = `${pontosAdicionados} registros de ponto importados com sucesso!`;
+                    if (naoEncontrados.size > 0) {
+                        msgFinal += `\n\nAviso: O nome no relógio não bate com o sistema (Verifique a grafia exata):\n- ${Array.from(naoEncontrados).join('\n- ')}`;
+                    }
 
-                    ModalRH.show('Sucesso', `${pontosAdicionados} turnos importados com sucesso!`);
+                    ModalRH.show('Importação Concluída', msgFinal);
                     fileInput.value = '';
+
+                    document.getElementById('fechamento-func').value = currentFunc ? currentFunc.id : '';
+                    if (currentMesAno) document.getElementById('fechamento-mes').value = currentMesAno;
+
+                    RH.calcularFechamento();
                 });
 
             } catch (error) {
                 console.error(error);
-                ModalRH.show('Erro', 'Ocorreu um erro ao processar o arquivo.');
+                ModalRH.show('Erro', 'Ocorreu um erro ao processar a estrutura do arquivo.');
             }
         };
 
@@ -350,207 +823,638 @@ const RH = {
     calcularFechamento: function () {
         const idFunc = document.getElementById('fechamento-func').value;
         const mesAno = document.getElementById('fechamento-mes').value;
-        if (!idFunc || !mesAno) return;
+        if (!idFunc || !mesAno) {
+            ModalRH.show('Aviso', 'Selecione o funcionário e o mês.');
+            return;
+        }
+
         const db = RHDb.get();
         const func = db.funcionarios.find(f => f.id === idFunc);
         if (!func) return;
 
-        const pontos = db.pontos.filter(p => p.saida && p.idFunc === idFunc && p.entrada.startsWith(mesAno));
-        const agrupados = {};
-        let totalHoras = 0;
-        pontos.sort((a, b) => new Date(a.entrada) - new Date(b.entrada)).forEach(p => {
-            const d = new Date(p.entrada).toLocaleDateString('pt-BR');
-            if (!agrupados[d]) agrupados[d] = { pontos: [], totalDia: 0 };
-            const h = (new Date(p.saida) - new Date(p.entrada)) / 36e5;
-            agrupados[d].pontos.push(p); agrupados[d].totalDia += h; totalHoras += h;
-        });
+        this.fechamentoAtual = { func, mesAno };
+        let saldoMensalMinutos = 0;
 
-        const tbodyEx = document.querySelector('#tabela-extrato tbody');
-        tbodyEx.innerHTML = Object.keys(agrupados).map(d => {
-            const dia = agrupados[d];
-            const turnosHTML = dia.pontos.map(p => {
-                const ent = new Date(p.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                const sai = new Date(p.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                            <span>${ent} - ${sai}</span>
-                            <button onclick="RH.editarHoraPonto('${p.id}')" style="background:transparent; border:none; color:#eab308; cursor:pointer; padding:0;" title="Editar">
-                                <i data-lucide="pencil" style="width:13px; height:13px;"></i>
-                            </button>
-                            <button onclick="RH.excluirHoraPonto('${p.id}')" style="background:transparent; border:none; color:#ef4444; cursor:pointer; padding:0;" title="Excluir">
-                                <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
-                            </button>
-                        </div>`;
-            }).join('');
-            return `<tr><td>${d}</td><td>${turnosHTML}</td><td>${dia.totalDia.toFixed(2)}h</td></tr>`;
-        }).join('');
+        // ==============================================
+        // MODO PRODUÇÃO
+        // ==============================================
+        if (func.tipo === 'Produção') {
+            const producaoNoMes = db.lancamentosProducao.filter(l => l.idFunc === idFunc && l.data.startsWith(mesAno));
+            const totalBruto = producaoNoMes.reduce((acc, l) => acc + l.total, 0);
 
-        const descontos = db.descontosFechamento.filter(d => d.idFunc === idFunc && d.mesAno === mesAno);
-        const somaDesc = descontos.reduce((a, b) => a + b.valor, 0);
-        document.querySelector('#tabela-descontos-manuais tbody').innerHTML = descontos.map(d => `<tr><td>${d.desc}</td><td>${d.ref}</td><td>R$ ${d.valor.toFixed(2)}</td><td><button class="btn-danger" onclick="RH.removerDescontoManual('${d.id}')"><i data-lucide="trash-2" style="width:14px;"></i></button></td></tr>`).join('');
+            // Muda os títulos da tabela dinamicamente para Produção
+            document.querySelector('#tabela-extrato thead').innerHTML = `
+                <tr>
+                    <th style="text-align: left;">Data</th>
+                    <th style="text-align: left;">Peça/Serviço (Qtd)</th>
+                    <th style="text-align: right;">Total Recebido</th>
+                </tr>
+            `;
 
-        const valorHora = func.valorBase / (func.tipo === 'Mensalista' ? func.cargaHoraria : 1);
-        const bruto = func.tipo === 'Mensalista' ? (func.valorBase + (totalHoras > func.cargaHoraria ? (totalHoras - func.cargaHoraria) * valorHora : 0)) : totalHoras * func.valorBase;
-        const descFaltas = (func.tipo === 'Mensalista' && totalHoras < func.cargaHoraria) ? (func.cargaHoraria - totalHoras) * valorHora : 0;
+            let producaoRows = '';
+            if (producaoNoMes.length === 0) {
+                producaoRows = `<tr><td colspan="3" style="text-align:center; padding:15px; color:var(--text-muted);">Nenhum lançamento de produção neste mês.</td></tr>`;
+            } else {
+                producaoNoMes.sort((a, b) => new Date(a.data) - new Date(b.data)).forEach(lp => {
+                    producaoRows += `
+                        <tr style="font-size: 13px; border-bottom: 1px solid var(--border-color);">
+                            <td><strong>${lp.data.split('-').reverse().join('/')}</strong></td>
+                            <td style="color: var(--primary-color);">${lp.pecaCodigo} - ${lp.pecaNome.toUpperCase()} <br><span style="color:var(--text-muted); font-size:11px;">(${lp.qtd} un. × R$ ${lp.valorUnit.toFixed(2).replace('.', ',')})</span></td>
+                            <td style="text-align: right; color: var(--success-color); font-weight: bold; vertical-align: middle;">R$ ${lp.total.toFixed(2).replace('.', ',')}</td>
+                        </tr>
+                    `;
+                });
+            }
 
-        this.fechamentoAtual = { func, mesAno, totalHoras, valorLiquido: bruto - descFaltas - somaDesc, totalVencimentos: bruto, descontosFaltas: descFaltas, descontosManuais: descontos, somaDescontosManuais: somaDesc, agrupados };
+            document.querySelector('#tabela-extrato tbody').innerHTML = `
+                <tr style="background-color: var(--bg-body);"><td colspan="3"><strong>PRODUÇÃO MENSAL</strong></td></tr>
+                ${producaoRows}
+                <tr style="background-color: #0b1017;">
+                    <td colspan="2" style="text-align:right;"><strong>TOTAL BRUTO:</strong></td>
+                    <td style="color:var(--success-color); font-weight:bold; text-align: right;">R$ ${totalBruto.toFixed(2).replace('.', ',')}</td>
+                </tr>
+            `;
+
+            this.fechamentoAtual.totalVencimentos = totalBruto;
+            this.fechamentoAtual.saldoFormatado = '-';
+            this.fechamentoAtual.valorSaldoFinanceiro = 0;
+            this.fechamentoAtual.saldoMinutos = 0;
+            this.fechamentoAtual.salBase = 0;
+
+        }
+        // ==============================================
+        // MODO MENSALISTA
+        // ==============================================
+        else {
+            // Volta os títulos normais para Mensalista
+            document.querySelector('#tabela-extrato thead').innerHTML = `
+                <tr>
+                    <th style="text-align: left;">Data</th>
+                    <th>Horários de Turno</th>
+                    <th style="text-align: right;">Total Dia</th>
+                </tr>
+            `;
+
+            const salBase = parseFloat(func.salarioBase) || 0;
+            const cargo = db.cargos.find(c => c.id === func.cargoId);
+            const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+            const [anoStr, mesStr] = mesAno.split('-');
+            const numDias = new Date(anoStr, mesStr, 0).getDate();
+
+            let extratoDetalhadoHTML = '';
+
+            for (let dia = 1; dia <= numDias; dia++) {
+                const dataIsoPrefix = `${anoStr}-${mesStr}-${dia.toString().padStart(2, '0')}`;
+                const diaSemanaStr = mapaDias[new Date(anoStr, mesStr - 1, dia).getDay()];
+
+                let cargaEsperadaMinutos = 0;
+                if (cargo && cargo.escala && cargo.escala[diaSemanaStr]) {
+                    const turno = db.turnos.find(t => t.id === cargo.escala[diaSemanaStr]);
+                    if (turno && turno.carga) {
+                        const [th, tm] = turno.carga.split(':').map(Number);
+                        cargaEsperadaMinutos = (th * 60) + tm;
+                    }
+                }
+
+                const pontosDia = db.pontos.filter(p => p.idFunc === idFunc && p.entrada.startsWith(dataIsoPrefix));
+                pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
+
+                let cargaRealizadaMinutos = 0;
+                let batidasTexto = [];
+
+                pontosDia.forEach(p => {
+                    const diff = new Date(p.saida) - new Date(p.entrada);
+                    cargaRealizadaMinutos += diff / 60000;
+                    batidasTexto.push(`${p.entrada.split('T')[1].substring(0, 5)} às ${p.saida.split('T')[1].substring(0, 5)}`);
+                });
+
+                let saldoDia = 0;
+                if (cargaRealizadaMinutos > 0) {
+                    saldoDia = Math.round(cargaRealizadaMinutos - cargaEsperadaMinutos);
+                    if (Math.abs(saldoDia) <= 10) saldoDia = 0;
+                } else if (cargaEsperadaMinutos > 0 && cargaRealizadaMinutos === 0) {
+                    saldoDia = -cargaEsperadaMinutos;
+                }
+
+                saldoMensalMinutos += saldoDia;
+
+                if (cargaEsperadaMinutos > 0 || cargaRealizadaMinutos > 0) {
+                    const hE = Math.floor(cargaEsperadaMinutos / 60).toString().padStart(2, '0');
+                    const mE = (cargaEsperadaMinutos % 60).toString().padStart(2, '0');
+                    const hR = Math.floor(cargaRealizadaMinutos / 60).toString().padStart(2, '0');
+                    const mR = (cargaRealizadaMinutos % 60).toString().padStart(2, '0');
+
+                    const absS = Math.abs(saldoDia);
+                    const hS = Math.floor(absS / 60).toString().padStart(2, '0');
+                    const mS = (absS % 60).toString().padStart(2, '0');
+                    const sinalS = saldoDia < 0 ? '-' : '+';
+                    const corS = saldoDia >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+
+                    const btnEdit = `<button onclick="RH.editarDiaPonto('${idFunc}', '${dataIsoPrefix}')" style="background:none; border:none; color:#38bdf8; cursor:pointer; padding:0 5px;" title="Editar Horas"><i data-lucide="edit" style="width:16px;"></i></button>`;
+                    const btnDel = `<button onclick="RH.excluirDiaPonto('${idFunc}', '${dataIsoPrefix}')" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:0 5px;" title="Apagar Dia"><i data-lucide="trash-2" style="width:16px;"></i></button>`;
+
+                    extratoDetalhadoHTML += `
+                        <tr style="font-size: 13px;">
+                            <td style="text-align: left;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <div>
+                                        <strong>${dia.toString().padStart(2, '0')}/${mesStr} (${diaSemanaStr.toUpperCase()})</strong><br>
+                                        <span style="font-size: 11px; color: var(--primary-color);">${batidasTexto.join(' | ') || 'Falta Integral'}</span>
+                                    </div>
+                                    <div style="margin-top: 5px;">${btnEdit} ${btnDel}</div>
+                                </div>
+                            </td>
+                            <td style="vertical-align: middle;">Exp: ${hE}:${mE}h<br>Real: ${hR}:${mR}h</td>
+                            <td style="color:${corS}; font-weight:bold; vertical-align: middle; text-align: right;">${saldoDia === 0 ? '00:00h' : `${sinalS}${hS}:${mS}h`}</td>
+                        </tr>`;
+                }
+            }
+
+            const absTotal = Math.abs(saldoMensalMinutos);
+            const saldoFormatated = `${saldoMensalMinutos < 0 ? '-' : '+'}${Math.floor(absTotal / 60).toString().padStart(2, '0')}:${(absTotal % 60).toString().padStart(2, '0')}h`;
+
+            document.querySelector('#tabela-extrato tbody').innerHTML = `
+                <tr style="background-color: var(--bg-body);"><td colspan="3"><strong>SALÁRIO MENSAL</strong></td></tr>
+                <tr><td style="text-align: left;">Salário Base</td><td>-</td><td style="font-weight:bold; text-align: right;">R$ ${salBase.toFixed(2)}</td></tr>
+                <tr style="background-color: var(--bg-body);"><td colspan="3"><strong>BANCO DE HORAS DIÁRIO</strong></td></tr>
+                ${extratoDetalhadoHTML}
+                <tr style="background-color: #0b1017;">
+                    <td colspan="2" style="text-align:right;"><strong>SALDO TOTAL DO MÊS:</strong></td>
+                    <td style="color:${saldoMensalMinutos >= 0 ? 'var(--success-color)' : 'var(--danger-color)'}; font-weight:bold; text-align: right;">${saldoMensalMinutos === 0 ? '00:00h' : saldoFormatated}</td>
+                </tr>`;
+
+            // Matemática Cotação KS
+            let horasTotaisSemana = 0;
+            let diasTrabalhadosSemana = 0;
+
+            if (cargo && cargo.escala) {
+                ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].forEach(d => {
+                    if (cargo.escala[d]) {
+                        const turnoObj = db.turnos.find(t => t.id === cargo.escala[d]);
+                        if (turnoObj && turnoObj.carga) {
+                            const [th, tm] = turnoObj.carga.split(':').map(Number);
+                            horasTotaisSemana += th + (tm / 60);
+                            diasTrabalhadosSemana++;
+                        }
+                    }
+                });
+            }
+
+            const mediaHorasDia = diasTrabalhadosSemana > 0 ? (horasTotaisSemana / diasTrabalhadosSemana) : 8.8;
+            const valorDiaria = salBase / 22;
+            const valorHora = valorDiaria / mediaHorasDia;
+            const valorSaldoFinanceiro = (absTotal / 60) * valorHora;
+
+            this.fechamentoAtual.salBase = salBase;
+            this.fechamentoAtual.saldoMinutos = saldoMensalMinutos;
+            this.fechamentoAtual.saldoFormatado = saldoMensalMinutos === 0 ? '00:00h' : saldoFormatated;
+            this.fechamentoAtual.valorSaldoFinanceiro = valorSaldoFinanceiro;
+
+            if (saldoMensalMinutos > 0) {
+                this.fechamentoAtual.totalVencimentos = salBase + valorSaldoFinanceiro;
+            } else {
+                this.fechamentoAtual.totalVencimentos = salBase;
+            }
+        }
+
+        // ==============================================
+        // CÁLCULO E RENDERIZAÇÃO DOS DESCONTOS MANUAIS
+        // ==============================================
+        const descontosManuais = db.descontosFechamento.filter(d => d.idFunc === idFunc && d.mesAno === mesAno);
+        let somaDesc = descontosManuais.reduce((a, b) => a + b.valor, 0);
+
+        if (func.tipo === 'Mensalista' && this.fechamentoAtual.saldoMinutos < 0) {
+            somaDesc += this.fechamentoAtual.valorSaldoFinanceiro;
+        }
+
+        this.fechamentoAtual.somaDescontosManuais = somaDesc;
+        this.fechamentoAtual.descontosManuais = descontosManuais;
+        this.fechamentoAtual.valorLiquido = this.fechamentoAtual.totalVencimentos - somaDesc;
+
+        // AQUI ESTÁ A CORREÇÃO: Renderiza os descontos na tela para você poder editar/excluir!
+        const tbodyDescontos = document.querySelector('#tabela-descontos-manuais tbody');
+        if (tbodyDescontos) {
+            if (descontosManuais.length === 0) {
+                tbodyDescontos.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:15px;">Nenhum desconto manual lançado neste mês.</td></tr>`;
+            } else {
+                tbodyDescontos.innerHTML = descontosManuais.map(d => `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td>${d.desc}</td>
+                        <td>${d.ref || '-'}</td>
+                        <td style="color:var(--danger-color); font-weight:bold;">R$ ${d.valor.toFixed(2).replace('.', ',')}</td>
+                        <td style="text-align: center;">
+                            <button class="btn-danger" onclick="RH.removerDescontoManual('${d.id}')" style="padding:4px;" title="Remover Desconto"><i data-lucide="trash-2" style="width:14px;"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
         document.getElementById('res-nome').innerText = func.nome;
         document.getElementById('res-liquido').innerText = `R$ ${this.fechamentoAtual.valorLiquido.toFixed(2).replace('.', ',')}`;
         document.getElementById('resultado-fechamento').style.display = 'block';
-        lucide.createIcons();
-    },
-
-    pontoEmEdicaoId: null,
-
-    editarHoraPonto: function (idPonto) {
-        const db = RHDb.get();
-        const ponto = db.pontos.find(p => p.id === idPonto);
-        if (!ponto) return;
-
-        this.pontoEmEdicaoId = idPonto;
-
-        const entOriginal = new Date(ponto.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        const saiOriginal = ponto.saida ? new Date(ponto.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : "";
-
-        // ALIMENTA E ABRE O MODAL DO RELÓGIO (A TELA ESCURA DO FUNCIONARIOS.HTML)
-        document.getElementById('edit-hora-entrada').value = entOriginal;
-        document.getElementById('edit-hora-saida').value = saiOriginal;
-        document.getElementById('modal-edit-hora').style.display = 'flex';
-    },
-
-    salvarEdicaoHora: function () {
-        if (!this.pontoEmEdicaoId) return;
-
-        const novaEntrada = document.getElementById('edit-hora-entrada').value;
-        const novaSaida = document.getElementById('edit-hora-saida').value;
-
-        if (!novaEntrada || !novaSaida) {
-            ModalRH.show('Aviso', 'Preencha os dois horários para salvar.');
-            return;
-        }
-
-        const db = RHDb.get();
-        const ponto = db.pontos.find(p => p.id === this.pontoEmEdicaoId);
-        if (!ponto) return;
-
-        const dataRef = new Date(ponto.entrada);
-        const [hE, mE] = novaEntrada.split(':');
-        const [hS, mS] = novaSaida.split(':');
-
-        const dEntrada = new Date(dataRef.getFullYear(), dataRef.getMonth(), dataRef.getDate(), hE, mE);
-        const dSaida = new Date(dataRef.getFullYear(), dataRef.getMonth(), dataRef.getDate(), hS, mS);
-
-        if (dSaida <= dEntrada) {
-            ModalRH.show('Aviso', 'O horário de saída deve ser maior que o de entrada.');
-            return;
-        }
-
-        ponto.entrada = dEntrada.toISOString();
-        ponto.saida = dSaida.toISOString();
-
-        RHDb.save(db);
-        this.calcularFechamento();
-
-        document.getElementById('modal-edit-hora').style.display = 'none';
-        this.pontoEmEdicaoId = null;
-    },
-
-    excluirHoraPonto: function (idPonto) {
-        ModalRH.show('Atenção', 'Deseja excluir permanentemente este horário?', 'confirm', () => {
-            const db = RHDb.get();
-            db.pontos = db.pontos.filter(p => p.id !== idPonto);
-            RHDb.save(db);
-            this.calcularFechamento();
-        });
+        setTimeout(() => lucide.createIcons(), 50);
     },
 
     limparHorasPeriodo: function () {
         const idFunc = document.getElementById('fechamento-func').value;
         const mesAno = document.getElementById('fechamento-mes').value;
-        ModalRH.show('Limpar Ponto', 'Apagar todos os registros do mês inteiro?', 'confirm', () => {
+
+        if (!idFunc || !mesAno) {
+            ModalRH.show('Aviso', 'Selecione o funcionário e o mês.');
+            return;
+        }
+
+        ModalRH.show('Confirmar Exclusão', 'Tem certeza que deseja apagar TODOS os pontos deste funcionário neste mês?', 'confirm', () => {
             const db = RHDb.get();
+            const pontosIniciais = db.pontos.length;
+
+            // Remove os pontos que batem com o funcionário e o mês
             db.pontos = db.pontos.filter(p => !(p.idFunc === idFunc && p.entrada.startsWith(mesAno)));
+
+            const removidos = pontosIniciais - db.pontos.length;
+
+            if (removidos > 0) {
+                RHDb.save(db);
+                ModalRH.show('Sucesso', `${removidos} batidas removidas com sucesso.`);
+                RH.calcularFechamento(); // Atualiza a tela na hora
+            } else {
+                ModalRH.show('Aviso', 'Nenhuma hora para remover neste período.');
+            }
+        });
+    },
+
+    editarDiaPonto: function (idFunc, dataIsoPrefix) {
+        const db = RHDb.get();
+        const pontosDia = db.pontos.filter(p => p.idFunc === idFunc && p.entrada.startsWith(dataIsoPrefix));
+        pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
+
+        // Prepara as horas iniciais caso já existam batidas no dia
+        let horasIniciais = ['', '', '', ''];
+        if (pontosDia.length > 0) {
+            horasIniciais[0] = pontosDia[0].entrada.split('T')[1].substring(0, 5);
+            horasIniciais[1] = pontosDia[0].saida.split('T')[1].substring(0, 5);
+        }
+        if (pontosDia.length > 1) {
+            horasIniciais[2] = pontosDia[1].entrada.split('T')[1].substring(0, 5);
+            horasIniciais[3] = pontosDia[1].saida.split('T')[1].substring(0, 5);
+        }
+
+        const dataFormatada = dataIsoPrefix.split('-').reverse().join('/');
+
+        // Aciona a nova tela com os 4 campos
+        ModalRH.promptEdicaoHoras(`Editar Horas - ${dataFormatada}`, horasIniciais, (novasHoras) => {
+            if (!novasHoras) return;
+
+            const dbAtual = RHDb.get();
+            // Remove as batidas antigas daquele dia
+            dbAtual.pontos = dbAtual.pontos.filter(p => !(p.idFunc === idFunc && p.entrada.startsWith(dataIsoPrefix)));
+
+            // Se preencheu o Turno 1, salva
+            if (novasHoras[0] && novasHoras[1]) {
+                dbAtual.pontos.push({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    idFunc: idFunc,
+                    entrada: `${dataIsoPrefix}T${novasHoras[0]}:00.000Z`,
+                    saida: `${dataIsoPrefix}T${novasHoras[1]}:00.000Z`
+                });
+            }
+
+            // Se preencheu o Turno 2, salva
+            if (novasHoras[2] && novasHoras[3]) {
+                dbAtual.pontos.push({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    idFunc: idFunc,
+                    entrada: `${dataIsoPrefix}T${novasHoras[2]}:00.000Z`,
+                    saida: `${dataIsoPrefix}T${novasHoras[3]}:00.000Z`
+                });
+            }
+
+            RHDb.save(dbAtual);
+            RH.calcularFechamento(); // Recalcula tudo na hora
+        });
+    },
+
+    excluirDiaPonto: function (idFunc, dataIsoPrefix) {
+        ModalRH.show('Confirmar Exclusão', `Você tem certeza que deseja excluir as horas do dia ${dataIsoPrefix.split('-').reverse().join('/')}?`, 'confirm', () => {
+            const db = RHDb.get();
+            // Filtra o banco removendo os pontos daquele dia exato
+            db.pontos = db.pontos.filter(p => !(p.idFunc === idFunc && p.entrada.startsWith(dataIsoPrefix)));
             RHDb.save(db);
-            this.calcularFechamento();
+            RH.calcularFechamento(); // Recalcula a tabela automaticamente
         });
     },
 
     mostrarRelatorio: function () {
-        if (!this.fechamentoAtual) return;
-        const data = this.fechamentoAtual;
-        const [ano, mes] = data.mesAno.split('-');
-        let linhas = '';
-        Object.keys(data.agrupados).forEach(d => {
-            const dia = data.agrupados[d];
-            const t1 = dia.pontos[0] ? { e: new Date(dia.pontos[0].entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), s: new Date(dia.pontos[0].saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) } : { e: '-', s: '-' };
-            const t2 = dia.pontos[1] ? { e: new Date(dia.pontos[1].entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), s: new Date(dia.pontos[1].saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) } : { e: '-', s: '-' };
-            linhas += `<tr style="border-bottom: 1px solid #1e293b;"><td style="padding:14px; color:#94a3b8;">${d}</td><td align="center" style="color:#f8fafc;">${t1.e}</td><td align="center" style="color:#f8fafc;">${t1.s}</td><td align="center" style="color:#f8fafc;">${t2.e}</td><td align="center" style="color:#f8fafc;">${t2.s}</td><td align="right" style="color:#eab308; font-weight:bold;">${dia.totalDia.toFixed(2)}h</td></tr>`;
-        });
+        if (!this.fechamentoAtual) {
+            ModalRH.show('Erro', 'Calcule o fechamento primeiro antes de gerar o relatório.');
+            return;
+        }
 
-        document.getElementById('relatorio-conteudo').innerHTML = `
-            <div class="relatorio-mobile" style="display:flex; gap:30px; flex:1; min-height:0;">
-                <div class="box-extrato" style="flex:1.8; display:flex; flex-direction:column; background:#020617; border-radius:8px; border:1px solid #1e293b;">
-                    <div class="box-extrato-title" style="padding:15px 20px; background:#1e293b; color:#f8fafc; font-weight:bold;">EXTRATO DE JORNADA DIÁRIA (${mes}/${ano})</div>
-                    <div style="flex:1; overflow-y:auto; padding: 0 10px;">
-                        <table style="width:100%; border-collapse:collapse; font-size:14px;">
-                            <thead style="position:sticky; top:0; background:#020617; color:#64748b; font-size:11px; text-transform:uppercase;">
-                                <tr><th style="padding:15px; text-align:left;">Data</th><th colspan="2" style="padding:15px;">Manhã (E/S)</th><th colspan="2" style="padding:15px;">Tarde (E/S)</th><th align="right" style="padding:15px;">Total</th></tr>
-                            </thead>
-                            <tbody>${linhas}</tbody>
-                        </table>
+        const data = this.fechamentoAtual;
+        const db = RHDb.get();
+        const conteudo = document.getElementById('relatorio-conteudo');
+
+        conteudo.style.overflow = 'hidden';
+
+        // --- 1. LADO ESQUERDO: RESUMO FINANCEIRO ---
+        let financeiroHtml = '';
+        if (data.func.tipo === 'Produção') {
+            financeiroHtml = `
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155;">
+                    <span style="color: #cbd5e1;">Valor Total de Produção</span>
+                    <span style="font-weight: bold; color: #10b981; font-size: 16px;">R$ ${data.totalVencimentos.toFixed(2).replace('.', ',')}</span>
+                </div>
+            `;
+        } else {
+            const cargo = db.cargos.find(c => c.id === data.func.cargoId);
+            financeiroHtml = `
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155;">
+                    <span style="color: #cbd5e1;">Cargo</span>
+                    <span style="font-weight: bold; color: #f8fafc;">${cargo ? cargo.nome : 'N/D'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155;">
+                    <span style="color: #cbd5e1;">Salário Base</span>
+                    <span style="font-weight: bold; color: #10b981; font-size: 16px;">R$ ${data.salBase.toFixed(2).replace('.', ',')}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155;">
+                    <span style="color: #cbd5e1;">Saldo Banco de Horas</span>
+                    <span style="font-weight: bold; font-size: 16px; color: ${data.saldoMinutos >= 0 ? '#10b981' : '#ef4444'};">${data.saldoFormatado}</span>
+                </div>
+            `;
+
+            if (data.saldoMinutos > 0) {
+                financeiroHtml += `
+                    <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #10b981;">
+                        <span style="color: #10b981; font-size: 12px;">+ Horas Extras</span>
+                        <span style="font-weight: bold; color: #10b981; font-size: 15px;">R$ ${data.valorSaldoFinanceiro.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                `;
+            }
+        }
+
+        let descontosHtml = '';
+        if (data.func.tipo === 'Mensalista' && data.saldoMinutos < 0) {
+            descontosHtml += `
+                <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #ef4444;">
+                    <span style="color: #ef4444; font-size: 12px;">Atrasos/Faltas</span>
+                    <span style="color: #ef4444; font-weight: bold;">- R$ ${data.valorSaldoFinanceiro.toFixed(2).replace('.', ',')}</span>
+                </div>
+            `;
+        }
+
+        if (data.descontosManuais && data.descontosManuais.length > 0) {
+            data.descontosManuais.forEach(desc => {
+                descontosHtml += `
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #334155;">
+                        <span style="color: #94a3b8;">${desc.desc}</span>
+                        <span style="color: #ef4444; font-weight: bold;">- R$ ${desc.valor.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                `;
+            });
+        }
+
+        if (descontosHtml === '') descontosHtml = `<div style="padding: 10px 0; color: #64748b; font-style: italic;">Nenhum desconto.</div>`;
+
+        // --- 2. LADO DIREITO: RENDERIZAÇÃO DINÂMICA (PONTO OU PRODUÇÃO) ---
+        let extratoDiasHtml = '';
+        const tituloLadoDireito = data.func.tipo === 'Produção' ? 'Detalhamento de Peças Produzidas' : 'Extrato Detalhado do Relógio';
+
+        if (data.func.tipo === 'Produção') {
+            const producoes = db.lancamentosProducao.filter(lp => lp.idFunc === data.func.id && lp.data.startsWith(data.mesAno));
+
+            extratoDiasHtml += `
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
+                    <thead style="background: #1e293b; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                        <tr>
+                            <th style="padding: 12px 10px; color: #94a3b8; text-align: left;">Data</th>
+                            <th style="padding: 12px 10px; color: #94a3b8; text-align: left;">Descrição da Peça / Serviço</th>
+                            <th style="padding: 12px 5px; color: #94a3b8;">Quantidade</th>
+                            <th style="padding: 12px 10px; color: #94a3b8; text-align: right;">Valor Un.</th>
+                            <th style="padding: 12px 10px; color: #94a3b8; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            if (producoes.length === 0) {
+                extratoDiasHtml += `<tr><td colspan="5" style="padding: 20px; color: #94a3b8;">Nenhum lançamento registrado neste mês.</td></tr>`;
+            } else {
+                producoes.sort((a, b) => new Date(a.data) - new Date(b.data)).forEach((lp, i) => {
+                    extratoDiasHtml += `
+                        <tr style="border-bottom: 1px solid #1e293b; background: ${i % 2 === 0 ? '#0b1017' : 'transparent'};">
+                            <td style="padding: 10px; color: #f8fafc; text-align: left;"><strong>${lp.data.split('-').reverse().join('/')}</strong></td>
+                            <td style="padding: 10px; color: #38bdf8; text-align: left; font-weight: bold;">${lp.pecaCodigo} - ${lp.pecaNome.toUpperCase()}</td>
+                            <td style="padding: 10px; color: #f8fafc;">${lp.qtd} un.</td>
+                            <td style="padding: 10px; text-align: right; color: #94a3b8;">R$ ${lp.valorUnit.toFixed(2).replace('.', ',')}</td>
+                            <td style="padding: 10px; text-align: right; color: #10b981; font-weight: bold;">R$ ${lp.total.toFixed(2).replace('.', ',')}</td>
+                        </tr>`;
+                });
+            }
+            extratoDiasHtml += `</tbody></table>`;
+
+        } else {
+            // Lógica do Mensalista (mantida a mesma)
+            const [anoStr, mesStr] = data.mesAno.split('-');
+            const numDias = new Date(anoStr, mesStr, 0).getDate();
+            const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+            const cargo = db.cargos.find(c => c.id === data.func.cargoId);
+
+            extratoDiasHtml += `
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
+                    <thead style="background: #1e293b; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                        <tr>
+                            <th style="padding: 12px 10px; color: #94a3b8; text-align: left;">Data</th>
+                            <th style="padding: 12px 5px; color: #94a3b8;">Ent. 1</th>
+                            <th style="padding: 12px 5px; color: #94a3b8;">Saí. 1</th>
+                            <th style="padding: 12px 5px; color: #94a3b8;">Ent. 2</th>
+                            <th style="padding: 12px 5px; color: #94a3b8;">Saí. 2</th>
+                            <th style="padding: 12px 10px; color: #94a3b8; text-align: right;">Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (let dia = 1; dia <= numDias; dia++) {
+                const dataIso = `${anoStr}-${mesStr}-${dia.toString().padStart(2, '0')}`;
+                const diaSemana = mapaDias[new Date(anoStr, mesStr - 1, dia).getDay()];
+
+                const pontosDia = db.pontos.filter(p => p.idFunc === data.func.id && p.entrada.startsWith(dataIso));
+                pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
+
+                let cargaReal = 0, tE1 = '-', tS1 = '-', tE2 = '-', tS2 = '-';
+                pontosDia.forEach((p, i) => {
+                    cargaReal += (new Date(p.saida) - new Date(p.entrada)) / 60000;
+                    const hIn = p.entrada.split('T')[1].substring(0, 5);
+                    const hOut = p.saida.split('T')[1].substring(0, 5);
+                    if (i === 0) { tE1 = hIn; tS1 = hOut; }
+                    if (i === 1) { tE2 = hIn; tS2 = hOut; }
+                });
+
+                let cargaExp = 0;
+                if (cargo && cargo.escala && cargo.escala[diaSemana]) {
+                    const turno = db.turnos.find(t => t.id === cargo.escala[diaSemana]);
+                    if (turno && turno.carga) {
+                        const [th, tm] = turno.carga.split(':').map(Number);
+                        cargaExp = (th * 60) + tm;
+                    }
+                }
+
+                if (cargaExp > 0 || cargaReal > 0) {
+                    let saldoDia = cargaReal > 0 ? Math.round(cargaReal - cargaExp) : 0;
+                    if (Math.abs(saldoDia) <= 10) saldoDia = 0;
+
+                    const corS = saldoDia >= 0 ? '#10b981' : '#ef4444';
+                    const absS = Math.abs(saldoDia);
+                    const saldoFormat = `${saldoDia < 0 ? '-' : '+'}${Math.floor(absS / 60).toString().padStart(2, '0')}:${(absS % 60).toString().padStart(2, '0')}h`;
+
+                    extratoDiasHtml += `
+                        <tr style="border-bottom: 1px solid #1e293b; background: ${dia % 2 === 0 ? '#0b1017' : 'transparent'};">
+                            <td style="padding: 10px; color: #f8fafc; text-align: left;"><strong>${dia.toString().padStart(2, '0')}/${mesStr}</strong> <small style="color:#64748b">${diaSemana.toUpperCase()}</small></td>
+                            <td style="color: #38bdf8;">${tE1}</td><td style="color: #38bdf8;">${tS1}</td>
+                            <td style="color: #38bdf8;">${tE2}</td><td style="color: #38bdf8;">${tS2}</td>
+                            <td style="padding: 10px; text-align: right; color: ${corS}; font-weight: bold;">${cargaReal > 0 ? (saldoDia === 0 ? '00:00h' : saldoFormat) : 'Falta'}</td>
+                        </tr>`;
+                }
+            }
+            extratoDiasHtml += `</tbody></table>`;
+        }
+
+        // --- 3. MONTAGEM FINAL DA ESTRUTURA ---
+        conteudo.innerHTML = `
+            <div style="display: flex; height: 100%; width: 100%; border-radius: 8px; overflow: hidden;">
+                
+                <div style="width: 320px; display: flex; flex-direction: column; background: #171c26; border-right: 2px solid #1e293b;">
+                    <div style="padding: 25px; flex: 1; overflow-y: auto;">
+                        <h4 style="color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-top: 0; text-transform: uppercase;">Resumo Financeiro</h4>
+                        ${financeiroHtml}
+                        <div style="text-align: right; margin-top: 10px; color: #f8fafc; font-weight: bold; font-size: 15px;">Vencimentos: R$ ${data.totalVencimentos.toFixed(2).replace('.', ',')}</div>
+
+                        <h4 style="color: #ef4444; border-bottom: 2px solid #ef4444; padding-bottom: 8px; margin-top: 30px; text-transform: uppercase;">Descontos</h4>
+                        ${descontosHtml}
+                        <div style="text-align: right; margin-top: 10px; color: #ef4444; font-weight: bold; font-size: 15px;">Descontos: - R$ ${data.somaDescontosManuais.toFixed(2).replace('.', ',')}</div>
+                    </div>
+                    <div style="padding: 20px; background: #0b1017; border-top: 1px solid #1e293b;">
+                        <span style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Líquido Final</span>
+                        <div style="color: #10b981; font-size: 24px; font-weight: bold;">R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</div>
                     </div>
                 </div>
-                <div style="flex:1; display:flex; flex-direction:column; gap:20px;">
-                    <div class="box-descontos" style="background:#020617; border-radius:8px; border:1px solid #1e293b; padding:20px; flex:1; overflow-y:auto;">
-                        <h4 style="color:#ef4444; margin-bottom:10px;">DESCONTOS</h4>
-                        <table style="width:100%; font-size:13px; color:#94a3b8;">
-                            ${data.descontosManuais.map(d => `<tr><td>${d.desc}</td><td align="right">- R$ ${d.valor.toFixed(2)}</td></tr>`).join('')}
-                            ${data.descontosFaltas > 0 ? `<tr><td>Faltas/Atrasos</td><td align="right">- R$ ${data.descontosFaltas.toFixed(2)}</td></tr>` : ''}
-                        </table>
+
+                <div style="flex: 1; display: flex; flex-direction: column; background: #0f172a;">
+                    <div style="padding: 15px 25px; background: #1e293b; border-bottom: 1px solid #334155;">
+                        <h4 style="margin: 0; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px;">${tituloLadoDireito}</h4>
                     </div>
-                    <div class="box-resumo" style="background:#1e293b; border:2px solid #10b981; padding:25px; border-radius:8px;">
-                        <div style="display:flex; justify-content:space-between; color:#94a3b8; margin-bottom:10px;"><span>Total Bruto:</span><span style="color:#f8fafc; font-weight:bold;">R$ ${data.totalVencimentos.toFixed(2).replace('.', ',')}</span></div>
-                        <div style="border-top:1px solid rgba(148,163,184,0.1); padding-top:15px;">
-                            <div style="color:#10b981; font-size:12px; font-weight:bold; text-transform:uppercase;">Valor Líquido</div>
-                            <div class="texto-liquido" style="color:#10b981; font-size:36px; font-weight:800;">R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</div>
+                    <div style="flex: 1; overflow-y: auto; padding: 0 15px 15px 15px;">
+                        <div style="margin-top: 15px; border: 1px solid #1e293b; border-radius: 4px;">
+                            ${extratoDiasHtml}
                         </div>
                     </div>
                 </div>
-            </div>`;
-        document.getElementById('modal-relatorio').style.display = 'flex';
-        lucide.createIcons();
+
+            </div>
+        `;
+
+        const modal = document.getElementById('modal-relatorio');
+        modal.style.display = 'flex';
+
+        document.body.style.overflow = 'hidden';
+
+        const fecharModal = () => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        };
+
+        const closeBtns = modal.querySelectorAll('button[onclick*="style.display="]');
+        closeBtns.forEach(btn => {
+            btn.removeAttribute('onclick');
+            btn.onclick = fecharModal;
+        });
     },
 
-    imprimirHolerite: function () {
-        if (!this.fechamentoAtual) return;
-        document.getElementById('modal-relatorio').style.display = 'none';
+    gerarPDFHolerite: function () {
+        if (!this.fechamentoAtual) {
+            ModalRH.show('Erro', 'Calcule o fechamento primeiro.');
+            return;
+        }
 
         const data = this.fechamentoAtual;
         const [ano, mes] = data.mesAno.split('-');
-        const admissaoStr = data.func.dataAdmissao?.split('-').reverse().join('/') || '--/--/----';
+        const admissaoStr = data.func.admissao ? data.func.admissao.split('-').reverse().join('/') : '--/--/----';
 
         const nomeArquivo = `Holerite - ${data.func.nome} - ${mes}_${ano}`;
         const tituloOriginal = document.title;
         document.title = nomeArquivo;
 
         let linhasDescontosExtrasHTML = '';
-        data.descontosManuais.forEach((desc, index) => {
-            const codExibicao = (4 + index).toString().padStart(3, '0');
+
+        // LINHA DE DESCONTO: Se o saldo for negativo, imprime a linha na coluna de descontos
+        if (data.func.tipo !== 'Produção' && data.saldoMinutos < 0) {
             linhasDescontosExtrasHTML += `
                 <tr>
-                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${codExibicao}</td>
-                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">${desc.desc.toUpperCase()}</td>
-                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${desc.ref || ''}</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">101</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">ATRASOS E FALTAS (SALDO NEGATIVO)</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${data.saldoFormatado.replace('-', '')}</td>
                     <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;"></td>
-                    <td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${desc.valor.toFixed(2).replace('.', ',')}</td>
-                </tr>
-            `;
-        });
+                    <td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.valorSaldoFinanceiro.toFixed(2).replace('.', ',')}</td>
+                </tr>`;
+        }
 
-        const totalGeralDescontos = data.descontosFaltas + data.somaDescontosManuais;
+        // Outros descontos manuais
+        if (data.descontosManuais && data.descontosManuais.length > 0) {
+            data.descontosManuais.forEach((desc, index) => {
+                linhasDescontosExtrasHTML += `
+                    <tr>
+                        <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">00${index + 2}</td>
+                        <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">${desc.desc.toUpperCase()}</td>
+                        <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${desc.ref || ''}</td>
+                        <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;"></td>
+                        <td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${desc.valor.toFixed(2).replace('.', ',')}</td>
+                    </tr>`;
+            });
+        }
+
+        let linhasVencimentosHTML = '';
+        let cargoNome = "PRODUÇÃO";
+
+        if (data.func.tipo === 'Produção') {
+            linhasVencimentosHTML = `
+                <tr>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">001</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">VALOR DE PRODUÇÃO MENSAL</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">-</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.totalVencimentos.toFixed(2).replace('.', ',')}</td>
+                    <td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td>
+                </tr>`;
+        } else {
+            const db = RHDb.get();
+            const cargo = db.cargos.find(c => c.id === data.func.cargoId);
+            if (cargo) cargoNome = cargo.nome.toUpperCase();
+
+            // LINHA DE VENCIMENTO: Salário Base
+            linhasVencimentosHTML = `
+                <tr>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">001</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">SALÁRIO BASE MENSAL</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">-</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.salBase.toFixed(2).replace('.', ',')}</td>
+                    <td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td>
+                </tr>`;
+
+            // LINHA DE VENCIMENTO EXTRA: Se houver saldo positivo, entra como Horas Extras
+            if (data.saldoMinutos > 0) {
+                linhasVencimentosHTML += `
+                <tr>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">002</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">HORAS EXTRAS (SALDO POSITIVO)</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${data.saldoFormatado.replace('+', '')}</td>
+                    <td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.valorSaldoFinanceiro.toFixed(2).replace('.', ',')}</td>
+                    <td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td>
+                </tr>`;
+            }
+        }
 
         const generateVia = (viaName) => `
         <div style="width: 100%; height: 100%; border: 1px solid #000; box-sizing: border-box; background: #fff; display: flex; flex-direction: column; font-family: Arial, sans-serif; color: #000 !important;">
-            
             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding: 6px;">
                 <div style="font-size: 10px; line-height: 1.3; color: #000 !important;">
                     <strong style="font-size: 12px; color: #000 !important;">KS AFINAÇÕES</strong><br>
@@ -576,10 +1480,14 @@ const RH = {
                         <strong style="font-size: 11px; color: #000 !important;">${admissaoStr}</strong>
                     </div>
                 </div>
-                <div style="display: flex; width: 100%;">
-                    <div style="width: 100%; padding: 4px; color: #000 !important;">
-                        <span style="font-size: 8px; color: #000 !important;">Cargo:</span> <strong style="font-size: 11px; color: #000 !important;">${data.func.cargo.toUpperCase()}</strong>
+                <div style="display: flex; width: 100%; justify-content: space-between;">
+                    <div style="padding: 4px; color: #000 !important;">
+                        <span style="font-size: 8px; color: #000 !important;">Cargo:</span> <strong style="font-size: 11px; color: #000 !important;">${cargoNome}</strong>
                     </div>
+                    ${data.func.tipo === 'Mensalista' ? `
+                    <div style="padding: 4px; color: #000 !important; text-align: right;">
+                        <span style="font-size: 8px; color: #000 !important;">Saldo de Horas Resumido:</span> <strong style="font-size: 11px; color: ${data.saldoMinutos >= 0 ? '#16a34a' : '#dc2626'} !important;">${data.saldoFormatado}</strong>
+                    </div>` : ''}
                 </div>
             </div>
 
@@ -595,15 +1503,7 @@ const RH = {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">001</td>
-                            <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">SALÁRIO NORMAL</td>
-                            <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${data.func.cargaHoraria}</td>
-                            <td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.func.valorBase.toFixed(2).replace('.', ',')}</td>
-                            <td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td>
-                        </tr>
-                        ${data.proventosExtras > 0 ? `<tr><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">002</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">HORAS EXTRAS</td><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${(data.totalHoras - data.func.cargaHoraria).toFixed(2)}</td><td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.proventosExtras.toFixed(2).replace('.', ',')}</td><td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td></tr>` : ''}
-                        ${data.descontosFaltas > 0 ? `<tr><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">003</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">FALTAS / ATRASOS</td><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">-</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;"></td><td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.descontosFaltas.toFixed(2).replace('.', ',')}</td></tr>` : ''}
+                        ${linhasVencimentosHTML}
                         ${linhasDescontosExtrasHTML}
                     </tbody>
                 </table>
@@ -622,7 +1522,7 @@ const RH = {
                         </div>
                         <div style="width: 50%; padding: 4px; text-align: right; color: #000 !important;">
                             <span style="font-size: 8px; color: #000 !important;">Total Descontos</span><br>
-                            <strong style="color: #000 !important;">${totalGeralDescontos.toFixed(2).replace('.', ',')}</strong>
+                            <strong style="color: #000 !important;">${data.somaDescontosManuais.toFixed(2).replace('.', ',')}</strong>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px; flex: 1; color: #000 !important;">
@@ -642,19 +1542,432 @@ const RH = {
         </div>
         `;
 
-        document.getElementById('print-area-holerite').innerHTML = `
-            <div class="print-half-holerite">${generateVia('1ª VIA - EMPRESA')}</div>
-            <div class="print-separator-holerite" style="border-top: 1px dashed #000; margin: 15px 0;"></div>
-            <div class="print-half-holerite">${generateVia('2ª VIA - FUNCIONÁRIO')}</div>
+        const area = document.getElementById('print-area-holerite');
+        if (area) {
+            area.style.display = 'block';
+            area.innerHTML = `
+                <div class="print-half-holerite">${generateVia('1ª VIA - EMPRESA')}</div>
+                <div class="print-separator-holerite" style="border-top: 1px dashed #000; margin: 15px 0;"></div>
+                <div class="print-half-holerite">${generateVia('2ª VIA - FUNCIONÁRIO')}</div>
+            `;
+            document.body.className = 'printing-holerite';
+
+            setTimeout(() => {
+                window.print();
+                document.title = tituloOriginal;
+                document.body.className = '';
+                area.style.display = 'none';
+            }, 500);
+        }
+    },
+
+    imprimirExtrato: function () {
+        if (!this.fechamentoAtual) return;
+        const data = this.fechamentoAtual;
+        const db = RHDb.get();
+        const [ano, mes] = data.mesAno.split('-');
+
+        const tituloOriginal = document.title;
+        document.title = `Relatorio - ${data.func.nome} - ${mes}_${ano}`;
+
+        let relatorioHTML = `
+            <div style="font-family: Arial, sans-serif; padding: 0; color: #000; background: #fff;">
+                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 5px;">
+                    <h2 style="margin: 0; text-transform: uppercase; color: #000;">KS AFINAÇÕES - EXTRATO DE ${data.func.tipo.toUpperCase()}</h2>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #000;"><strong>Funcionário:</strong> ${data.func.nome.toUpperCase()} | <strong>Mês de Referência:</strong> ${mes}/${ano}</p>
+                </div>
         `;
 
-        // A MÁGICA DA NOTA NO CELULAR: Apenas adiciona a classe, NÃO apaga ela via setTimeout depois
-        document.body.className = 'printing-holerite';
+        // ==========================================
+        // TABELA 1: PRODUÇÃO OU PONTO
+        // ==========================================
+        if (data.func.tipo === 'Produção') {
+            const producoes = db.lancamentosProducao.filter(lp => lp.idFunc === data.func.id && lp.data.startsWith(data.mesAno));
+            producoes.sort((a, b) => new Date(a.data) - new Date(b.data));
 
-        setTimeout(() => {
-            window.print();
-            document.title = tituloOriginal;
-        }, 500);
+            relatorioHTML += `
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Data</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Descrição da Peça / Serviço</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Qtd</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Val. Unit.</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            if (producoes.length === 0) {
+                relatorioHTML += `<tr><td colspan="5" style="border: 1px solid #000; padding: 15px; text-align: center; color: #000;">Nenhum lançamento no período.</td></tr>`;
+            } else {
+                producoes.forEach(lp => {
+                    relatorioHTML += `
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${lp.data.split('-').reverse().join('/')}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: left; color: #000;">${lp.pecaCodigo} - ${lp.pecaNome.toUpperCase()}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${lp.qtd}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">R$ ${lp.valorUnit.toFixed(2).replace('.', ',')}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">R$ ${lp.total.toFixed(2).replace('.', ',')}</td>
+                        </tr>
+                    `;
+                });
+            }
+            relatorioHTML += `</tbody></table>`;
+        } else {
+            relatorioHTML += `<h3 style="text-align: center; margin-top: 5px; margin-bottom: 5px; color: #000;">ESPELHO DE PONTO DETALHADO</h3>`;
+            const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+            const cargo = db.cargos.find(c => c.id === data.func.cargoId);
+            const numDias = new Date(ano, mes, 0).getDate();
+
+            relatorioHTML += `
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Data</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Entrada 1</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Saída 1</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Entrada 2</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Saída 2</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (let dia = 1; dia <= numDias; dia++) {
+                const dataIso = `${ano}-${mes}-${dia.toString().padStart(2, '0')}`;
+                const diaSemana = mapaDias[new Date(ano, mes - 1, dia).getDay()];
+
+                const pontosDia = db.pontos.filter(p => p.idFunc === data.func.id && p.entrada.startsWith(dataIso));
+                pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
+
+                let cargaReal = 0, tE1 = '-', tS1 = '-', tE2 = '-', tS2 = '-';
+                pontosDia.forEach((p, i) => {
+                    cargaReal += (new Date(p.saida) - new Date(p.entrada)) / 60000;
+                    const hIn = p.entrada.split('T')[1].substring(0, 5);
+                    const hOut = p.saida.split('T')[1].substring(0, 5);
+                    if (i === 0) { tE1 = hIn; tS1 = hOut; }
+                    if (i === 1) { tE2 = hIn; tS2 = hOut; }
+                });
+
+                let cargaExp = 0;
+                if (cargo && cargo.escala && cargo.escala[diaSemana]) {
+                    const turno = db.turnos.find(t => t.id === cargo.escala[diaSemana]);
+                    if (turno && turno.carga) {
+                        const [th, tm] = turno.carga.split(':').map(Number);
+                        cargaExp = (th * 60) + tm;
+                    }
+                }
+
+                if (cargaExp > 0 || cargaReal > 0) {
+                    let saldoDia = cargaReal > 0 ? Math.round(cargaReal - cargaExp) : 0;
+                    if (Math.abs(saldoDia) <= 10) saldoDia = 0;
+
+                    const absS = Math.abs(saldoDia);
+                    const saldoFormat = `${saldoDia < 0 ? '-' : '+'}${Math.floor(absS / 60).toString().padStart(2, '0')}:${(absS % 60).toString().padStart(2, '0')}h`;
+
+                    relatorioHTML += `
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; color: #000;"><strong>${dia.toString().padStart(2, '0')}/${mes}</strong> <span style="font-size:10px;">(${diaSemana.toUpperCase()})</span></td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tE1}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tS1}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tE2}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tS2}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">${cargaReal > 0 ? (saldoDia === 0 ? '00:00h' : saldoFormat) : 'Falta'}</td>
+                        </tr>`;
+                }
+            }
+            relatorioHTML += `</tbody></table>`;
+        }
+
+        // ==========================================
+        // TABELA 2: DESCONTOS (SE HOUVER)
+        // ==========================================
+        let descontosTabelaHTML = '';
+        if ((data.func.tipo === 'Mensalista' && data.saldoMinutos < 0) || (data.descontosManuais && data.descontosManuais.length > 0)) {
+            descontosTabelaHTML += `
+                <div style="page-break-inside: avoid;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Descrição do Desconto</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Referência</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #d32f2f;">Valor (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            if (data.func.tipo === 'Mensalista' && data.saldoMinutos < 0) {
+                descontosTabelaHTML += `
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 6px; color: #000;">Atrasos e Faltas (Saldo Negativo)</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${data.saldoFormatado.replace('-', '')}</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #d32f2f; font-weight: bold;">- R$ ${data.valorSaldoFinanceiro.toFixed(2).replace('.', ',')}</td>
+                    </tr>
+                `;
+            }
+
+            if (data.descontosManuais && data.descontosManuais.length > 0) {
+                data.descontosManuais.forEach(desc => {
+                    descontosTabelaHTML += `
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; color: #000;">${desc.desc}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${desc.ref || '-'}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #d32f2f; font-weight: bold;">- R$ ${desc.valor.toFixed(2).replace('.', ',')}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            descontosTabelaHTML += `</tbody></table></div>`;
+        }
+
+        // ==========================================
+        // RODAPÉ: LINHA ÚNICA LIMPA
+        // ==========================================
+        relatorioHTML += `
+                ${descontosTabelaHTML}
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #000; page-break-inside: avoid;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #000;">
+                        <span><strong>TOTAL VENCIMENTOS:</strong> R$ ${data.totalVencimentos.toFixed(2).replace('.', ',')}</span>
+                        <span><strong>TOTAL DESCONTOS:</strong> <span style="color: #d32f2f;">- R$ ${data.somaDescontosManuais.toFixed(2).replace('.', ',')}</span></span>
+                        <span style="font-size: 18px;"><strong>LÍQUIDO A PAGAR: R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</strong></span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const area = document.getElementById('print-area-holerite');
+        if (area) {
+            area.innerHTML = relatorioHTML;
+
+            // INJEÇÃO DE CSS DINÂMICO PARA IMPRESSÃO CORRETA
+            const style = document.createElement('style');
+            style.id = 'print-extrato-style';
+            style.innerHTML = `
+                body.printing-extrato .app-container,
+                body.printing-extrato .modal-overlay { display: none !important; }
+                body.printing-extrato #print-area-holerite {
+                    display: block !important;
+                    position: static !important;
+                    width: 100% !important;
+                    height: auto !important;
+                    padding: 0 !important;
+                    box-sizing: border-box !important;
+                }
+                @media print {
+                    @page { size: A4 portrait; margin: 15mm; }
+                    body { background: #fff !important; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            document.body.className = 'printing-extrato';
+            area.style.display = 'block';
+
+            setTimeout(() => {
+                window.print();
+
+                // Limpeza pós impressão
+                document.title = tituloOriginal;
+                document.body.className = '';
+                area.style.display = 'none';
+                const styleEl = document.getElementById('print-extrato-style');
+                if (styleEl) styleEl.remove();
+
+            }, 500);
+        }
+    }
+
+};
+
+// ==========================================
+// MÓDULO: TURNOS
+// ==========================================
+const RH_Turnos = {
+    calcularCarga: function (e1, s1, e2, s2) {
+        const toMin = (t) => {
+            if (!t) return 0;
+            const [h, m] = t.split(':').map(Number);
+            return (h * 60) + m;
+        };
+        const manha = toMin(s1) - toMin(e1);
+        const tarde = toMin(s2) - toMin(e2);
+        const total = (manha > 0 ? manha : 0) + (tarde > 0 ? tarde : 0);
+        const h = Math.floor(total / 60);
+        const m = total % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    },
+
+    salvarTurno: function () {
+        const id = document.getElementById('turno-id').value;
+        const nome = document.getElementById('turno-nome').value.trim();
+        const e1 = document.getElementById('turno-e1').value;
+        const s1 = document.getElementById('turno-s1').value;
+        const e2 = document.getElementById('turno-e2').value;
+        const s2 = document.getElementById('turno-s2').value;
+
+        if (!nome || !e1 || !s1 || !e2 || !s2) {
+            ModalRH.show('Erro', 'Preencha todos os horários do turno.');
+            return;
+        }
+
+        const db = RHDb.get();
+        const carga = this.calcularCarga(e1, s1, e2, s2);
+
+        const turnoObj = {
+            id: id || 'T_' + Date.now(),
+            nome, e1, s1, e2, s2, carga
+        };
+
+        if (id) {
+            const idx = db.turnos.findIndex(t => t.id === id);
+            if (idx > -1) db.turnos[idx] = turnoObj;
+        } else {
+            db.turnos.push(turnoObj);
+        }
+
+        RHDb.save(db);
+        document.getElementById('form-turno').reset();
+        document.getElementById('turno-id').value = '';
+        this.renderTabela();
+        RH_Cargos.popularSelectsTurnos();
+    },
+
+    excluirTurno: function (id) {
+        ModalRH.show('Atenção', 'Deseja excluir este turno?', 'confirm', () => {
+            const db = RHDb.get();
+            const emUso = db.cargos.some(c => Object.values(c.escala).includes(id));
+            if (emUso) {
+                ModalRH.show('Erro', 'Turno em uso por um Cargo. Remova do cargo primeiro.');
+                return;
+            }
+            db.turnos = db.turnos.filter(t => t.id !== id);
+            RHDb.save(db);
+            this.renderTabela();
+            RH_Cargos.popularSelectsTurnos();
+        });
+    },
+
+    renderTabela: function () {
+        const db = RHDb.get();
+        const tbody = document.querySelector('#tabela-turnos tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        db.turnos.forEach(t => {
+            tbody.innerHTML += `<tr>
+                <td>${t.nome}</td>
+                <td>${t.e1}</td>
+                <td>${t.s1}</td>
+                <td>${t.e2}</td>
+                <td>${t.s2}</td>
+                <td style="color:var(--primary-color); font-weight:bold;">${t.carga}</td>
+                <td>
+                    <button class=\"btn-danger\" onclick=\"RH_Turnos.excluirTurno('${t.id}')\" style=\"padding:4px;\" title=\"Excluir\"><i data-lucide=\"trash-2\" style=\"width:14px;\"></i></button>
+                </td>
+            </tr>`;
+        });
+        lucide.createIcons();
+    }
+};
+
+// ==========================================
+// MÓDULO: CARGOS E ESCALAS
+// ==========================================
+const RH_Cargos = {
+    popularSelectsTurnos: function () {
+        const db = RHDb.get();
+        const options = `<option value="">-- Folga / Extra --</option>` +
+            db.turnos.map(t => `<option value="${t.id}">${t.nome} (${t.carga})</option>`).join('');
+
+        const dias = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+        dias.forEach(d => {
+            const sel = document.getElementById(`cargo-${d}`);
+            if (sel) {
+                const val = sel.value;
+                sel.innerHTML = options;
+                sel.value = val;
+            }
+        });
+    },
+
+    salvarCargo: function () {
+        const id = document.getElementById('cargo-id').value;
+        const nome = document.getElementById('cargo-nome').value.trim();
+
+        if (!nome) {
+            ModalRH.show('Erro', 'Preencha o nome do cargo.');
+            return;
+        }
+
+        const escala = {
+            seg: document.getElementById('cargo-seg').value,
+            ter: document.getElementById('cargo-ter').value,
+            qua: document.getElementById('cargo-qua').value,
+            qui: document.getElementById('cargo-qui').value,
+            sex: document.getElementById('cargo-sex').value,
+            sab: document.getElementById('cargo-sab').value,
+            dom: document.getElementById('cargo-dom').value
+        };
+
+        const db = RHDb.get();
+        const cargoObj = {
+            id: id || 'C_' + Date.now(),
+            nome,
+            escala
+        };
+
+        if (id) {
+            const idx = db.cargos.findIndex(c => c.id === id);
+            if (idx > -1) db.cargos[idx] = cargoObj;
+        } else {
+            db.cargos.push(cargoObj);
+        }
+
+        RHDb.save(db);
+        document.getElementById('form-cargo').reset();
+        document.getElementById('cargo-id').value = '';
+        this.renderTabela();
+        RH.popularSelectCargos();
+    },
+
+    excluirCargo: function (id) {
+        ModalRH.show('Atenção', 'Deseja excluir este cargo?', 'confirm', () => {
+            const db = RHDb.get();
+            const emUso = db.funcionarios.some(f => f.cargoId === id);
+            if (emUso) {
+                ModalRH.show('Erro', 'Este cargo está atribuído a um funcionário. Altere o funcionário primeiro.');
+                return;
+            }
+            db.cargos = db.cargos.filter(c => c.id !== id);
+            RHDb.save(db);
+            this.renderTabela();
+            RH.popularSelectCargos();
+        });
+    },
+
+    renderTabela: function () {
+        const db = RHDb.get();
+        const tbody = document.querySelector('#tabela-cargos tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        db.cargos.forEach(c => {
+            // Função para pegar o nome do turno ou "Folga"
+            const getT = (idT) => idT ? (db.turnos.find(t => t.id === idT)?.nome || 'Folga') : 'Folga';
+            const resumo = `Seg-Qui: ${getT(c.escala.seg)} | Sex: ${getT(c.escala.sex)}`;
+
+            tbody.innerHTML += `<tr>
+                <td><strong>${c.nome}</strong></td>
+                <td style="font-size: 12px; color: var(--text-muted);">${resumo}</td>
+                <td>
+                    <button class=\"btn-danger\" onclick=\"RH_Cargos.excluirCargo('${c.id}')\" style=\"padding:4px;\" title=\"Excluir\"><i data-lucide=\"trash-2\" style=\"width:14px;\"></i></button>
+                </td>
+            </tr>`;
+        });
+        lucide.createIcons();
     }
 };
 
