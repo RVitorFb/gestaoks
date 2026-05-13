@@ -1002,16 +1002,15 @@ const LogicaNegocio = {
             clienteIndex: clIndex,
             itens: JSON.parse(JSON.stringify(itensNotaAtual)),
             total: total,
-            tipo: tipoNota 
+            tipo: tipoNota // Salva se é Retrabalho ou Venda
         };
         const idxNotaExistente = db.notasSalvas.findIndex(n => n.id === idNota);
         if (idxNotaExistente > -1) db.notasSalvas[idxNotaExistente] = novaNota;
         else db.notasSalvas.push(novaNota);
         DB.save(db);
 
-        // LAYOUT EXATO QUE VOCÊ GOSTOU (COM min-height: 46vh)
         const generateVia = (viaName) => `
-            <div style="border: 2px solid black; display: flex; flex-direction: column; min-height: 46vh; padding: 10px; box-sizing: border-box; font-family: Arial, sans-serif; color: black; background: white; page-break-inside: avoid;">
+            <div style="border: 2px solid black; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; font-family: Arial, sans-serif; color: black; background: white;">
                 
                 <div style="display: flex; justify-content: space-between; border-bottom: 2px solid black; padding: 4px 8px; font-size: 10px; font-weight: bold; color: black;">
                     <span>${viaName}</span>
@@ -1064,8 +1063,8 @@ const LogicaNegocio = {
                                 <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 40%; color: black;">PRODUTO</th>
                                 <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 8%; color: black;">QTD</th>
                                 <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 10%; color: black;">PERCA</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: right; width: 15%; color: black;">VAL. UNIT.</th>
-                                <th style="border-bottom: 2px solid black; padding: 4px; text-align: right; width: 15%; color: black;">VAL. TOTAL</th>
+                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%; color: black;">VAL. UNIT.</th>
+                                <th style="border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%; color: black;">VAL. TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1083,20 +1082,21 @@ const LogicaNegocio = {
                     </table>
                 </div>
 
-                <div style="display: flex; min-height: 100px; padding-top: 10px;">
-                    <div style="flex: 6; border-right: 1px solid black; padding: 0 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+                <div style="display: flex; min-height: 150px;">
+                    <div style="flex: 6; border-right: 1px solid black; padding: 12px 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
                         <div style="text-align: center; margin-bottom: 6px; font-size: 11px; color: black;">
                             Dúvidas sobre o pedido? Contacte <strong>(44) 9 9828-8914</strong>
                         </div>
-                        <div style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 10px; color: black;">
+                        <div style="text-align: center; font-weight: bold; font-size: 11px; ${viaName === '1ª VIA' ? 'margin-bottom: 45px;' : 'margin-bottom: 10px;'} color: black;">
                             OBRIGADO PELA CONFIANÇA!
                         </div>
+                        
                         ${viaName === '1ª VIA' ? `
-                        <div style="border-top: 1px solid black; width: 85%; padding-top: 6px; text-align: center; font-size: 12px; color: black; margin-top: 20px;">
+                        <div style="border-top: 1px solid black; width: 85%; padding-top: 6px; text-align: center; font-size: 12px; color: black;">
                             Assinatura Cliente
                         </div>` : ''}
                     </div>
-                    <div style="flex: 4; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; font-size: 18px; font-weight: bold; color: black;">
+                    <div style="flex: 4; display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; font-size: 18px; font-weight: bold; color: black;">
                         <span>TOTAL:</span>
                         <span>R$ ${total.toFixed(2).replace('.', ',')}</span>
                     </div>
@@ -1104,72 +1104,19 @@ const LogicaNegocio = {
             </div>
         `;
 
-        // INJEÇÃO DA DIV
-        let printDiv = document.getElementById('print-area-externa-nota-v5');
-        if (!printDiv) {
-            printDiv = document.createElement('div');
-            printDiv.id = 'print-area-externa-nota-v5';
-            document.body.appendChild(printDiv);
-        }
-
-        printDiv.innerHTML = `
-            ${generateVia("1ª VIA")}
-            <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
-            ${generateVia("2ª VIA")}
-        `;
-
-        // SOLUÇÃO FINAL: O NAVEGADOR TROCA SOZINHO (CSS MÁGICO PARA MOBILE)
-        let style = document.getElementById('print-style-nota-mobile-v5');
-        if (!style) {
-            style = document.createElement('style');
-            style.id = 'print-style-nota-mobile-v5';
-            style.innerHTML = `
-                /* Na tela do PC ou Celular, esconde a nota construída */
-                #print-area-externa-nota-v5 { display: none; }
-
-                /* SOMENTE QUANDO O NAVEGADOR ENTRAR EM MODO DE IMPRESSÃO */
-                @media print { 
-                    /* 1. Reseta o corpo da página para evitar cortes */
-                    body { 
-                        background: white !important; 
-                        margin: 0 !important; 
-                        padding: 0 !important; 
-                        height: auto !important; 
-                        min-height: 100vh !important;
-                        overflow: visible !important; 
-                        -webkit-print-color-adjust: exact; 
-                        print-color-adjust: exact; 
-                    } 
-                    
-                    /* 2. Esconde o sistema TODO, menos a nota (Garante que não fica em branco) */
-                    body > *:not(#print-area-externa-nota-v5) { 
-                        display: none !important; 
-                    } 
-                    
-                    /* 3. Mostra a Nota de forma estática (O celular adora isso) */
-                    #print-area-externa-nota-v5 { 
-                        display: block !important; 
-                        position: static !important; 
-                        width: 100% !important; 
-                        margin: 0 !important;
-                        padding: 0 !important;
-                    } 
-                    
-                    @page { size: A4 portrait; margin: 5mm; } 
-                }
-            `;
-            document.head.appendChild(style);
-        }
+        document.getElementById('print-top').innerHTML = generateVia("1ª VIA");
+        document.getElementById('print-bottom').innerHTML = generateVia("2ª VIA");
 
         const tituloOriginal = document.title;
         document.title = idNota;
 
-        // Note que não há mais "document.body.className = 'printing-nota'"
-        // O Javascript apenas manda o comando, e o CSS faz a troca, eliminando a tela branca.
+        document.body.className = 'printing-nota';
+
         setTimeout(() => {
             window.print();
             document.title = tituloOriginal;
-        }, 300);
+            document.body.className = '';
+        }, 500);
     },
 
     abaterEstoqueNota: function () {
