@@ -949,52 +949,29 @@ const LogicaNegocio = {
         if (!isReprint) {
             const codigoPendente = document.getElementById('nota-item-codigo').value;
             if (codigoPendente.trim() !== "") {
-                CustomModal.show('ATENÇÃO: Você tem um código (' + codigoPendente + ') digitado que não foi adicionado ou salvo. Verifique antes de gerar a nota!');
+                CustomModal.show('ATENÇÃO: Você tem um código (' + codigoPendente + ') digitado que não foi adicionado ou salvo.');
                 return;
             }
         }
 
         const clIndex = document.getElementById('nota-cliente').value;
-        if (clIndex === "") { CustomModal.show('Selecione o Destinatário/Cliente da lista.'); return; }
-
-        if (itensNotaAtual.length === 0) {
-            CustomModal.show('Sua nota está vazia. Adicione os itens na tabela antes de Imprimir!');
-            return;
-        }
+        if (clIndex === "") { CustomModal.show('Selecione o Cliente.'); return; }
+        if (itensNotaAtual.length === 0) { CustomModal.show('Nota vazia.'); return; }
 
         const cliente = DB.get().clientes[clIndex];
-
         const radiosTipo = document.querySelectorAll('input[name="nota-tipo"]');
         let tipoNota = 'VENDA';
-        radiosTipo.forEach(radio => {
-            if (radio.checked) tipoNota = radio.value;
-        });
+        radiosTipo.forEach(radio => { if (radio.checked) tipoNota = radio.value; });
 
-        if (tipoNota === 'RETRABALHO') {
-            itensNotaAtual.forEach(item => {
-                item.valor = 0;
-                item.subtotal = 0;
-            });
-        }
-
-        if (!idNotaAtual) {
-            idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
-        }
+        if (!idNotaAtual) idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
         const idNota = idNotaAtual;
-
-        const dataInputRaw = document.getElementById('nota-data').value;
-        let dataImpressao = new Date().toLocaleDateString('pt-BR');
-        if (dataInputRaw) {
-            const partes = dataInputRaw.split('-');
-            dataImpressao = `${partes[2]}/${partes[1]}/${partes[0]}`;
-        }
-
         const total = itensNotaAtual.reduce((acc, item) => acc + item.subtotal, 0);
 
+        // SALVAMENTO NO LOCALSTORAGE/FIREBASE
         const db = DB.get();
         const novaNota = {
             id: idNota,
-            data: dataInputRaw || new Date().toISOString().split('T')[0],
+            data: document.getElementById('nota-data').value || new Date().toISOString().split('T')[0],
             cliente: cliente.nome,
             clienteIndex: clIndex,
             itens: JSON.parse(JSON.stringify(itensNotaAtual)),
@@ -1006,173 +983,79 @@ const LogicaNegocio = {
         else db.notasSalvas.push(novaNota);
         DB.save(db);
 
-        const generateVia = (viaName) => `
-            <div style="border: 2px solid black; display: flex; flex-direction: column; min-height: 46vh; padding: 10px; box-sizing: border-box; font-family: Arial, sans-serif; color: black; background: white; page-break-inside: avoid;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid black; padding: 4px 8px; font-size: 10px; font-weight: bold; color: black;">
-                    <span>${viaName}</span>
-                    <span style="color: ${tipoNota === 'RETRABALHO' ? '#ef4444' : 'black'}; font-size: 12px;">
-                        ${tipoNota === 'RETRABALHO' ? 'RETRABALHO (SEM CUSTO)' : 'DOCUMENTO AUXILIAR'}
-                    </span>
-                    <span></span>
+        // FORMATAÇÃO DA DATA
+        const dataInput = document.getElementById('nota-data').value;
+        const dataFormatada = dataInput ? dataInput.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR');
+
+        // FUNÇÃO PARA GERAR O HTML DA VIA
+        const gerarHTMLVia = (via) => `
+            <div style="border: 2px solid black; padding: 10px; font-family: Arial; color: black; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid black; font-size: 10px; font-weight: bold;">
+                    <span>${via}</span><span>${tipoNota === 'RETRABALHO' ? 'RETRABALHO' : 'DOCUMENTO AUXILIAR'}</span><span></span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 2px solid black;">
-                    <div>
-                        <div style="font-size: 24px; font-weight: bold; letter-spacing: 0.5px; color: black;">KS Afinações</div>
-                        <div style="font-size: 11px; color: #333; margin-top: 2px;">Metais Sanitários</div>
-                    </div>
-                    <div style="text-align: right; font-size: 11px; color: black;">
-                        <div style="margin-bottom: 4px;">N.º <span style="font-weight: bold; font-size: 14px; color: black;">${idNota}</span></div>
-                        <div>Data: ${dataImpressao}</div>
-                    </div>
+                <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 2px solid black;">
+                    <div style="font-size: 20px; font-weight: bold;">KS Afinações</div>
+                    <div style="text-align: right; font-size: 12px;">N.º <b>${idNota}</b><br>Data: ${dataFormatada}</div>
                 </div>
-                <div style="display: flex; border-bottom: 2px solid black; font-size: 10px; color: black;">
-                    <div style="flex: 1; border-right: 2px solid black; padding: 0;">
-                        <div style="text-align: center; font-weight: bold; border-bottom: 1px solid black; padding: 4px 0; background: transparent;">KS Afinações</div>
-                        <table style="width: 100%; font-size: 10px; border-collapse: collapse; color: black;">
-                            <tr><td style="width: 55px; padding: 3px 6px;">Endereço:</td><td style="padding: 3px 6px;">KS Afinações, Santa Isabel - PR, 87910-000</td></tr>
-                            <tr><td style="padding: 3px 6px;">Telefone:</td><td style="padding: 3px 6px;">(44) 9 9828-8914</td></tr>
-                            <tr><td style="padding: 3px 6px;">CNPJ:</td><td style="padding: 3px 6px;">42.360.395/0001-83</td></tr>
-                        </table>
+                <div style="display: flex; border-bottom: 2px solid black; font-size: 10px;">
+                    <div style="flex: 1; border-right: 2px solid black; padding: 5px;">
+                        <b>KS Afinações</b><br>Santa Isabel - PR | (44) 9 9828-8914
                     </div>
-                    <div style="flex: 1; padding: 0;">
-                        <div style="text-align: center; font-weight: bold; border-bottom: 1px solid black; padding: 4px 0; background: transparent;">${cliente.nome}</div>
-                        <table style="width: 100%; font-size: 10px; border-collapse: collapse; color: black;">
-                            <tr><td style="width: 55px; padding: 3px 6px;">Endereço:</td><td style="padding: 3px 6px;">${cliente.endereco || '-'}</td></tr>
-                            <tr><td style="padding: 3px 6px;">Telefone:</td><td style="padding: 3px 6px;">${cliente.telefone || '-'}</td></tr>
-                            <tr><td style="padding: 3px 6px;">CNPJ:</td><td style="padding: 3px 6px;">${cliente.cnpj || '-'}</td></tr>
-                        </table>
+                    <div style="flex: 1; padding: 5px;">
+                        <b>${cliente.nome}</b><br>${cliente.endereco || 'S/E'}
                     </div>
                 </div>
-                <div style="flex: 1; border-bottom: 2px solid black;">
-                    ${tipoNota === 'RETRABALHO' ? `
-                    <div style="text-align: center; padding: 5px; background: #ffffff; color: #ca0f0f; font-weight: bold; font-size: 14px; letter-spacing: 2px; border-bottom: 2px solid black;">
-                        RETRABALHO - SEM CUSTO ADICIONAL
-                    </div>` : ''}
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: black;">
-                        <thead>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 5px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid black;">
+                            <th style="text-align: left;">PRODUTO</th>
+                            <th style="text-align: center;">QTD</th>
+                            <th style="text-align: right;">UNIT</th>
+                            <th style="text-align: right;">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itensNotaAtual.map(i => `
                             <tr>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 12%; color: black;">CÓDIGO</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 40%; color: black;">PRODUTO</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 8%; color: black;">QTD</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 10%; color: black;">PERCA</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: right; width: 15%; color: black;">VAL. UNIT.</th>
-                                <th style="border-bottom: 2px solid black; padding: 4px; text-align: right; width: 15%; color: black;">VAL. TOTAL</th>
+                                <td>${i.codigo} - ${i.nome}</td>
+                                <td style="text-align: center;">${i.qtd}</td>
+                                <td style="text-align: right;">R$ ${i.valor.toFixed(2)}</td>
+                                <td style="text-align: right;">R$ ${i.subtotal.toFixed(2)}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${itensNotaAtual.map(i => `
-                            <tr>
-                                <td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; color: black;">${i.codigo}</td>
-                                <td style="border-right: 1px solid black; padding: 3px 4px; color: black;">${i.nome}</td>
-                                <td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; color: black;">${i.qtd}</td>
-                                <td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; font-weight: ${i.perca > 0 ? 'bold' : 'normal'}; color: black;">${i.perca > 0 ? i.perca : ''}</td>
-                                <td style="border-right: 1px solid black; padding: 3px 4px; text-align: right; color: black;">R$ ${i.valor.toFixed(2).replace('.', ',')}</td>
-                                <td style="padding: 3px 4px; text-align: right; color: black;">R$ ${i.subtotal.toFixed(2).replace('.', ',')}</td>
-                            </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                <div style="display: flex; min-height: 100px; padding-top: 10px;">
-                    <div style="flex: 6; border-right: 1px solid black; padding: 0 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
-                        <div style="text-align: center; margin-bottom: 6px; font-size: 11px; color: black;">
-                            Dúvidas sobre o pedido? Contacte <strong>(44) 9 9828-8914</strong>
-                        </div>
-                        <div style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 10px; color: black;">
-                            OBRIGADO PELA CONFIANÇA!
-                        </div>
-                        ${viaName === '1ª VIA' ? `
-                        <div style="border-top: 1px solid black; width: 85%; padding-top: 6px; text-align: center; font-size: 12px; color: black; margin-top: 20px;">
-                            Assinatura Cliente
-                        </div>` : ''}
-                    </div>
-                    <div style="flex: 4; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; font-size: 18px; font-weight: bold; color: black;">
-                        <span>TOTAL:</span>
-                        <span>R$ ${total.toFixed(2).replace('.', ',')}</span>
-                    </div>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div style="text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; border-top: 2px solid black; padding-top: 5px;">
+                    TOTAL: R$ ${total.toFixed(2).replace('.', ',')}
                 </div>
             </div>
         `;
 
-        // DOM VIRTUAL V3
-        let printDiv = document.getElementById('print-area-externa-nota-v3');
-        if (!printDiv) {
-            printDiv = document.createElement('div');
-            printDiv.id = 'print-area-externa-nota-v3';
-            document.body.appendChild(printDiv);
-        }
-
-        printDiv.innerHTML = `
-            ${generateVia("1ª VIA")}
-            <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
-            ${generateVia("2ª VIA")}
-        `;
-
-        // CSS BLINDADO CONTRA A PÁGINA BRANCA DO CELULAR
-        let style = document.getElementById('print-style-nota-mobile-v3');
-        if (!style) {
-            style = document.createElement('style');
-            style.id = 'print-style-nota-mobile-v3';
-            style.innerHTML = `
-                #print-area-externa-nota-v3 { display: none; }
-                
-                /* Esconde TUDO no body que não seja a nota de impressão */
-                body.printing-nota > *:not(#print-area-externa-nota-v3) {
-                    display: none !important;
-                }
-                
-                body.printing-nota {
-                    background: white !important;
-                    overflow: visible !important;
-                    height: auto !important;
-                }
-
-                /* Libera a nota com posição STATICA (Natural), que é a única que o celular respeita */
-                body.printing-nota #print-area-externa-nota-v3 { 
-                    display: block !important; 
-                    position: static !important; 
-                    width: 100% !important; 
-                    background: white !important; 
-                    min-height: 100vh;
-                    margin: 0;
-                    padding: 0;
-                }
-
-                @media print { 
-                    @page { size: A4 portrait; margin: 5mm; } 
-                    body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0;} 
-                }
-            `;
-            document.head.appendChild(style);
-        }
-
-        const tituloOriginal = document.title;
-        document.title = idNota;
-        
-        // Ativa a classe
-        document.body.classList.add('printing-nota');
-
-        // Força o navegador do celular a "desenhar" a tela antes de avançar
-        void document.body.offsetHeight;
-
-        setTimeout(() => {
-            window.print();
-            
-            // FUNÇÃO DE RETORNO BLINDADA PARA CELULAR
-            // Só tira a classe de impressão DEPOIS que o celular terminar de gerar o PDF
-            const restoreApp = () => {
-                document.title = tituloOriginal;
-                document.body.classList.remove('printing-nota');
-                window.removeEventListener('afterprint', restoreApp);
-            };
-
-            // Escuta o evento oficial do celular
-            window.addEventListener('afterprint', restoreApp);
-            
-            // Caso de falha (se o iPhone não disparar o evento, volta ao normal em 5 segundos)
-            setTimeout(restoreApp, 5000); 
-
-        }, 800);
+        // === SOLUÇÃO FINAL: NOVA JANELA PARA O TELEMÓVEL ===
+        const win = window.open('', '_blank');
+        win.document.write(`
+            <html>
+            <head>
+                <title>Nota ${idNota}</title>
+                <style>
+                    body { margin: 0; padding: 10px; background: white; }
+                    @media print { @page { margin: 5mm; } }
+                </style>
+            </head>
+            <body>
+                ${gerarHTMLVia('1ª VIA')}
+                <div style="border-top: 1px dashed black; margin: 20px 0;"></div>
+                ${gerarHTMLVia('2ª VIA')}
+                <script>
+                    setTimeout(() => {
+                        window.print();
+                        window.close();
+                    }, 500);
+                </script>
+            </body>
+            </html>
+        `);
+        win.document.close();
     },
 
     abaterEstoqueNota: function () {
