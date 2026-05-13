@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque - KS Afinações</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="rh.css">
+</head>
+
+<body>
+    <div id="custom-modal" class="modal-overlay"
+        style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 10005;">
+        <div class="modal-content"
+            style="background-color: #171c26; border-radius: 8px; padding: 30px; width: 380px; text-align: center; border: 1px solid var(--border-color);">
+            <h3 id="modal-title" style="color: #38bdf8; margin-bottom: 20px;">Aviso</h3>
+            <p id="modal-message" style="color: #f8fafc; margin-bottom: 30px;"></p>
+            <div class="modal-actions" style="display: flex; justify-content: center; gap: 15px;">
+                <button id="modal-btn-confirm" class="btn-primary"
+                    style="background: #38bdf8; color: #000; width: 120px;">OK</button>
+                <button id="modal-btn-cancel" class="btn-outline"
+                    style="display: none; border-color: #38bdf8; color: #38bdf8; width: 120px;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-ui">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <h1 style="color: #38bdf8;">KS Estoque</h1>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" onclick="Estoque_UI.switchTab('painel')"><i
+                        data-lucide="layout-dashboard"></i> Painel da Afinação</button>
+                <button class="nav-btn" onclick="Estoque_UI.switchTab('itens')"><i data-lucide="boxes"></i> Cadastro
+                    Insumos</button>
+
+                <hr style="border-color: #334155; margin: 10px 0;">
+
+                <button class="nav-btn" onclick="Estoque_UI.switchTab('entrada')"><i data-lucide="arrow-down-to-line"
+                        style="color: #10b981;"></i> Nova Entrada</button>
+                <button class="nav-btn" onclick="Estoque_UI.switchTab('saida')"><i data-lucide="arrow-up-from-line"
+                        style="color: #ef4444;"></i> Consumo Equipe</button>
+
+                <hr style="border-color: #334155; margin: 10px 0;">
+
+                <button class="nav-btn" onclick="Estoque_UI.switchTab('relatorio')"><i data-lucide="file-bar-chart"></i>
+                    Relatório Mensal</button>
+
+                <button class="nav-btn" onclick="Estoque_UI.switchTab('historico')"><i data-lucide="history"></i>
+                    Histórico Central</button>
+
+                <hr style="border-color: #334155; margin: 10px 0;">
+                <button class="nav-btn" onclick="window.location.href='index.html'"
+                    style="color: var(--danger-color);"><i data-lucide="arrow-left"></i> Voltar ao ERP</button>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+
+            <section id="tab-painel" class="tab-content active">
+                <h2>Visão Geral da Afinação (Peças e Insumos)</h2>
+
+                <div class="card"
+                    style="border-top: 3px solid #38bdf8; background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);">
+                    <h3 style="color: #38bdf8; margin-bottom: 20px;"><i data-lucide="package-search"></i> Peças
+                        Aguardando Afinação</h3>
+
+                    <div style="margin-bottom: 20px;">
+                        <div
+                            style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid #334155; display: inline-block; min-width: 250px;">
+                            <span style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Faturamento Bruto
+                                Projetado</span>
+                            <div id="painel-faturamento" style="font-size: 24px; font-weight: bold; color: #10b981;">R$
+                                0,00</div>
+                        </div>
+                    </div>
+
+                    <table id="tabela-painel-pecas">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Produto</th>
+                                <th style="text-align: center;">Qtd</th>
+                                <th style="text-align: right;">Val. Nota</th>
+                                <th style="text-align: center;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="grid-2 mt-4">
+                    <div class="card" style="border-top: 3px solid #ef4444; background: rgba(239, 68, 68, 0.02);">
+                        <h3 style="color: #ef4444;"><i data-lucide="alert-triangle"></i> Atenção: Estoque Baixo</h3>
+                        <div id="lista-estoque-alerta" style="margin-top: 15px; font-size: 14px;"></div>
+                    </div>
+                    <div class="card" style="border-top: 3px solid #10b981;">
+                        <h3><i data-lucide="package-check" style="color:#10b981;"></i> Insumos Saudáveis</h3>
+                        <div id="lista-estoque-saudavel" style="margin-top: 15px; font-size: 14px;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-itens" class="tab-content">
+                <h2>Cadastro de Insumos / Materiais</h2>
+                <div class="card">
+                    <form onsubmit="event.preventDefault(); Estoque.salvarInsumo();">
+                        <input type="hidden" id="ins-id">
+                        <div class="grid-2">
+                            <div><label>Nome do Material (Ex: Lixa G120, Pano, Massa)</label><input type="text"
+                                    id="ins-nome" required></div>
+                            <div>
+                                <label>Unidade de Medida</label>
+                                <select id="ins-unidade" required>
+                                    <option value="Unidade">Unidade (un)</option>
+                                    <option value="Caixa">Caixa (cx)</option>
+                                    <option value="Metro">Metro (m)</option>
+                                    <option value="Pacote">Pacote (pct)</option>
+                                    <option value="Litro">Litro (L)</option>
+                                    <option value="Kilo">Kilo (Kg)</option>
+                                    <option value="Roda">Roda</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Alerta de Estoque Mínimo</label>
+                                <input type="number" id="ins-minimo" placeholder="Ex: 5" required>
+                            </div>
+                            <div>
+                                <label>Valor de Repasse Padrão (R$)</label>
+                                <input type="number" step="0.01" id="ins-repasse" placeholder="Ex: 2.50"
+                                    title="Valor descontado da Produção">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary mt-4"
+                            style="background:#38bdf8; color:#000; width: auto;"><i data-lucide="save"></i> Salvar
+                            Insumo</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>Insumos Cadastrados</h3>
+                    <table id="tabela-insumos">
+                        <thead>
+                            <tr>
+                                <th>Nome do Material</th>
+                                <th>Unidade</th>
+                                <th>Mínimo</th>
+                                <th>Val. Repasse</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-entrada" class="tab-content">
+                <h2>Registrar Nova Entrada</h2>
+                <div class="card" style="border-left: 4px solid #10b981;">
+
+                    <div style="margin-bottom: 20px; display: flex; gap: 15px;">
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main); font-size: 15px;">
+                            <input type="radio" name="tipo-entrada" value="insumo" checked
+                                onchange="Estoque.toggleTipoEntrada()" style="width: 18px; height: 18px; margin: 0;">
+                            Entrada de Insumo (Compra)
+                        </label>
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main); font-size: 15px;">
+                            <input type="radio" name="tipo-entrada" value="peca" onchange="Estoque.toggleTipoEntrada()"
+                                style="width: 18px; height: 18px; margin: 0;">
+                            Chegada de Peças (Cliente)
+                        </label>
+                    </div>
+
+                    <hr style="border-color: #1e293b; margin-bottom: 20px;">
+
+                    <form onsubmit="event.preventDefault(); Estoque.registrarEntrada();">
+                        <div class="grid-2">
+                            <div><label>Data</label><input type="date" id="ent-data" required
+                                    onclick="this.showPicker()"></div>
+
+                            <div id="div-ent-select">
+                                <label id="label-ent-item">Selecione o Item</label>
+                                <select id="ent-item" required></select>
+                            </div>
+
+                            <div id="div-ent-cliente" style="display: none;">
+                                <label>Cliente (Origem da Peça)</label>
+                                <select id="ent-cliente"></select>
+                            </div>
+
+                            <div><label>Quantidade Recebida</label><input type="number" id="ent-qtd" step="0.01"
+                                    min="0.01" required></div>
+
+                            <div id="div-ent-total">
+                                <label>Valor Total da Nota (R$)</label>
+                                <input type="number" id="ent-total" step="0.01" min="0" placeholder="Ex: 150.00">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary mt-4"
+                            style="background:#10b981; color:#fff; width: auto;"><i data-lucide="check"></i> Confirmar
+                            Entrada</button>
+
+                        <div>
+                            <label>Status do Pagamento</label>
+                            <select id="ent-pagamento"
+                                onchange="document.getElementById('div-ent-vencimento').style.display = this.value === 'PRAZO' ? 'block' : 'none';"
+                                style="margin-bottom: 0;">
+                                <option value="PAGO">Pago à Vista</option>
+                                <option value="PRAZO">A Prazo (Pendente)</option>
+                            </select>
+                        </div>
+                        <div id="div-ent-vencimento" style="display: none;">
+                            <label style="color: var(--danger-color);">Data de Vencimento</label>
+                            <input type="date" id="ent-vencimento" onclick="this.showPicker()"
+                                style="margin-bottom: 0; border-color: var(--danger-color);">
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section id="tab-saida" class="tab-content">
+                <h2>Consumo de Insumos (Saída)</h2>
+                <div class="card" style="border-left: 4px solid #ef4444;">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Nota: A saída de PEÇAS é
+                        feita automaticamente ao gerar a Nota Fiscal no ERP.</p>
+                    <form onsubmit="event.preventDefault(); Estoque.registrarSaidaInsumo();">
+                        <div class="grid-2">
+                            <div><label>Data da Retirada</label><input type="date" id="sai-data" required
+                                    onclick="this.showPicker()"></div>
+                            <div><label>Insumo Retirado</label><select id="sai-item" required
+                                    onchange="Estoque.autoPreencherRepasse()"></select></div>
+
+                            <div>
+                                <label>Destino / Funcionário</label>
+                                <select id="sai-func" required onchange="Estoque.verificarTipoFuncionario()">
+                                    <option value="">-- Selecione o Funcionário --</option>
+                                    <option value="AFINACAO_GERAL" data-tipo="Geral">Uso da Afinação (Sem Desconto)
+                                    </option>
+                                </select>
+                            </div>
+                            <div><label>Quantidade Retirada</label><input type="number" id="sai-qtd" step="0.01"
+                                    min="0.01" required onkeyup="Estoque.calcularTotalSaida()"
+                                    onchange="Estoque.calcularTotalSaida()"></div>
+
+                            <div id="div-sai-valor"
+                                style="background: rgba(234, 179, 8, 0.05); padding: 15px; border-radius: 6px; border: 1px dashed #eab308; display: none; grid-column: 1 / -1;">
+                                <div class="grid-2">
+                                    <div>
+                                        <label style="color: #eab308; font-weight: bold;"><i data-lucide="alert-circle"
+                                                style="width:14px; margin-right:4px;"></i> Valor Cobrado por Unid.
+                                            (R$)</label>
+                                        <input type="number" id="sai-valor" step="0.01" min="0"
+                                            onkeyup="Estoque.calcularTotalSaida()"
+                                            onchange="Estoque.calcularTotalSaida()" style="margin-bottom:0;">
+                                    </div>
+                                    <div
+                                        style="display: flex; flex-direction: column; justify-content: center; align-items: flex-end;">
+                                        <span
+                                            style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Desconto
+                                            que irá para o Holerite:</span>
+                                        <span id="sai-total-display"
+                                            style="color:#ef4444; font-size: 22px; font-weight: bold;">R$ 0,00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary mt-4"
+                            style="background:#ef4444; color:#fff; width: auto;"><i data-lucide="minus-circle"></i>
+                            Confirmar Retirada</button>
+                    </form>
+                </div>
+            </section>
+
+            <section id="tab-historico" class="tab-content">
+                <h2>Histórico de Movimentações</h2>
+                <div class="card">
+                    <div
+                        style="display: flex; gap: 15px; margin-bottom: 20px; background: #0b1017; padding: 15px; border-radius: 6px;">
+                        <div style="flex:1;"><label>Mês</label><input type="month" id="filtro-hist-mes"
+                                onchange="Estoque.renderHistorico()" onclick="this.showPicker()"
+                                style="margin-bottom:0;"></div>
+                        <div style="flex:1;"><label>Classe</label><select id="filtro-hist-classe"
+                                onchange="Estoque.renderHistorico()" style="margin-bottom:0;">
+                                <option value="">Tudo (Peças e Insumos)</option>
+                                <option value="Insumos">Apenas Insumos</option>
+                                <option value="Peças">Apenas Peças</option>
+                            </select></div>
+                        <div style="flex:1;"><label>Tipo</label><select id="filtro-hist-tipo"
+                                onchange="Estoque.renderHistorico()" style="margin-bottom:0;">
+                                <option value="">Todas (Entrada e Saída)</option>
+                                <option value="Entrada">Apenas Entradas</option>
+                                <option value="Saída">Apenas Saídas</option>
+                            </select></div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="tabela-historico">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Classe</th>
+                                    <th>Tipo</th>
+                                    <th>Material / Peça</th>
+                                    <th>Qtd</th>
+                                    <th>Origem/Destino</th>
+                                    <th style="text-align:right;">Finanças</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-relatorio" class="tab-content">
+                <h2>Relatório Financeiro do Mês</h2>
+                <div class="card"
+                    style="border-top: 3px solid #eab308; background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);">
+                    <div class="grid-2" style="align-items: end;">
+                        <div>
+                            <label>Selecione o Mês Fechado</label>
+                            <input type="month" id="relatorio-mes" onclick="this.showPicker()"
+                                onchange="Estoque.gerarRelatorioMensal()" style="margin-bottom: 0;">
+                        </div>
+                        <div>
+                            <button class="btn-primary" onclick="Estoque.imprimirRelatorio()"
+                                style="width: 100%; background: #eab308; color: #000;"><i data-lucide="printer"></i>
+                                Imprimir Relatório Oficial</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="print-area-relatorio"
+                    style="background: white; color: black; padding: 30px; display: none;">
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="estoque.js"></script>
+</body>
+
+</html>

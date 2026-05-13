@@ -23,7 +23,7 @@ const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const CustomModal = {
     keydownListener: null,
 
-    show: function (msg, isConfirm = false, onConfirm = null) {
+    show: function (msg, isConfirm = false, onConfirm = null, onCancel = null) {
         document.getElementById('modal-message').innerText = msg;
         const modalEl = document.getElementById('custom-modal');
         modalEl.style.display = 'flex';
@@ -33,7 +33,6 @@ const CustomModal = {
 
         btnCancel.style.display = isConfirm ? 'inline-block' : 'none';
 
-        // Garante que nenhum evento antigo fique pendurado
         btnConfirm.onclick = () => {
             this.hide();
             if (onConfirm) onConfirm();
@@ -41,51 +40,30 @@ const CustomModal = {
 
         btnCancel.onclick = () => {
             this.hide();
+            if (onCancel) onCancel();
         };
 
-        // Foca automaticamente no botão Confirmar para o Enter funcionar de primeira
         btnConfirm.focus();
 
-        // Remove listener antigo se existir (para evitar duplicação)
-        if (this.keydownListener) {
-            document.removeEventListener('keydown', this.keydownListener);
-        }
+        if (this.keydownListener) document.removeEventListener('keydown', this.keydownListener);
 
-        // Cria o ouvinte de teclado exclusivo para o Modal
         this.keydownListener = (e) => {
             if (modalEl.style.display === 'flex') {
                 if (e.key === 'Enter') {
-                    // O Enter vai acionar o botão que estiver focado atualmente
-                    // Como focamos o Confirmar ao abrir, ele é o padrão.
                     e.preventDefault();
-                    if (document.activeElement === btnCancel) {
-                        btnCancel.click();
-                    } else {
-                        btnConfirm.click();
-                    }
-                }
-                else if (e.key === 'Escape') {
-                    // Esc = Cancelar/Fechar
+                    if (document.activeElement === btnCancel) btnCancel.click();
+                    else btnConfirm.click();
+                } else if (e.key === 'Escape') {
                     e.preventDefault();
-                    if (isConfirm) {
-                        btnCancel.click();
-                    } else {
-                        btnConfirm.click();
-                    }
-                }
-                else if (isConfirm && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-                    // Alterna o foco entre Cancelar e OK
+                    if (isConfirm) btnCancel.click();
+                    else btnConfirm.click();
+                } else if (isConfirm && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
                     e.preventDefault();
-                    if (document.activeElement === btnConfirm) {
-                        btnCancel.focus();
-                    } else {
-                        btnConfirm.focus();
-                    }
+                    if (document.activeElement === btnConfirm) btnCancel.focus();
+                    else btnConfirm.focus();
                 }
             }
         };
-
-        // Adiciona o ouvinte
         document.addEventListener('keydown', this.keydownListener);
     },
 
@@ -102,27 +80,27 @@ const CustomModal = {
 const DB = {
     KEY: 'ks_afinacoes_dados',
     KEY_RH: 'ks_rh_dados',
+    KEY_ESTOQUE: 'ks_estoque_dados',
 
     get: function () {
         const data = localStorage.getItem(this.KEY);
-        return data ? JSON.parse(data) : { produtos: [], clientes: [] };
+        const parsed = data ? JSON.parse(data) : { produtos: [], clientes: [], notasSalvas: [] };
+        if (!parsed.notasSalvas) parsed.notasSalvas = []; // Garante que a gaveta de notas exista
+        return parsed;
     },
     save: function (data) {
         localStorage.setItem(this.KEY, JSON.stringify(data));
 
-        // Backup Unificado (Notas + RH)
         const dadosRHRaw = localStorage.getItem(this.KEY_RH);
+        const dadosEstoqueRaw = localStorage.getItem(this.KEY_ESTOQUE);
         const backupUnificado = {
             notas: data,
-            rh: dadosRHRaw ? JSON.parse(dadosRHRaw) : { funcionarios: [], pontos: [], descontosFechamento: [] }
+            rh: dadosRHRaw ? JSON.parse(dadosRHRaw) : { funcionarios: [], pontos: [], descontosFechamento: [] },
+            estoque: dadosEstoqueRaw ? JSON.parse(dadosEstoqueRaw) : { insumos: [], logsInsumos: [], logsPecas: [] }
         };
 
-        if (document.getElementById('dash-prod-count')) {
-            UI.updateDashCards();
-        }
-        if (document.getElementById('tabela-fornecedor')) {
-            UI.renderSelectsFornecedoresTabelas();
-        }
+        if (document.getElementById('dash-prod-count')) UI.updateDashCards();
+        if (document.getElementById('tabela-fornecedor')) UI.renderSelectsFornecedoresTabelas();
 
         DriveAPI.autoSaveBackup(JSON.stringify(backupUnificado));
     },
@@ -136,6 +114,7 @@ const DB = {
                 if (parsed.notas && parsed.rh) {
                     localStorage.setItem(DB.KEY, JSON.stringify(parsed.notas));
                     localStorage.setItem(DB.KEY_RH, JSON.stringify(parsed.rh));
+                    if (parsed.estoque) localStorage.setItem(DB.KEY_ESTOQUE, JSON.stringify(parsed.estoque));
                     CustomModal.show('Backup Unificado restaurado com sucesso!');
                     UI.initData();
                 } else if (parsed.produtos && parsed.clientes) {
@@ -146,6 +125,24 @@ const DB = {
             } catch (err) { CustomModal.show('Erro ao ler arquivo JSON.'); }
         };
         reader.readAsText(fileInput.files[0]);
+    },
+    downloadManualBackup: function () {
+        const dadosNotas = this.get();
+        const dadosRHRaw = localStorage.getItem(this.KEY_RH);
+        const dadosEstoqueRaw = localStorage.getItem(this.KEY_ESTOQUE);
+
+        const backupUnificado = {
+            notas: dadosNotas,
+            rh: dadosRHRaw ? JSON.parse(dadosRHRaw) : { funcionarios: [], pontos: [], descontosFechamento: [] },
+            estoque: dadosEstoqueRaw ? JSON.parse(dadosEstoqueRaw) : { insumos: [], logsInsumos: [], logsPecas: [] }
+        };
+
+        const blob = new Blob([JSON.stringify(backupUnificado)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'backup_ks_afinacoes.json';
+        a.click();
     },
     downloadManualBackup: function () {
         const dadosNotas = this.get();
@@ -165,6 +162,11 @@ const DB = {
         a.click();
     }
 };
+
+function LerRH() {
+    const data = localStorage.getItem('ks_rh_dados');
+    return data ? JSON.parse(data) : { funcionarios: [] };
+}
 
 const DriveAPI = {
     tokenClient: null, accessToken: null, backupFileId: null,
@@ -241,8 +243,9 @@ const DriveAPI = {
 let itensNotaAtual = [];
 let itemNotaEmEdicaoIndex = null;
 let idNotaAtual = null;
-let sugestaoIndexNota = -1;  // Guarda a posição do cursor na lista da Nota
-let sugestaoIndexBusca = -1; // Guarda a posição do cursor na lista da Busca
+let sugestaoIndexNota = -1;
+let sugestaoIndexBusca = -1;
+let notaAbatida = false;
 
 const LogicaNegocio = {
 
@@ -281,6 +284,7 @@ const LogicaNegocio = {
         const nomeBase = document.getElementById('prod-nome').value.trim();
         const fornecedor = document.getElementById('prod-fornecedor').value.trim();
         const valVenda = parseFloat(document.getElementById('prod-val-venda').value);
+        const valVendaPolida = parseFloat(document.getElementById('prod-val-venda-polida').value) || valVenda; // Se vazio, usa o normal
         const valProducao = parseFloat(document.getElementById('prod-val-producao').value) || 0;
 
         const varPintura = document.getElementById('var-pintura').checked;
@@ -297,20 +301,29 @@ const LogicaNegocio = {
             nome: nomeBase,
             fornecedor: fornecedor,
             valVenda: valVenda,
-            valProducao: valProducao, // Adicionado o salvamento
+            valVendaPolida: valVendaPolida, // SALVA O VALOR POLIDO
+            valProducao: valProducao,
             variacoes: variacoesArray
         });
 
         DB.save(db);
 
+        // Limpa os campos após salvar
         document.getElementById('prod-codigo').value = '';
+        document.getElementById('prod-val-venda-polida').value = '';
         document.getElementById('prod-val-producao').value = '';
         document.getElementById('var-pintura').checked = false;
         document.getElementById('var-polida').checked = false;
         document.getElementById('prod-codigo').focus();
+        document.getElementById('div-venda-polida').style.display = 'none';
 
         UI.renderTabelaProdutos();
         CustomModal.show(`Produto salvo com sucesso!`);
+    },
+
+    toggleCampoPolido: function () {
+        const isPolida = document.getElementById('var-polida').checked;
+        document.getElementById('div-venda-polida').style.display = isPolida ? 'block' : 'none';
     },
 
     excluirProduto: function (codigo) {
@@ -336,6 +349,7 @@ const LogicaNegocio = {
         const hasPintura = prod.variacoes && prod.variacoes.includes("Pintura") ? 'checked' : '';
         const hasPolida = prod.variacoes && prod.variacoes.includes("Polida") ? 'checked' : '';
         const valProducaoAtual = prod.valProducao || 0;
+        const valVendaPolidaAtual = prod.valVendaPolida || prod.valVenda;
 
         const tr = document.getElementById(`tr-produto-${codigo}`);
         tr.innerHTML = `
@@ -344,11 +358,16 @@ const LogicaNegocio = {
                 <input type="text" id="edit-prod-nome-${codigo}" value="${prod.nome}" style="width: 100%; margin: 0 0 4px 0; padding: 4px; font-size: 12px;">
                 <div style="display: flex; gap: 10px; font-size: 10px; color: var(--text-main); align-items: center;">
                     <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-pintura-${codigo}" ${hasPintura} style="width: 12px; height: 12px; margin: 0;"> Pintura</label>
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-polida-${codigo}" ${hasPolida} style="width: 12px; height: 12px; margin: 0;"> Polida</label>
+                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-polida-${codigo}" ${hasPolida} onchange="LogicaNegocio.toggleEditPolido('${codigo}')" style="width: 12px; height: 12px; margin: 0;"> Polida</label>
                 </div>
             </td>
             <td><select id="edit-prod-forn-${codigo}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;">${optionsForn}</select></td>
-            <td><input type="number" id="edit-prod-val-${codigo}" value="${prod.valVenda}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px;"></td>
+            <td>
+                <input type="number" id="edit-prod-val-${codigo}" value="${prod.valVenda}" step="0.01" style="width: 70px; margin: 0 0 4px 0; padding: 4px; font-size: 12px;" title="Venda Normal">
+                <div id="div-edit-polida-${codigo}" style="${prod.variacoes && prod.variacoes.includes('Polida') ? 'display: block;' : 'display: none;'}">
+                    <input type="number" id="edit-prod-val-polida-${codigo}" value="${valVendaPolidaAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px; border: 1px solid #a855f7;" title="Venda Polida">
+                </div>
+            </td>
             <td><input type="number" id="edit-prod-producao-${codigo}" value="${valProducaoAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px;"></td>
             <td>
                 <div style="display: flex; gap: 4px;">
@@ -369,6 +388,7 @@ const LogicaNegocio = {
         const novoNome = document.getElementById(`edit-prod-nome-${codigoAntigo}`).value.trim();
         const novoForn = document.getElementById(`edit-prod-forn-${codigoAntigo}`).value.trim();
         const novoVal = parseFloat(document.getElementById(`edit-prod-val-${codigoAntigo}`).value);
+        const novoValPolida = parseFloat(document.getElementById(`edit-prod-val-polida-${codigoAntigo}`).value) || novoVal;
         const novoValProducao = parseFloat(document.getElementById(`edit-prod-producao-${codigoAntigo}`).value) || 0;
 
         const varPintura = document.getElementById(`edit-prod-var-pintura-${codigoAntigo}`).checked;
@@ -397,7 +417,8 @@ const LogicaNegocio = {
                 nome: novoNome,
                 fornecedor: novoForn,
                 valVenda: novoVal,
-                valProducao: novoValProducao, // Atualiza o valor de produção editado
+                valVendaPolida: novoValPolida, // SALVA NA EDIÇÃO
+                valProducao: novoValProducao,
                 variacoes: variacoesArray
             };
             DB.save(db);
@@ -706,6 +727,7 @@ const LogicaNegocio = {
         if (prod) {
             document.getElementById('nota-item-nome').value = prod.nome;
             document.getElementById('nota-item-valor').value = prod.valVenda;
+            document.getElementById('nota-item-valor-producao-base').value = prod.valProducao || 0; // Puxa o custo base
 
             const variacoesDaPeca = prod.variacoes || ["Cromada"];
             variacoesDaPeca.forEach(v => {
@@ -714,9 +736,46 @@ const LogicaNegocio = {
 
             document.getElementById('nota-item-variacao').focus();
             document.getElementById('lista-sugestoes-produtos').style.display = 'none';
-        } else {
-            this.limparFormularioItemNota();
+            LogicaNegocio.verificarVariacao();
         }
+    },
+
+    toggleMaoObra: function () {
+        const tipo = document.getElementById('nota-item-tipo-mao').value;
+        document.getElementById('div-responsavel-producao').style.display = tipo === 'PRODUCAO' ? 'block' : 'none';
+        document.getElementById('div-responsavel-empreita').style.display = tipo === 'EMPREITA' ? 'block' : 'none';
+    },
+
+    verificarVariacao: function () {
+        const variacao = document.getElementById('nota-item-variacao').value;
+        const inputValor = document.getElementById('nota-item-valor');
+        const codigoInput = document.getElementById('nota-item-codigo').value.trim();
+
+        const db = DB.get();
+        const prod = db.produtos.find(p => String(p.codigo) === String(codigoInput));
+
+        if (!prod) return;
+
+        // Puxa o valor do banco. Se for Polida, puxa o Polida. Senão, puxa o normal.
+        if (variacao === 'Polida') {
+            inputValor.value = prod.valVendaPolida || prod.valVenda;
+        } else {
+            inputValor.value = prod.valVenda;
+        }
+    },
+
+    toggleEditPolido: function (codigo) {
+        const isPolida = document.getElementById(`edit-prod-var-polida-${codigo}`).checked;
+        document.getElementById(`div-edit-polida-${codigo}`).style.display = isPolida ? 'block' : 'none';
+    },
+
+    carregarFuncionariosProducao: function () {
+        const rh = LerRH();
+        const sel = document.getElementById('nota-item-func-producao');
+        if (!sel) return;
+        const prods = rh.funcionarios.filter(f => f.tipo === 'Produção');
+        sel.innerHTML = '<option value="">-- Selecione o Funcionário --</option>' +
+            prods.map(f => `<option value="${f.nome}">${f.nome}</option>`).join('');
     },
 
     adicionarItemNota: function () {
@@ -727,7 +786,13 @@ const LogicaNegocio = {
         const codigo = document.getElementById('nota-item-codigo').value;
         const nomeBase = document.getElementById('nota-item-nome').value;
         const variacaoSelecionada = document.getElementById('nota-item-variacao').value;
-        const valor = parseFloat(document.getElementById('nota-item-valor').value);
+        let valor = parseFloat(document.getElementById('nota-item-valor').value);
+        // FORÇA a captura do radio correto, validando se existe no DOM:
+        const radiosTipo = document.querySelectorAll('input[name="nota-tipo"]');
+        let tipoNota = 'VENDA';
+        radiosTipo.forEach(radio => {
+            if (radio.checked) tipoNota = radio.value;
+        });
 
         const qtd = parseInt(document.getElementById('nota-item-qtd').value);
         const perca = parseInt(document.getElementById('nota-item-perca').value) || 0;
@@ -738,18 +803,37 @@ const LogicaNegocio = {
             return;
         }
 
+        // --- NOVA LÓGICA DE MÃO DE OBRA ---
+        const maoObraTipo = document.getElementById('nota-item-tipo-mao').value;
+        let maoObraNome = 'KS Afinações';
+        let custoProducao = 0;
+
+        if (maoObraTipo === 'PRODUCAO') {
+            maoObraNome = document.getElementById('nota-item-func-producao').value;
+            if (!maoObraNome) { CustomModal.show('Selecione o funcionário de produção da lista!'); return; }
+            custoProducao = parseFloat(document.getElementById('nota-item-valor-producao-base').value) || 0;
+        } else if (maoObraTipo === 'EMPREITA') {
+            maoObraNome = document.getElementById('nota-item-nome-empreita').value.trim();
+            if (!maoObraNome) { CustomModal.show('Digite o nome da empreita/oficina!'); return; }
+            custoProducao = parseFloat(document.getElementById('nota-item-valor-empreita').value);
+            if (isNaN(custoProducao) || custoProducao < 0) { CustomModal.show('Digite o valor por peça combinado com a empreita!'); return; }
+        }
+
+        // Aplica a regra do Retrabalho (Zera as cobranças para a KS e para o Cliente)
+        if (tipoNota === 'RETRABALHO') {
+            valor = 0;
+            custoProducao = 0;
+        }
+        // -----------------------------------
+
         const nomeFinalNaNota = `${nomeBase} - ${variacaoSelecionada}`;
         const subtotal = valor * qtd;
+        const custoProducaoTotal = custoProducao * qtd;
 
         if (itemNotaEmEdicaoIndex !== null) {
             itensNotaAtual[itemNotaEmEdicaoIndex] = {
-                codigo: codigo,
-                nome: nomeFinalNaNota,
-                valor: valor,
-                qtd: qtd,
-                perca: perca,
-                subtotal: subtotal,
-                variacaoBruta: variacaoSelecionada
+                codigo: codigo, nome: nomeFinalNaNota, valor: valor, qtd: qtd, perca: perca, subtotal: subtotal, variacaoBruta: variacaoSelecionada,
+                maoObraTipo: maoObraTipo, maoObraNome: maoObraNome, custoProducao: custoProducao, custoProducaoTotal: custoProducaoTotal
             };
             itemNotaEmEdicaoIndex = null;
             document.getElementById('btn-add-item-nota').innerText = "Adicionar";
@@ -760,13 +844,8 @@ const LogicaNegocio = {
         } else {
             for (let i = 0; i < repeticoes; i++) {
                 itensNotaAtual.push({
-                    codigo: codigo,
-                    nome: nomeFinalNaNota,
-                    valor: valor,
-                    qtd: qtd,
-                    perca: perca,
-                    subtotal: subtotal,
-                    variacaoBruta: variacaoSelecionada
+                    codigo: codigo, nome: nomeFinalNaNota, valor: valor, qtd: qtd, perca: perca, subtotal: subtotal, variacaoBruta: variacaoSelecionada,
+                    maoObraTipo: maoObraTipo, maoObraNome: maoObraNome, custoProducao: custoProducao, custoProducaoTotal: custoProducaoTotal
                 });
             }
         }
@@ -780,13 +859,16 @@ const LogicaNegocio = {
         document.getElementById('nota-item-variacao').innerHTML = '<option value="">--</option>';
         document.getElementById('lista-sugestoes-produtos').style.display = 'none';
 
+        // Limpar novos campos de Mão de Obra
+        document.getElementById('nota-item-valor-producao-base').value = '';
+        document.getElementById('nota-item-nome-empreita').value = '';
+        document.getElementById('nota-item-valor-empreita').value = '';
+
         UI.renderItensNota();
 
-        // Garante que o foco volte e limpe o menu
         setTimeout(() => {
-            const inputCodigo = document.getElementById('nota-item-codigo');
-            inputCodigo.focus();
-            sugestaoIndexNota = -1; // Reseta o cursor do menu
+            document.getElementById('nota-item-codigo').focus();
+            sugestaoIndexNota = -1;
         }, 50);
     },
 
@@ -795,13 +877,20 @@ const LogicaNegocio = {
         if (!item) return;
 
         document.getElementById('nota-item-codigo').value = item.codigo;
-
         this.autoPreencherItemNota();
 
         setTimeout(() => {
             const selectVariacao = document.getElementById('nota-item-variacao');
-            if (item.variacaoBruta) {
-                selectVariacao.value = item.variacaoBruta;
+            if (item.variacaoBruta) selectVariacao.value = item.variacaoBruta;
+
+            // Retorna os dados da Mão de Obra pra tela
+            document.getElementById('nota-item-tipo-mao').value = item.maoObraTipo || 'KS';
+            LogicaNegocio.toggleMaoObra();
+            if (item.maoObraTipo === 'PRODUCAO') {
+                document.getElementById('nota-item-func-producao').value = item.maoObraNome;
+            } else if (item.maoObraTipo === 'EMPREITA') {
+                document.getElementById('nota-item-nome-empreita').value = item.maoObraNome;
+                document.getElementById('nota-item-valor-empreita').value = item.custoProducao;
             }
         }, 50);
 
@@ -828,7 +917,9 @@ const LogicaNegocio = {
         CustomModal.show('Deseja realmente apagar todos os itens desta nota e começar de novo?', true, () => {
             itensNotaAtual = [];
             itemNotaEmEdicaoIndex = null;
-            idNotaAtual = null; // Reseta a variável de ID da nota
+            idNotaAtual = null;
+            notaAbatida = false; // Reseta a trava do estoque
+
             UI.renderItensNota();
             document.getElementById('nota-cliente').value = '';
             document.getElementById('nota-data').value = new Date().toISOString().split('T')[0];
@@ -840,15 +931,27 @@ const LogicaNegocio = {
             btnAdd.style.borderColor = 'var(--border-color)';
             btnAdd.style.color = 'var(--text-main)';
 
+            // Volta o botão de estoque ao normal
+            const btnEstoque = document.getElementById('btn-abater-estoque');
+            if (btnEstoque) {
+                btnEstoque.style.backgroundColor = 'transparent';
+                btnEstoque.style.borderColor = '#38bdf8';
+                btnEstoque.style.color = '#38bdf8';
+                btnEstoque.innerHTML = '<i data-lucide="package-minus" style="width: 18px; height: 18px;"></i> Abater Estoque';
+                lucide.createIcons();
+            }
+
             CustomModal.show('Nota limpa com sucesso!');
         });
     },
 
-    gerarEImprimirNota: function () {
-        const codigoPendente = document.getElementById('nota-item-codigo').value;
-        if (codigoPendente.trim() !== "") {
-            CustomModal.show('ATENÇÃO: Você tem um código (' + codigoPendente + ') digitado que não foi adicionado ou salvo. Verifique antes de gerar a nota!');
-            return;
+    gerarEImprimirNota: function (isReprint = false) {
+        if (!isReprint) {
+            const codigoPendente = document.getElementById('nota-item-codigo').value;
+            if (codigoPendente.trim() !== "") {
+                CustomModal.show('ATENÇÃO: Você tem um código (' + codigoPendente + ') digitado que não foi adicionado ou salvo. Verifique antes de gerar a nota!');
+                return;
+            }
         }
 
         const clIndex = document.getElementById('nota-cliente').value;
@@ -860,6 +963,21 @@ const LogicaNegocio = {
         }
 
         const cliente = DB.get().clientes[clIndex];
+
+        // Pega o tipo de nota com validação rigorosa
+        const radiosTipo = document.querySelectorAll('input[name="nota-tipo"]');
+        let tipoNota = 'VENDA';
+        radiosTipo.forEach(radio => {
+            if (radio.checked) tipoNota = radio.value;
+        });
+
+        // Se for RETRABALHO, força todos os valores para 0 (garantia)
+        if (tipoNota === 'RETRABALHO') {
+            itensNotaAtual.forEach(item => {
+                item.valor = 0;
+                item.subtotal = 0;
+            });
+        }
 
         if (!idNotaAtual) {
             idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
@@ -875,12 +993,30 @@ const LogicaNegocio = {
 
         const total = itensNotaAtual.reduce((acc, item) => acc + item.subtotal, 0);
 
+        // SALVA A NOTA NO ARQUIVO CENTRAL
+        const db = DB.get();
+        const novaNota = {
+            id: idNota,
+            data: dataInputRaw || new Date().toISOString().split('T')[0],
+            cliente: cliente.nome,
+            clienteIndex: clIndex,
+            itens: JSON.parse(JSON.stringify(itensNotaAtual)),
+            total: total,
+            tipo: tipoNota // Salva se é Retrabalho ou Venda
+        };
+        const idxNotaExistente = db.notasSalvas.findIndex(n => n.id === idNota);
+        if (idxNotaExistente > -1) db.notasSalvas[idxNotaExistente] = novaNota;
+        else db.notasSalvas.push(novaNota);
+        DB.save(db);
+
         const generateVia = (viaName) => `
             <div style="border: 2px solid black; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; font-family: Arial, sans-serif; color: black; background: white;">
                 
                 <div style="display: flex; justify-content: space-between; border-bottom: 2px solid black; padding: 4px 8px; font-size: 10px; font-weight: bold; color: black;">
                     <span>${viaName}</span>
-                    <span>DOCUMENTO AUXILIAR</span>
+                    <span style="color: ${tipoNota === 'RETRABALHO' ? '#ef4444' : 'black'}; font-size: 12px;">
+                        ${tipoNota === 'RETRABALHO' ? 'RETRABALHO (SEM CUSTO)' : 'DOCUMENTO AUXILIAR'}
+                    </span>
                     <span></span>
                 </div>
 
@@ -915,6 +1051,11 @@ const LogicaNegocio = {
                 </div>
 
                 <div style="flex: 1; border-bottom: 2px solid black;">
+                    ${tipoNota === 'RETRABALHO' ? `
+                    <div style="text-align: center; padding: 5px; background: #ffffff; color: #ca0f0f; font-weight: bold; font-size: 14px; letter-spacing: 2px; border-bottom: 2px solid black;">
+                        RETRABALHO - SEM CUSTO ADICIONAL
+                    </div>` : ''}
+
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: black;">
                         <thead>
                             <tr>
@@ -946,12 +1087,14 @@ const LogicaNegocio = {
                         <div style="text-align: center; margin-bottom: 6px; font-size: 11px; color: black;">
                             Dúvidas sobre o pedido? Contacte <strong>(44) 9 9828-8914</strong>
                         </div>
-                        <div style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 45px; color: black;">
+                        <div style="text-align: center; font-weight: bold; font-size: 11px; ${viaName === '1ª VIA' ? 'margin-bottom: 45px;' : 'margin-bottom: 10px;'} color: black;">
                             OBRIGADO PELA CONFIANÇA!
                         </div>
+                        
+                        ${viaName === '1ª VIA' ? `
                         <div style="border-top: 1px solid black; width: 85%; padding-top: 6px; text-align: center; font-size: 12px; color: black;">
                             Assinatura Cliente
-                        </div>
+                        </div>` : ''}
                     </div>
                     <div style="flex: 4; display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; font-size: 18px; font-weight: bold; color: black;">
                         <span>TOTAL:</span>
@@ -972,8 +1115,121 @@ const LogicaNegocio = {
         setTimeout(() => {
             window.print();
             document.title = tituloOriginal;
+            document.body.className = '';
         }, 500);
-    }
+    },
+
+    abaterEstoqueNota: function () {
+        if (itensNotaAtual.length === 0) {
+            CustomModal.show('A nota está vazia. Adicione os itens primeiro.');
+            return;
+        }
+        const clIndex = document.getElementById('nota-cliente').value;
+        if (clIndex === "") {
+            CustomModal.show('Selecione o Cliente na nota para poder registrar a saída no estoque.');
+            return;
+        }
+
+        if (notaAbatida) {
+            CustomModal.show('As peças desta nota JÁ FORAM abatidas do estoque!');
+            return;
+        }
+
+        const cliente = DB.get().clientes[clIndex];
+
+        CustomModal.show(`Confirma a baixa destas peças no Estoque de Afinação?`, true, () => {
+            const dbEraw = localStorage.getItem('ks_estoque_dados');
+            const dbE = dbEraw ? JSON.parse(dbEraw) : { insumos: [], logsInsumos: [], logsPecas: [] };
+            if (!dbE.logsPecas) dbE.logsPecas = [];
+
+            if (!idNotaAtual) {
+                idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
+            }
+
+            itensNotaAtual.forEach(item => {
+                dbE.logsPecas.push({
+                    id: 'LOGP_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                    data: new Date().toISOString().split('T')[0],
+                    tipo: 'Saída',
+                    codigoPeca: item.codigo,
+                    qtd: item.qtd,
+                    origemDestino: `Nota Fiscal ${idNotaAtual} - ${cliente.nome}`
+                });
+            });
+
+            localStorage.setItem('ks_estoque_dados', JSON.stringify(dbE));
+            if (typeof DB !== 'undefined' && DB.save) DB.save(DB.get());
+
+            notaAbatida = true;
+
+            const btnEstoque = document.getElementById('btn-abater-estoque');
+            if (btnEstoque) {
+                btnEstoque.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                btnEstoque.style.borderColor = '#10b981';
+                btnEstoque.style.color = '#10b981';
+                btnEstoque.innerHTML = '<i data-lucide="check" style="width: 18px; height: 18px;"></i> Estoque Abatido';
+                lucide.createIcons();
+            }
+
+            CustomModal.show('Peças abatidas com sucesso!');
+        });
+    },
+
+    abaterEstoqueNota: function () {
+        if (itensNotaAtual.length === 0) {
+            CustomModal.show('A nota está vazia. Adicione os itens primeiro.');
+            return;
+        }
+        const clIndex = document.getElementById('nota-cliente').value;
+        if (clIndex === "") {
+            CustomModal.show('Selecione o Cliente na nota para poder registrar a saída no estoque.');
+            return;
+        }
+
+        if (notaAbatida) {
+            CustomModal.show('As peças desta nota JÁ FORAM abatidas do estoque!');
+            return;
+        }
+
+        const cliente = DB.get().clientes[clIndex];
+
+        CustomModal.show(`Confirma a baixa destas peças no Estoque de Afinação?`, true, () => {
+            const dbEraw = localStorage.getItem('ks_estoque_dados');
+            const dbE = dbEraw ? JSON.parse(dbEraw) : { insumos: [], logsInsumos: [], logsPecas: [] };
+            if (!dbE.logsPecas) dbE.logsPecas = [];
+
+            if (!idNotaAtual) {
+                idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
+            }
+
+            itensNotaAtual.forEach(item => {
+                dbE.logsPecas.push({
+                    id: 'LOGP_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                    data: new Date().toISOString().split('T')[0],
+                    tipo: 'Saída',
+                    codigoPeca: item.codigo,
+                    qtd: item.qtd,
+                    origemDestino: `Nota Fiscal ${idNotaAtual} - ${cliente.nome}`
+                });
+            });
+
+            localStorage.setItem('ks_estoque_dados', JSON.stringify(dbE));
+            if (typeof DB !== 'undefined' && DB.save) DB.save(DB.get());
+
+            notaAbatida = true;
+
+            const btnEstoque = document.getElementById('btn-abater-estoque');
+            if (btnEstoque) {
+                btnEstoque.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                btnEstoque.style.borderColor = '#10b981';
+                btnEstoque.style.color = '#10b981';
+                btnEstoque.innerHTML = '<i data-lucide="check" style="width: 18px; height: 18px;"></i> Estoque Abatido';
+                lucide.createIcons();
+            }
+
+            CustomModal.show('Peças abatidas com sucesso!');
+        });
+    },
 };
 
 const Tabelas = {
@@ -1106,7 +1362,7 @@ const Tabelas = {
             db.produtos.forEach(p => {
                 if (p.fornecedor === fornecedor) {
                     const precoAntigo = p.valVenda;
-                    const precoNovo = precoAntigo * (1 + (porcentagem / 100));
+                    const precoNovo = parseFloat((precoAntigo * (1 + (porcentagem / 100))).toFixed(2));
                     p.valVenda = precoNovo;
                     alterados++;
 
@@ -1151,7 +1407,11 @@ const UI = {
         if (inputData) {
             inputData.value = new Date().toISOString().split('T')[0];
         }
+
+        // CARREGA A LISTA DE FUNCIONÁRIOS AO ABRIR O SISTEMA
+        LogicaNegocio.carregarFuncionariosProducao();
     },
+
     switchTab: function (tabId) {
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -1160,7 +1420,12 @@ const UI = {
 
         document.body.className = '';
         document.title = "Gestão - KS Afinações";
+
+        if (tabId === 'busca') Tabelas.renderProdutos();
+        if (tabId === 'nota') LogicaNegocio.carregarFuncionariosProducao();
+        if (tabId === 'arquivo') ArquivoNotas.renderLista();
     },
+
     updateDashCards: function () {
         const db = DB.get();
         document.getElementById('dash-prod-count').innerText = db.produtos.length;
@@ -1176,7 +1441,10 @@ const UI = {
                 <td>${p.codigo}</td>
                 <td>${p.nome} <br><small style="color:var(--text-muted); font-size: 12px;">(${varsFormatadas})</small></td>
                 <td>${p.fornecedor || '-'}</td>
-                <td>R$ ${p.valVenda.toFixed(2)}</td>
+                <td>
+                    R$ ${p.valVenda.toFixed(2)}
+                    ${p.variacoes && p.variacoes.includes("Polida") ? `<br><small style="color:#a855f7;">Polida: R$ ${(p.valVendaPolida || p.valVenda).toFixed(2)}</small>` : ''}
+                </td>
                 <td style="color: var(--success-color); font-weight: bold;">R$ ${(p.valProducao || 0).toFixed(2)}</td>
                 <td>
                     <div style="display: flex; gap: 8px; align-items: center;">
@@ -1250,7 +1518,10 @@ const UI = {
 
             tbody.innerHTML += `<tr ${trClass}>
                 <td>${item.codigo}</td>
-                <td>${item.nome}</td>
+                <td>
+                    ${item.nome}
+                    <div style="font-size: 11px; color: #38bdf8; margin-top: 2px;">👤 ${item.maoObraNome || 'KS Afinações'}</div>
+                </td>
                 <td>R$ ${item.valor.toFixed(2)}</td>
                 <td>${item.qtd}</td>
                 <td style="color: var(--text-main); font-weight: ${item.perca > 0 ? 'bold' : 'normal'};">${item.perca > 0 ? item.perca : '-'}</td>
@@ -1268,6 +1539,149 @@ const UI = {
             </tr>`;
         });
         document.getElementById('nota-total-display').innerText = `R$ ${total.toFixed(2)}`;
+        lucide.createIcons();
+    }
+};
+
+const ArquivoNotas = {
+    renderLista: function () {
+        const db = DB.get();
+        const tbody = document.querySelector('#tabela-arquivo-notas tbody');
+        if (!tbody) return;
+
+        let filtro = 'TODAS';
+        const selectFiltro = document.getElementById('filtro-arquivo-tipo');
+        if (selectFiltro) filtro = selectFiltro.value;
+
+        let notas = [...db.notasSalvas].reverse();
+
+        // APLICA O FILTRO POR MODO DE ESCOLHA
+        if (filtro !== 'TODAS') {
+            notas = notas.filter(n => (n.tipo || 'VENDA') === filtro);
+        }
+
+        if (notas.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">Nenhuma nota de ${filtro.toLowerCase()} encontrada.</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        notas.forEach(nota => {
+            const dataFormatada = nota.data.split('-').reverse().join('/');
+            const isRetrabalho = nota.tipo === 'RETRABALHO';
+            const corTipo = isRetrabalho ? '#ef4444' : '#10b981';
+            const labelTipo = isRetrabalho ? 'RETRABALHO' : 'VENDA';
+
+            html += `<tr>
+                <td style="color:#facc15; font-weight:bold;">${nota.id}</td>
+                <td>${dataFormatada}</td>
+                <td><span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: ${corTipo}22; color: ${corTipo}; border: 1px solid ${corTipo}55; font-weight: bold;">${labelTipo}</span></td>
+                <td>${nota.cliente}</td>
+                <td style="text-align:right; color:#10b981; font-weight:bold;">R$ ${nota.total.toFixed(2).replace('.', ',')}</td>
+                <td style="text-align:center;">
+                    <div style="display: flex; justify-content: center; gap: 8px;">
+                        <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#a855f7; color:#a855f7; display: flex; align-items: center; gap: 4px; min-width: auto; height: auto;" onclick="ArquivoNotas.abrirPreview('${nota.id}')" title="Ver Detalhes"><i data-lucide="eye" style="width: 14px;"></i> Ver</button>
+                        <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#38bdf8; color:#38bdf8; display: flex; align-items: center; gap: 4px; min-width: auto; height: auto;" onclick="ArquivoNotas.visualizar('${nota.id}')" title="Imprimir"><i data-lucide="printer" style="width: 14px;"></i> Imp</button>
+                        <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#eab308; color:#eab308; display: flex; align-items: center; gap: 4px; min-width: auto; height: auto;" onclick="ArquivoNotas.editar('${nota.id}')" title="Editar"><i data-lucide="pencil" style="width: 14px;"></i> Edit</button>
+                        <button class="btn-danger" style="padding: 6px 10px; font-size:12px; display: flex; align-items: center; gap: 4px; min-width: auto; height: auto;" onclick="ArquivoNotas.excluir('${nota.id}')" title="Excluir"><i data-lucide="trash-2" style="width: 14px;"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        lucide.createIcons();
+    },
+
+    visualizar: function (id) {
+        const nota = DB.get().notasSalvas.find(n => n.id === id);
+        if (!nota) return;
+
+        const backupItens = JSON.parse(JSON.stringify(itensNotaAtual));
+        const backupId = idNotaAtual;
+
+        itensNotaAtual = nota.itens;
+        idNotaAtual = nota.id;
+        document.getElementById('nota-data').value = nota.data;
+        document.getElementById('nota-cliente').value = nota.clienteIndex;
+
+        LogicaNegocio.gerarEImprimirNota(true);
+
+        itensNotaAtual = backupItens;
+        idNotaAtual = backupId;
+    },
+
+    editar: function (id) {
+        const nota = DB.get().notasSalvas.find(n => n.id === id);
+        if (!nota) return;
+
+        CustomModal.show(`Deseja abrir a Nota ${id} para edição?`, true, () => {
+            itensNotaAtual = JSON.parse(JSON.stringify(nota.itens));
+            idNotaAtual = nota.id;
+            notaAbatida = false;
+            document.getElementById('nota-data').value = nota.data;
+            document.getElementById('nota-cliente').value = nota.clienteIndex;
+            UI.switchTab('nota');
+            UI.renderItensNota();
+        });
+    },
+
+    excluir: function (id) {
+        CustomModal.show(`Tem certeza absoluta que deseja excluir a Nota Nº ${id}? Esta ação não pode ser desfeita.`, true, () => {
+            const db = DB.get();
+            db.notasSalvas = db.notasSalvas.filter(n => n.id !== id);
+            DB.save(db);
+            ArquivoNotas.renderLista();
+            CustomModal.show(`Nota ${id} excluída com sucesso!`);
+        });
+    },
+
+    abrirPreview: function (id) {
+        const nota = DB.get().notasSalvas.find(n => n.id === id);
+        if (!nota) return;
+        const dataFormatada = nota.data.split('-').reverse().join('/');
+        const isRetrabalho = nota.tipo === 'RETRABALHO';
+
+        let html = `
+            <div style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+                <p><strong>Tipo:</strong> <span style="color: ${isRetrabalho ? '#ef4444' : '#10b981'}; font-weight:bold;">${isRetrabalho ? 'RETRABALHO' : 'VENDA'}</span></p>
+                <p><strong>Cliente:</strong> ${nota.cliente}</p>
+                <p><strong>Data:</strong> ${dataFormatada}</p>
+                <p style="font-size: 18px;"><strong>Total:</strong> <span style="color: var(--success-color);">R$ ${nota.total.toFixed(2).replace('.', ',')}</span></p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted);">
+                        <th style="padding: 8px 4px; text-align: left;">Cód</th>
+                        <th style="padding: 8px 4px; text-align: left;">Produto / Resp.</th>
+                        <th style="padding: 8px 4px; text-align: center;">Qtd</th>
+                        <th style="padding: 8px 4px; text-align: right;">Val. Un.</th>
+                        <th style="padding: 8px 4px; text-align: right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        nota.itens.forEach(item => {
+            html += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 8px 4px;">${item.codigo}</td>
+                    <td style="padding: 8px 4px;">
+                        ${item.nome}
+                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Resp: ${item.maoObraNome || 'KS'}</div>
+                    </td>
+                    <td style="padding: 8px 4px; text-align: center;">${item.qtd}</td>
+                    <td style="padding: 8px 4px; text-align: right;">R$ ${item.valor.toFixed(2)}</td>
+                    <td style="padding: 8px 4px; text-align: right; color: var(--success-color);">R$ ${item.subtotal.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+
+        document.getElementById('preview-nota-titulo').innerText = `Nota Nº ${nota.id}`;
+        document.getElementById('preview-nota-conteudo').innerHTML = html;
+        document.getElementById('modal-preview-nota').style.display = 'flex';
+
         lucide.createIcons();
     }
 };

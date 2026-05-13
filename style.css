@@ -14,22 +14,57 @@
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
+/* =========================================
+   NOVO DESIGN: BOTÕES DE TROCA DE MÓDULO
+   ========================================= */
 .btn-switch-module {
-    background: linear-gradient(90deg, rgba(234, 179, 8, 0.15) 0%, transparent 100%) !important;
-    color: #eab308 !important;
-    border-left: 4px solid #eab308 !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    background: #1e293b !important;
+    /* Cor de fundo de um card levemente mais claro que o menu */
+    color: #f8fafc !important;
+    /* Texto branco */
+    border-left: none !important;
+    /* Remove a borda grossa e esquisita */
+    border: 1px solid #334155 !important;
+    /* Borda fina e elegante em toda a volta */
+    border-radius: 8px !important;
+    /* Bordas arredondadas modernas */
+    margin: 8px 15px !important;
+    /* Descola das laterais do menu */
+    padding: 12px 15px !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    /* Tira o TUDO MAIÚSCULO agressivo */
+    letter-spacing: normal !important;
     font-size: 13px !important;
-    padding: 14px 24px !important;
-    margin: 10px 0;
-    transition: all 0.2s ease;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    /* Espaço perfeito entre ícone e texto */
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    /* Leve sombra de profundidade */
 }
 
 .btn-switch-module:hover {
-    background: linear-gradient(90deg, rgba(234, 179, 8, 0.3) 0%, transparent 100%) !important;
-    color: #fef08a !important;
+    background: #334155 !important;
+    /* Clareia ao passar o mouse */
+    border-color: #475569 !important;
+    transform: translateY(-1px) !important;
+    /* Dá um "pulinho" sutil ao focar */
+}
+
+/* Deixa o ícone de cada módulo com a sua cor de identidade para facilitar o clique */
+.btn-switch-module[href="funcionarios.html"] svg {
+    color: #eab308 !important;
+}
+
+.btn-switch-module[href="estoque.html"] svg {
+    color: #38bdf8 !important;
+}
+
+.btn-switch-module[href="index.html"] svg {
+    color: #10b981 !important;
 }
 
 * {

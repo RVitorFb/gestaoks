@@ -35,8 +35,14 @@
             </div>
             <nav class="nav-menu">
 
-                <a href="funcionarios.html" class="nav-btn btn-switch-module">
-                    <i data-lucide="users" style="width: 18px; height: 18px;"></i> Módulo RH
+                <a href="funcionarios.html" class="btn-switch-module" style="border-color: #eab308 !important;">
+                    <i data-lucide="users"></i> Módulo RH
+                </a>
+                <a href="estoque.html" class="btn-switch-module" style="border-color: #38bdf8 !important;">
+                    <i data-lucide="package-search"></i> Módulo Estoque
+                </a>
+                <a href="financeiro.html" class="btn-switch-module" style="border-color: #10b981 !important;">
+                    <i data-lucide="dollar-sign" style="color: #10b981;"></i> Módulo Financeiro
                 </a>
 
                 <div class="nav-divider"></div>
@@ -59,6 +65,8 @@
                 <button class="nav-btn active" onclick="UI.switchTab('nota')">
                     <i data-lucide="file-text" style="width: 18px; height: 18px;"></i> Gerar Nota
                 </button>
+                <button class="nav-btn" onclick="UI.switchTab('arquivo')"><i data-lucide="folder-open"></i> Arquivo de
+                    Notas</button>
                 <button class="nav-btn" onclick="UI.switchTab('tabelas')">
                     <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i> Tabelas e Reajuste
                 </button>
@@ -70,27 +78,15 @@
             <section id="tab-dashboard" class="tab-content">
                 <h2>Status do Sistema</h2>
                 <div class="grid-2">
-                    <div class="card">
-                        <h3><i data-lucide="database" style="width: 18px; height: 18px;"></i> Cadastros Local</h3>
-                        <p class="mt-4">Produtos Únicos: <strong id="dash-prod-count"
-                                style="color: var(--primary-color)">0</strong></p>
-                        <p>Clientes: <strong id="dash-cli-count" style="color: var(--primary-color)">0</strong></p>
+                    <div class="card" style="border-top: 3px solid var(--primary-color);">
+                        <h3><i data-lucide="package" style="width: 18px; height: 18px;"></i> Total de Produtos</h3>
+                        <p id="dash-prod-count" style="font-size: 24px; font-weight: bold; margin-top: 10px;">0</p>
                     </div>
-
-                    <div class="card">
-                        <h3><i data-lucide="cloud" style="width: 18px; height: 18px;"></i> Nuvem (Google Drive)</h3>
-                        <div id="gdrive-status-area" class="mt-4">
-                            <button id="btn-gdrive-connect" class="btn-primary" onclick="DriveAPI.handleAuthClick()"
-                                style="width: 100%;">
-                                Conectar Conta Google
-                            </button>
-                            <p id="gdrive-status-text"
-                                style="color: var(--text-muted); margin-top: 15px; font-weight: 500; font-size: 14px;">
-                                Status: Desconectado</p>
-                        </div>
+                    <div class="card" style="border-top: 3px solid var(--success-color);">
+                        <h3><i data-lucide="users" style="width: 18px; height: 18px;"></i> Clientes Cadastrados</h3>
+                        <p id="dash-cli-count" style="font-size: 24px; font-weight: bold; margin-top: 10px;">0</p>
                     </div>
                 </div>
-
                 <div class="card mt-4">
                     <h3><i data-lucide="hard-drive" style="width: 18px; height: 18px;"></i> Backup Manual do Celular/PC
                     </h3>
@@ -123,8 +119,13 @@
                                 </select>
                             </div>
                             <div>
-                                <label>Valor Unitário Venda (R$)</label>
+                                <label>Vlr. Venda Normal (R$)</label>
                                 <input type="number" step="0.01" id="prod-val-venda" required>
+                            </div>
+                            <div id="div-venda-polida" style="display: none;">
+                                <label style="color: #a855f7;">Vlr. Venda Polida (R$)</label>
+                                <input type="number" step="0.01" id="prod-val-venda-polida"
+                                    placeholder="Mesmo do normal">
                             </div>
                             <div>
                                 <label>Valor Produção (R$)</label>
@@ -140,7 +141,7 @@
                                             style="width: 16px; height: 16px; margin: 0;"> Pintura</label>
                                     <label
                                         style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);"><input
-                                            type="checkbox" id="var-polida"
+                                            type="checkbox" id="var-polida" onchange="LogicaNegocio.toggleCampoPolido()"
                                             style="width: 16px; height: 16px; margin: 0;"> Polida</label>
                                 </div>
                             </div>
@@ -223,6 +224,24 @@
             <section id="tab-nota" class="tab-content active">
                 <h2>Emissão de Nota</h2>
 
+                <div class="card" style="margin-bottom: 15px; border-top: 3px solid #ef4444; padding: 15px;">
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        <label style="font-weight: bold; color: var(--text-main); font-size: 15px; margin:0;">Finalidade
+                            da Nota:</label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin:0;">
+                            <input type="radio" name="nota-tipo" value="VENDA" checked
+                                style="width: 18px; height: 18px; margin: 0;">
+                            <span style="font-size: 14px;">Venda Padrão</span>
+                        </label>
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ca0f0f; margin:0;">
+                            <input type="radio" name="nota-tipo" value="RETRABALHO"
+                                style="width: 18px; height: 18px; margin: 0;">
+                            <span style="font-size: 14px; font-weight: bold;">Retrabalho (Sem Custo)</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="grid-2">
                         <div>
@@ -239,7 +258,8 @@
                 </div>
 
                 <div class="card" style="overflow: visible;">
-                    <label>2. Adicionar Itens</label>
+                    <label style="font-weight: bold; color: var(--primary-color); font-size: 16px;">2. Adicionar
+                        Itens</label>
                     <div class="flex"
                         style="align-items: flex-end; margin-top: 10px; gap: 10px; position: relative; flex-wrap: nowrap;">
 
@@ -258,11 +278,13 @@
                             <label>Produto (Base)</label>
                             <input type="text" id="nota-item-nome" readonly tabindex="-1"
                                 style="background-color: #0b1017; opacity: 0.7; margin-bottom: 0;">
+                            <input type="hidden" id="nota-item-valor-producao-base">
                         </div>
 
                         <div style="flex: 1; min-width: 120px;">
                             <label>Variação</label>
                             <select id="nota-item-variacao" style="margin-bottom: 0;"
+                                onchange="LogicaNegocio.verificarVariacao()"
                                 onkeydown="LogicaNegocio.focarProximoCampo(event, 'nota-item-qtd', 'nota-item-codigo')">
                                 <option value="">--</option>
                             </select>
@@ -270,8 +292,9 @@
 
                         <div style="flex: 1; min-width: 90px;">
                             <label>Val. Un.</label>
-                            <input type="number" id="nota-item-valor" readonly tabindex="-1"
-                                style="background-color: #0b1017; opacity: 0.7; margin-bottom: 0;">
+                            <input type="number" step="0.01" id="nota-item-valor" readonly
+                                style="background-color: #0b1017; opacity: 0.7; margin-bottom: 0;"
+                                onkeydown="LogicaNegocio.focarProximoCampo(event, 'nota-item-qtd', 'nota-item-variacao')">
                         </div>
 
                         <div style="flex: 0.8; min-width: 70px;">
@@ -297,6 +320,38 @@
                             style="height: 42px; min-width: 100px;">Adicionar</button>
                     </div>
 
+                    <div
+                        style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; border: 1px solid #1e293b; margin-top: 15px;">
+                        <label style="color: #38bdf8;"><i data-lucide="users" style="width:14px; margin-right:4px;"></i>
+                            Tipo de Mão de Obra</label>
+                        <select id="nota-item-tipo-mao" onchange="LogicaNegocio.toggleMaoObra()"
+                            style="margin-bottom: 0;">
+                            <option value="KS">KS Afinações</option>
+                            <option value="PRODUCAO">Funcionário de Produção</option>
+                            <option value="EMPREITA">Empreita</option>
+                        </select>
+
+                        <div id="div-responsavel-producao" style="display: none; margin-top: 15px;">
+                            <label>Quem produziu? (Puxado do RH)</label>
+                            <select id="nota-item-func-producao" style="margin-bottom: 0;"></select>
+                        </div>
+
+                        <div id="div-responsavel-empreita" style="display: none; margin-top: 15px;">
+                            <div style="display: flex; gap: 10px;">
+                                <div style="flex: 2;">
+                                    <label style="color: #ef4444;">Nome da Empreita</label>
+                                    <input type="text" id="nota-item-nome-empreita" placeholder="Nome do empreiteiro"
+                                        style="margin-bottom: 0;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="color: #ef4444;">Val. Un. (R$)</label>
+                                    <input type="number" step="0.01" id="nota-item-valor-empreita" placeholder="0.50"
+                                        style="margin-bottom: 0;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <table id="tabela-nota-itens" class="mt-4">
                         <thead>
                             <tr>
@@ -320,14 +375,18 @@
 
                 <div style="height: 100px;"></div>
 
-                <div class="grid-2 text-right fixed-bottom-bar">
+                <div class="fixed-bottom-bar" style="display: flex; gap: 10px;">
                     <button class="btn-outline" onclick="LogicaNegocio.limparNota()"
-                        style="font-size: 16px; padding: 16px; width: 100%; border-color: rgba(239,68,68,0.5); color: #ef4444;">
-                        <i data-lucide="trash-2" style="width: 20px; height: 20px;"></i> Limpar Nota Atual
+                        style="font-size: 15px; padding: 16px; flex: 1; border-color: rgba(239,68,68,0.5); color: #ef4444;">
+                        <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i> Limpar
+                    </button>
+                    <button id="btn-abater-estoque" class="btn-outline" onclick="LogicaNegocio.abaterEstoqueNota()"
+                        style="font-size: 15px; padding: 16px; flex: 1.5; border-color: #38bdf8; color: #38bdf8;">
+                        <i data-lucide="package-minus" style="width: 18px; height: 18px;"></i> Abater Estoque
                     </button>
                     <button class="btn-primary" onclick="LogicaNegocio.gerarEImprimirNota()"
-                        style="font-size: 16px; padding: 16px; width: 100%;">
-                        <i data-lucide="printer" style="width: 20px; height: 20px;"></i> Gerar e Imprimir Nota
+                        style="font-size: 15px; padding: 16px; flex: 1.5;">
+                        <i data-lucide="printer" style="width: 18px; height: 18px;"></i> Imprimir Nota
                     </button>
                 </div>
             </section>
@@ -379,6 +438,38 @@
 
             </section>
 
+            <section id="tab-arquivo" class="tab-content">
+                <h2><i data-lucide="archive" style="width: 24px; color: #38bdf8; vertical-align: middle;"></i> Arquivo
+                    Central de Notas</h2>
+                <div class="card">
+                    <div
+                        style="display: flex; gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; align-items: center;">
+                        <label style="margin: 0; font-weight: bold;">Mostrar notas de:</label>
+                        <select id="filtro-arquivo-tipo" onchange="ArquivoNotas.renderLista()"
+                            style="margin: 0; width: 200px;">
+                            <option value="TODAS">Todas as Notas</option>
+                            <option value="VENDA">Apenas Vendas</option>
+                            <option value="RETRABALHO">Apenas Retrabalhos</option>
+                        </select>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table id="tabela-arquivo-notas">
+                            <thead>
+                                <tr>
+                                    <th>Nº Nota</th>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Cliente</th>
+                                    <th style="text-align: right;">Valor Total</th>
+                                    <th style="text-align: center;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -390,6 +481,23 @@
 
     <div id="print-area-tabela" class="print-area">
         <div class="excel-view" id="print-tabela-conteudo">
+        </div>
+    </div>
+
+    <div id="modal-preview-nota" class="modal-overlay" style="display: none; z-index: 10006;">
+        <div
+            style="background: var(--surface-color); width: 100%; max-width: 600px; max-height: 90vh; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color);">
+            <div
+                style="padding: 15px; background: var(--bg-color); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="preview-nota-titulo" style="margin: 0; color: var(--text-main);">Detalhes da Nota</h3>
+                <button class="btn-danger" style="padding: 6px 12px;"
+                    onclick="document.getElementById('modal-preview-nota').style.display='none'">
+                    <i data-lucide="x" style="width: 16px; height: 16px;"></i> Fechar
+                </button>
+            </div>
+            <div id="preview-nota-conteudo"
+                style="flex: 1; overflow-y: auto; padding: 20px; background: var(--surface-color);">
+            </div>
         </div>
     </div>
 

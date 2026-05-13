@@ -14,7 +14,7 @@
 
 <body>
     <div id="custom-modal" class="modal-overlay"
-        style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999;">
+        style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 10005;">
         <div class="modal-content"
             style="background-color: #171c26; border-radius: 8px; padding: 30px; width: 380px; text-align: center;">
             <h3 id="modal-title" style="color: #facc15; margin-bottom: 20px;">Aviso</h3>
@@ -172,7 +172,7 @@
                 <div class="card">
                     <div class="grid-2">
                         <div><label>Mês de Referência</label><input type="month" id="fechamento-mes"
-                                onchange="RH.calcularFechamento()"></div>
+                                onchange="RH.calcularFechamento()" onclick="this.showPicker()"></div>
                         <div><label>Funcionário</label><select id="fechamento-func"
                                 onchange="RH.calcularFechamento()"></select></div>
                         <div class="card mt-4"
@@ -254,7 +254,8 @@
                             </div>
                             <div style="flex: 1; min-width: 120px;">
                                 <label>Data</label>
-                                <input type="date" id="prod-data" required style="margin-bottom: 0;">
+                                <input type="date" id="prod-data" required onclick="this.showPicker()"
+                                    style="margin-bottom: 0;">
                             </div>
                             <div style="flex: 1; min-width: 100px; position: relative;">
                                 <label>Cód. Peça</label>
@@ -283,6 +284,17 @@
 
                 <div class="card">
                     <h3>Histórico / Revisão de Produção</h3>
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px; margin-bottom: 15px; background: #0b1017; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <h3 style="margin: 0; font-size: 16px; color: var(--text-main);">Lançamentos Registrados</h3>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 12px; color: var(--text-muted); margin: 0;">Mês Base:</label>
+                            <input type="month" id="filtro-mes-producao" onchange="RH.renderTabelaProducao()"
+                                onclick="this.showPicker()"
+                                style="margin: 0; background: #1e293b; color: white; border: 1px solid #334155; padding: 5px 10px; border-radius: 4px; outline: none;">
+                        </div>
+                    </div>
                     <table id="tabela-revisao-producao">
                         <thead>
                             <tr>
@@ -402,15 +414,15 @@
                     <div class="flex" style="align-items: flex-end; gap: 10px; flex-wrap: nowrap;">
                         <div style="width: 150px;">
                             <label>Formato</label>
-                            <select id="emp-formato" onchange="RH_Empreita.toggleCampos()">
+                            <select id="emp-formato" onchange="RH_Empreita.toggleCampos()" style="margin-bottom: 0;">
                                 <option value="hora">Por Hora</option>
                                 <option value="producao">Por Produção</option>
                             </select>
                         </div>
                         <div id="emp-campos-dinamicos" class="flex" style="gap: 10px; flex: 1;"></div>
 
-                        <button id="btn-add-empreita" class="btn-outline"
-                            style="height: 42px; min-width: 100px;">Adicionar</button>
+                        <button id="btn-add-empreita" class="btn-outline" onclick="RH_Empreita.adicionarItem()"
+                            style="height: 42px; min-width: 100px; margin-bottom: 0;">Adicionar</button>
                     </div>
 
                     <div style="overflow-x: auto; margin-top: 20px;">
@@ -440,13 +452,79 @@
             <section id="tab-arquivo" class="tab-content">
                 <h2>Arquivo Central (Histórico)</h2>
                 <div class="card">
-                    <p style="color: var(--text-muted);">Módulo em construção para a Fase 4.</p>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Consulte e reimprima
+                        todos os Holerites e Recibos gerados oficialmente no sistema.</p>
+
+                    <div class="grid-3"
+                        style="gap: 15px; margin-bottom: 20px; background: #0b1017; padding: 15px; border-radius: 8px;">
+                        <div>
+                            <label>Mês / Ano</label>
+                            <input type="month" id="filtro-hist-mes" onchange="RH_Historico.renderTabela()"
+                                onclick="this.showPicker()" style="margin-bottom: 0;">
+                        </div>
+                        <div>
+                            <label>Tipo de Documento</label>
+                            <select id="filtro-hist-tipo" onchange="RH_Historico.renderTabela()"
+                                style="margin-bottom: 0;">
+                                <option value="">Todos os Documentos</option>
+                                <option value="Holerite">Holerites (Funcionários)</option>
+                                <option value="Empreita">Recibos (Empreita)</option>
+                                <option value="Relatório">Relatórios (Conferência)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Busca por Nome</label>
+                            <input type="text" id="filtro-hist-nome" placeholder="Digite o nome..."
+                                onkeyup="RH_Historico.renderTabela()" style="margin-bottom: 0;">
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table id="tabela-historico">
+                            <thead>
+                                <tr>
+                                    <th>Data de Emissão</th>
+                                    <th>Tipo</th>
+                                    <th>Referência (Mês)</th>
+                                    <th>Nome / Prestador</th>
+                                    <th style="text-align: right;">Valor Líquido</th>
+                                    <th style="width: 100px; text-align: center;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-historico"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
         </main>
     </div>
+
+    <div id="modal-preview-doc" class="modal-overlay"
+        style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 10010; padding: 20px; box-sizing: border-box;">
+        <div
+            style="background: var(--surface-color); width: 100%; max-width: 950px; height: 100%; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;">
+            <div
+                style="padding: 15px; background: var(--bg-color); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="preview-title" style="margin: 0; color: var(--text-main);">Visualização de Documento</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-primary" onclick="RH_Historico.imprimirPreview()"><i data-lucide="printer"
+                            style="width: 16px; height: 16px;"></i> Imprimir Oficial</button>
+                    <button class="btn-danger"
+                        onclick="document.getElementById('modal-preview-doc').style.display='none'">X Fechar</button>
+                </div>
+            </div>
+            <div
+                style="flex: 1; overflow-y: auto; padding: 30px; background: #334155; display: flex; justify-content: center; align-items: flex-start;">
+                <div id="preview-content"
+                    style="background: white; color: black; padding: 15px; width: 210mm; min-height: 297mm; box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="print-area-holerite" style="display: none;"></div>
+
     <script src="rh.js"></script>
 </body>
 
