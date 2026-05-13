@@ -1009,8 +1009,9 @@ const LogicaNegocio = {
         else db.notasSalvas.push(novaNota);
         DB.save(db);
 
+        // REMOVI o height: 100% que buga o celular e coloquei min-height: 46vh
         const generateVia = (viaName) => `
-            <div style="border: 2px solid black; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; font-family: Arial, sans-serif; color: black; background: white;">
+            <div style="border: 2px solid black; display: flex; flex-direction: column; min-height: 46vh; padding: 10px; box-sizing: border-box; font-family: Arial, sans-serif; color: black; background: white; page-break-inside: avoid;">
                 
                 <div style="display: flex; justify-content: space-between; border-bottom: 2px solid black; padding: 4px 8px; font-size: 10px; font-weight: bold; color: black;">
                     <span>${viaName}</span>
@@ -1082,21 +1083,20 @@ const LogicaNegocio = {
                     </table>
                 </div>
 
-                <div style="display: flex; min-height: 150px;">
-                    <div style="flex: 6; border-right: 1px solid black; padding: 12px 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+                <div style="display: flex; min-height: 100px; padding-top: 10px;">
+                    <div style="flex: 6; border-right: 1px solid black; padding: 0 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
                         <div style="text-align: center; margin-bottom: 6px; font-size: 11px; color: black;">
                             Dúvidas sobre o pedido? Contacte <strong>(44) 9 9828-8914</strong>
                         </div>
-                        <div style="text-align: center; font-weight: bold; font-size: 11px; ${viaName === '1ª VIA' ? 'margin-bottom: 45px;' : 'margin-bottom: 10px;'} color: black;">
+                        <div style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 10px; color: black;">
                             OBRIGADO PELA CONFIANÇA!
                         </div>
-                        
                         ${viaName === '1ª VIA' ? `
-                        <div style="border-top: 1px solid black; width: 85%; padding-top: 6px; text-align: center; font-size: 12px; color: black;">
+                        <div style="border-top: 1px solid black; width: 85%; padding-top: 6px; text-align: center; font-size: 12px; color: black; margin-top: 20px;">
                             Assinatura Cliente
                         </div>` : ''}
                     </div>
-                    <div style="flex: 4; display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; font-size: 18px; font-weight: bold; color: black;">
+                    <div style="flex: 4; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; font-size: 18px; font-weight: bold; color: black;">
                         <span>TOTAL:</span>
                         <span>R$ ${total.toFixed(2).replace('.', ',')}</span>
                     </div>
@@ -1104,19 +1104,54 @@ const LogicaNegocio = {
             </div>
         `;
 
-        document.getElementById('print-top').innerHTML = generateVia("1ª VIA");
-        document.getElementById('print-bottom').innerHTML = generateVia("2ª VIA");
+        // ESTRATÉGIA ANTI-PÁGINA-BRANCA PARA CELULAR (DOM Virtual)
+        let printDiv = document.getElementById('print-area-externa-nota-v2');
+        if (!printDiv) {
+            printDiv = document.createElement('div');
+            printDiv.id = 'print-area-externa-nota-v2';
+            document.body.appendChild(printDiv);
+        }
+
+        printDiv.innerHTML = `
+            ${generateVia("1ª VIA")}
+            <div style="border-top: 1px dashed #000; margin: 15px 0;"></div>
+            ${generateVia("2ª VIA")}
+        `;
+
+        // INJEÇÃO DE CSS BLINDADO
+        let style = document.getElementById('print-style-nota-mobile-v2');
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'print-style-nota-mobile-v2';
+            style.innerHTML = `
+                #print-area-externa-nota-v2 { display: none; }
+                body.printing-nota .app-container, body.printing-nota .modal-overlay { display: none !important; }
+                body.printing-nota #print-area-externa-nota-v2 { 
+                    display: block !important; 
+                    position: absolute !important; 
+                    top: 0; left: 0; 
+                    width: 100% !important; 
+                    background: white !important; 
+                    margin: 0; padding: 0;
+                }
+                @media print { 
+                    @page { size: A4 portrait; margin: 5mm; } 
+                    body { background: white !important; color: black !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+                }
+            `;
+            document.head.appendChild(style);
+        }
 
         const tituloOriginal = document.title;
         document.title = idNota;
-
         document.body.className = 'printing-nota';
 
+        // Tempo aumentado de 500ms para 800ms pro chip do celular conseguir desenhar o CSS antes de congelar a tela
         setTimeout(() => {
             window.print();
             document.title = tituloOriginal;
             document.body.className = '';
-        }, 500);
+        }, 800);
     },
 
     abaterEstoqueNota: function () {
