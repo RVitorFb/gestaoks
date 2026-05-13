@@ -964,14 +964,12 @@ const LogicaNegocio = {
 
         const cliente = DB.get().clientes[clIndex];
 
-        // Pega o tipo de nota com validação rigorosa
         const radiosTipo = document.querySelectorAll('input[name="nota-tipo"]');
         let tipoNota = 'VENDA';
         radiosTipo.forEach(radio => {
             if (radio.checked) tipoNota = radio.value;
         });
 
-        // Se for RETRABALHO, força todos os valores para 0 (garantia)
         if (tipoNota === 'RETRABALHO') {
             itensNotaAtual.forEach(item => {
                 item.valor = 0;
@@ -993,7 +991,6 @@ const LogicaNegocio = {
 
         const total = itensNotaAtual.reduce((acc, item) => acc + item.subtotal, 0);
 
-        // SALVA A NOTA NO ARQUIVO CENTRAL
         const db = DB.get();
         const novaNota = {
             id: idNota,
@@ -1002,17 +999,15 @@ const LogicaNegocio = {
             clienteIndex: clIndex,
             itens: JSON.parse(JSON.stringify(itensNotaAtual)),
             total: total,
-            tipo: tipoNota // Salva se é Retrabalho ou Venda
+            tipo: tipoNota
         };
         const idxNotaExistente = db.notasSalvas.findIndex(n => n.id === idNota);
         if (idxNotaExistente > -1) db.notasSalvas[idxNotaExistente] = novaNota;
         else db.notasSalvas.push(novaNota);
         DB.save(db);
 
-        // REMOVI o height: 100% que buga o celular e coloquei min-height: 46vh
         const generateVia = (viaName) => `
             <div style="border: 2px solid black; display: flex; flex-direction: column; min-height: 46vh; padding: 10px; box-sizing: border-box; font-family: Arial, sans-serif; color: black; background: white; page-break-inside: avoid;">
-                
                 <div style="display: flex; justify-content: space-between; border-bottom: 2px solid black; padding: 4px 8px; font-size: 10px; font-weight: bold; color: black;">
                     <span>${viaName}</span>
                     <span style="color: ${tipoNota === 'RETRABALHO' ? '#ef4444' : 'black'}; font-size: 12px;">
@@ -1020,7 +1015,6 @@ const LogicaNegocio = {
                     </span>
                     <span></span>
                 </div>
-
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 2px solid black;">
                     <div>
                         <div style="font-size: 24px; font-weight: bold; letter-spacing: 0.5px; color: black;">KS Afinações</div>
@@ -1031,7 +1025,6 @@ const LogicaNegocio = {
                         <div>Data: ${dataImpressao}</div>
                     </div>
                 </div>
-
                 <div style="display: flex; border-bottom: 2px solid black; font-size: 10px; color: black;">
                     <div style="flex: 1; border-right: 2px solid black; padding: 0;">
                         <div style="text-align: center; font-weight: bold; border-bottom: 1px solid black; padding: 4px 0; background: transparent;">KS Afinações</div>
@@ -1050,13 +1043,11 @@ const LogicaNegocio = {
                         </table>
                     </div>
                 </div>
-
                 <div style="flex: 1; border-bottom: 2px solid black;">
                     ${tipoNota === 'RETRABALHO' ? `
                     <div style="text-align: center; padding: 5px; background: #ffffff; color: #ca0f0f; font-weight: bold; font-size: 14px; letter-spacing: 2px; border-bottom: 2px solid black;">
                         RETRABALHO - SEM CUSTO ADICIONAL
                     </div>` : ''}
-
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: black;">
                         <thead>
                             <tr>
@@ -1064,8 +1055,8 @@ const LogicaNegocio = {
                                 <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 40%; color: black;">PRODUTO</th>
                                 <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 8%; color: black;">QTD</th>
                                 <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 10%; color: black;">PERCA</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%; color: black;">VAL. UNIT.</th>
-                                <th style="border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%; color: black;">VAL. TOTAL</th>
+                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: right; width: 15%; color: black;">VAL. UNIT.</th>
+                                <th style="border-bottom: 2px solid black; padding: 4px; text-align: right; width: 15%; color: black;">VAL. TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1082,7 +1073,6 @@ const LogicaNegocio = {
                         </tbody>
                     </table>
                 </div>
-
                 <div style="display: flex; min-height: 100px; padding-top: 10px;">
                     <div style="flex: 6; border-right: 1px solid black; padding: 0 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
                         <div style="text-align: center; margin-bottom: 6px; font-size: 11px; color: black;">
@@ -1104,11 +1094,11 @@ const LogicaNegocio = {
             </div>
         `;
 
-        // ESTRATÉGIA ANTI-PÁGINA-BRANCA PARA CELULAR (DOM Virtual)
-        let printDiv = document.getElementById('print-area-externa-nota-v2');
+        // DOM VIRTUAL V3
+        let printDiv = document.getElementById('print-area-externa-nota-v3');
         if (!printDiv) {
             printDiv = document.createElement('div');
-            printDiv.id = 'print-area-externa-nota-v2';
+            printDiv.id = 'print-area-externa-nota-v3';
             document.body.appendChild(printDiv);
         }
 
@@ -1118,25 +1108,39 @@ const LogicaNegocio = {
             ${generateVia("2ª VIA")}
         `;
 
-        // INJEÇÃO DE CSS BLINDADO
-        let style = document.getElementById('print-style-nota-mobile-v2');
+        // CSS BLINDADO CONTRA A PÁGINA BRANCA DO CELULAR
+        let style = document.getElementById('print-style-nota-mobile-v3');
         if (!style) {
             style = document.createElement('style');
-            style.id = 'print-style-nota-mobile-v2';
+            style.id = 'print-style-nota-mobile-v3';
             style.innerHTML = `
-                #print-area-externa-nota-v2 { display: none; }
-                body.printing-nota .app-container, body.printing-nota .modal-overlay { display: none !important; }
-                body.printing-nota #print-area-externa-nota-v2 { 
+                #print-area-externa-nota-v3 { display: none; }
+                
+                /* Esconde TUDO no body que não seja a nota de impressão */
+                body.printing-nota > *:not(#print-area-externa-nota-v3) {
+                    display: none !important;
+                }
+                
+                body.printing-nota {
+                    background: white !important;
+                    overflow: visible !important;
+                    height: auto !important;
+                }
+
+                /* Libera a nota com posição STATICA (Natural), que é a única que o celular respeita */
+                body.printing-nota #print-area-externa-nota-v3 { 
                     display: block !important; 
-                    position: absolute !important; 
-                    top: 0; left: 0; 
+                    position: static !important; 
                     width: 100% !important; 
                     background: white !important; 
-                    margin: 0; padding: 0;
+                    min-height: 100vh;
+                    margin: 0;
+                    padding: 0;
                 }
+
                 @media print { 
                     @page { size: A4 portrait; margin: 5mm; } 
-                    body { background: white !important; color: black !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+                    body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0;} 
                 }
             `;
             document.head.appendChild(style);
@@ -1144,13 +1148,30 @@ const LogicaNegocio = {
 
         const tituloOriginal = document.title;
         document.title = idNota;
-        document.body.className = 'printing-nota';
+        
+        // Ativa a classe
+        document.body.classList.add('printing-nota');
 
-        // Tempo aumentado de 500ms para 800ms pro chip do celular conseguir desenhar o CSS antes de congelar a tela
+        // Força o navegador do celular a "desenhar" a tela antes de avançar
+        void document.body.offsetHeight;
+
         setTimeout(() => {
             window.print();
-            document.title = tituloOriginal;
-            document.body.className = '';
+            
+            // FUNÇÃO DE RETORNO BLINDADA PARA CELULAR
+            // Só tira a classe de impressão DEPOIS que o celular terminar de gerar o PDF
+            const restoreApp = () => {
+                document.title = tituloOriginal;
+                document.body.classList.remove('printing-nota');
+                window.removeEventListener('afterprint', restoreApp);
+            };
+
+            // Escuta o evento oficial do celular
+            window.addEventListener('afterprint', restoreApp);
+            
+            // Caso de falha (se o iPhone não disparar o evento, volta ao normal em 5 segundos)
+            setTimeout(restoreApp, 5000); 
+
         }, 800);
     },
 
