@@ -284,13 +284,13 @@ const LogicaNegocio = {
         const nomeBase = document.getElementById('prod-nome').value.trim();
         const fornecedor = document.getElementById('prod-fornecedor').value.trim();
         const valVenda = parseFloat(document.getElementById('prod-val-venda').value);
-        const valVendaPolida = parseFloat(document.getElementById('prod-val-venda-polida').value) || valVenda; // Se vazio, usa o normal
+        const valVendaPolida = parseFloat(document.getElementById('prod-val-venda-polida').value) || valVenda;
         const valProducao = parseFloat(document.getElementById('prod-val-producao').value) || 0;
 
         const varPintura = document.getElementById('var-pintura').checked;
         const varPolida = document.getElementById('var-polida').checked;
 
-        if (db.produtos.find(p => String(p.codigo) === codigoBase)) { CustomModal.show(`O código ${codigoBase} já existe!`); return; }
+        // VALIDAÇÃO DE CÓDIGO DUPLICADO REMOVIDA PARA PERMITIR PRODUTOS COM MESMO CÓDIGO
 
         let variacoesArray = ["Cromada"];
         if (varPintura) variacoesArray.push("Pintura");
@@ -301,14 +301,13 @@ const LogicaNegocio = {
             nome: nomeBase,
             fornecedor: fornecedor,
             valVenda: valVenda,
-            valVendaPolida: valVendaPolida, // SALVA O VALOR POLIDO
+            valVendaPolida: valVendaPolida,
             valProducao: valProducao,
             variacoes: variacoesArray
         });
 
         DB.save(db);
 
-        // Limpa os campos após salvar
         document.getElementById('prod-codigo').value = '';
         document.getElementById('prod-val-venda-polida').value = '';
         document.getElementById('prod-val-producao').value = '';
@@ -326,18 +325,18 @@ const LogicaNegocio = {
         document.getElementById('div-venda-polida').style.display = isPolida ? 'block' : 'none';
     },
 
-    excluirProduto: function (codigo) {
+    excluirProduto: function (index) {
         CustomModal.show('Tem certeza que deseja excluir este produto?', true, () => {
             const db = DB.get();
-            db.produtos = db.produtos.filter(p => p.codigo !== codigo);
+            db.produtos.splice(index, 1); // Exclui pela posição exata e não mais pelo código
             DB.save(db);
             UI.renderTabelaProdutos();
         });
     },
 
-    iniciarEdicaoProduto: function (codigo) {
+    iniciarEdicaoProduto: function (index) {
         const db = DB.get();
-        const prod = db.produtos.find(p => p.codigo === codigo);
+        const prod = db.produtos[index];
         if (!prod) return;
 
         let optionsForn = '<option value="">--</option>';
@@ -351,27 +350,27 @@ const LogicaNegocio = {
         const valProducaoAtual = prod.valProducao || 0;
         const valVendaPolidaAtual = prod.valVendaPolida || prod.valVenda;
 
-        const tr = document.getElementById(`tr-produto-${codigo}`);
+        const tr = document.getElementById(`tr-produto-${index}`);
         tr.innerHTML = `
-            <td><input type="text" id="edit-prod-cod-${codigo}" value="${prod.codigo}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
+            <td><input type="text" id="edit-prod-cod-${index}" value="${prod.codigo}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
             <td>
-                <input type="text" id="edit-prod-nome-${codigo}" value="${prod.nome}" style="width: 100%; margin: 0 0 4px 0; padding: 4px; font-size: 12px;">
+                <input type="text" id="edit-prod-nome-${index}" value="${prod.nome}" style="width: 100%; margin: 0 0 4px 0; padding: 4px; font-size: 12px;">
                 <div style="display: flex; gap: 10px; font-size: 10px; color: var(--text-main); align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-pintura-${codigo}" ${hasPintura} style="width: 12px; height: 12px; margin: 0;"> Pintura</label>
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-polida-${codigo}" ${hasPolida} onchange="LogicaNegocio.toggleEditPolido('${codigo}')" style="width: 12px; height: 12px; margin: 0;"> Polida</label>
+                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-pintura-${index}" ${hasPintura} style="width: 12px; height: 12px; margin: 0;"> Pintura</label>
+                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-polida-${index}" ${hasPolida} onchange="LogicaNegocio.toggleEditPolido(${index})" style="width: 12px; height: 12px; margin: 0;"> Polida</label>
                 </div>
             </td>
-            <td><select id="edit-prod-forn-${codigo}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;">${optionsForn}</select></td>
+            <td><select id="edit-prod-forn-${index}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;">${optionsForn}</select></td>
             <td>
-                <input type="number" id="edit-prod-val-${codigo}" value="${prod.valVenda}" step="0.01" style="width: 70px; margin: 0 0 4px 0; padding: 4px; font-size: 12px;" title="Venda Normal">
-                <div id="div-edit-polida-${codigo}" style="${prod.variacoes && prod.variacoes.includes('Polida') ? 'display: block;' : 'display: none;'}">
-                    <input type="number" id="edit-prod-val-polida-${codigo}" value="${valVendaPolidaAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px; border: 1px solid #a855f7;" title="Venda Polida">
+                <input type="number" id="edit-prod-val-${index}" value="${prod.valVenda}" step="0.01" style="width: 70px; margin: 0 0 4px 0; padding: 4px; font-size: 12px;" title="Venda Normal">
+                <div id="div-edit-polida-${index}" style="${prod.variacoes && prod.variacoes.includes('Polida') ? 'display: block;' : 'display: none;'}">
+                    <input type="number" id="edit-prod-val-polida-${index}" value="${valVendaPolidaAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px; border: 1px solid #a855f7;" title="Venda Polida">
                 </div>
             </td>
-            <td><input type="number" id="edit-prod-producao-${codigo}" value="${valProducaoAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px;"></td>
+            <td><input type="number" id="edit-prod-producao-${index}" value="${valProducaoAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px;"></td>
             <td>
                 <div style="display: flex; gap: 4px;">
-                    <button onclick="LogicaNegocio.salvarEdicaoProduto('${codigo}')" style="background: var(--success-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Salvar">
+                    <button onclick="LogicaNegocio.salvarEdicaoProduto(${index})" style="background: var(--success-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Salvar">
                         <i data-lucide="check" style="width: 14px; height: 14px;"></i>
                     </button>
                     <button onclick="UI.renderTabelaProdutos()" style="background: var(--danger-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Cancelar">
@@ -383,16 +382,16 @@ const LogicaNegocio = {
         lucide.createIcons();
     },
 
-    salvarEdicaoProduto: function (codigoAntigo) {
-        const novoCod = document.getElementById(`edit-prod-cod-${codigoAntigo}`).value.trim();
-        const novoNome = document.getElementById(`edit-prod-nome-${codigoAntigo}`).value.trim();
-        const novoForn = document.getElementById(`edit-prod-forn-${codigoAntigo}`).value.trim();
-        const novoVal = parseFloat(document.getElementById(`edit-prod-val-${codigoAntigo}`).value);
-        const novoValPolida = parseFloat(document.getElementById(`edit-prod-val-polida-${codigoAntigo}`).value) || novoVal;
-        const novoValProducao = parseFloat(document.getElementById(`edit-prod-producao-${codigoAntigo}`).value) || 0;
+    salvarEdicaoProduto: function (index) {
+        const novoCod = document.getElementById(`edit-prod-cod-${index}`).value.trim();
+        const novoNome = document.getElementById(`edit-prod-nome-${index}`).value.trim();
+        const novoForn = document.getElementById(`edit-prod-forn-${index}`).value.trim();
+        const novoVal = parseFloat(document.getElementById(`edit-prod-val-${index}`).value);
+        const novoValPolida = parseFloat(document.getElementById(`edit-prod-val-polida-${index}`).value) || novoVal;
+        const novoValProducao = parseFloat(document.getElementById(`edit-prod-producao-${index}`).value) || 0;
 
-        const varPintura = document.getElementById(`edit-prod-var-pintura-${codigoAntigo}`).checked;
-        const varPolida = document.getElementById(`edit-prod-var-polida-${codigoAntigo}`).checked;
+        const varPintura = document.getElementById(`edit-prod-var-pintura-${index}`).checked;
+        const varPolida = document.getElementById(`edit-prod-var-polida-${index}`).checked;
 
         if (!novoCod || !novoNome || isNaN(novoVal) || novoVal < 0) {
             CustomModal.show('Preencha os campos obrigatórios com valores válidos.');
@@ -401,23 +400,17 @@ const LogicaNegocio = {
 
         const db = DB.get();
 
-        if (novoCod !== codigoAntigo && db.produtos.find(p => p.codigo === novoCod)) {
-            CustomModal.show(`O código ${novoCod} já está em uso!`);
-            return;
-        }
-
-        const prodIndex = db.produtos.findIndex(p => p.codigo === codigoAntigo);
-        if (prodIndex > -1) {
+        if (db.produtos[index]) {
             let variacoesArray = ["Cromada"];
             if (varPintura) variacoesArray.push("Pintura");
             if (varPolida) variacoesArray.push("Polida");
 
-            db.produtos[prodIndex] = {
+            db.produtos[index] = {
                 codigo: novoCod,
                 nome: novoNome,
                 fornecedor: novoForn,
                 valVenda: novoVal,
-                valVendaPolida: novoValPolida, // SALVA NA EDIÇÃO
+                valVendaPolida: novoValPolida,
                 valProducao: novoValProducao,
                 variacoes: variacoesArray
             };
@@ -498,17 +491,25 @@ const LogicaNegocio = {
         }
     },
 
-    buscarProduto: function () {
-        const cod = document.getElementById('busca-codigo').value.trim();
-        const prod = DB.get().produtos.find(p => p.codigo === cod);
-        const div = document.getElementById('busca-resultado');
+    buscarProduto: function (index = null) {
+        const db = DB.get();
+        let prod = null;
 
+        if (index !== null) {
+            prod = db.produtos[index];
+        } else {
+            const cod = document.getElementById('busca-codigo').value.trim();
+            prod = db.produtos.find(p => p.codigo === cod);
+        }
+
+        const div = document.getElementById('busca-resultado');
         const listaSugestoes = document.getElementById('lista-sugestoes-busca');
         if (listaSugestoes) listaSugestoes.style.display = 'none';
 
         div.style.display = 'block';
 
         if (prod) {
+            document.getElementById('busca-codigo').value = prod.codigo;
             const varsTexto = prod.variacoes ? prod.variacoes.join(', ') : "Cromada";
             div.innerHTML = `
                 <h3 style="color: var(--text-main); font-size: 16px; margin-bottom: 10px;">${prod.nome}</h3>
@@ -591,10 +592,9 @@ const LogicaNegocio = {
     },
 
     filtrarProdutosNota: function (event) {
-        // Ignora o processamento do texto se o usuário apertou uma tecla de navegação (para não resetar o cursor)
         if (event && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
 
-        sugestaoIndexNota = -1; // Reseta a navegação sempre que digitar algo novo
+        sugestaoIndexNota = -1;
 
         const codigoInput = document.getElementById('nota-item-codigo');
         const termoBusca = codigoInput.value.trim().toLowerCase();
@@ -607,7 +607,9 @@ const LogicaNegocio = {
             return;
         }
 
-        const produtosFiltrados = db.produtos.filter(p => String(p.codigo).trim().toLowerCase().startsWith(termoBusca));
+        const produtosFiltrados = db.produtos
+            .map((p, i) => ({ ...p, originalIndex: i }))
+            .filter(p => String(p.codigo).trim().toLowerCase().startsWith(termoBusca));
 
         if (produtosFiltrados.length > 0) {
             listaSugestoes.innerHTML = '';
@@ -616,11 +618,11 @@ const LogicaNegocio = {
                 li.innerText = `${prod.codigo} - ${prod.nome}`;
                 li.className = 'sugestao-item';
                 li.dataset.codigo = prod.codigo;
+                li.dataset.index = prod.originalIndex;
 
                 const regex = new RegExp(`^(${termoBusca})`, "i");
                 li.innerHTML = li.innerText.replace(regex, "<strong>$1</strong>");
 
-                // Sincroniza a posição da navegação com o mouse
                 li.onmouseenter = () => {
                     sugestaoIndexNota = index;
                     this.atualizarSelecaoVisual(listaSugestoes.getElementsByTagName('li'), index);
@@ -629,7 +631,7 @@ const LogicaNegocio = {
                 li.onclick = () => {
                     codigoInput.value = prod.codigo;
                     listaSugestoes.style.display = 'none';
-                    this.autoPreencherItemNota();
+                    this.autoPreencherItemNota(prod.originalIndex);
                 };
                 listaSugestoes.appendChild(li);
             });
@@ -656,7 +658,9 @@ const LogicaNegocio = {
             return;
         }
 
-        const produtosFiltrados = db.produtos.filter(p => String(p.codigo).trim().toLowerCase().startsWith(termoBusca));
+        const produtosFiltrados = db.produtos
+            .map((p, i) => ({ ...p, originalIndex: i }))
+            .filter(p => String(p.codigo).trim().toLowerCase().startsWith(termoBusca));
 
         if (produtosFiltrados.length > 0) {
             listaSugestoes.innerHTML = '';
@@ -665,6 +669,7 @@ const LogicaNegocio = {
                 li.innerText = `${prod.codigo} - ${prod.nome}`;
                 li.className = 'sugestao-item';
                 li.dataset.codigo = prod.codigo;
+                li.dataset.index = prod.originalIndex;
 
                 const regex = new RegExp(`^(${termoBusca})`, "i");
                 li.innerHTML = li.innerText.replace(regex, "<strong>$1</strong>");
@@ -677,13 +682,26 @@ const LogicaNegocio = {
                 li.onclick = () => {
                     codigoInput.value = prod.codigo;
                     listaSugestoes.style.display = 'none';
-                    this.buscarProduto();
+                    this.buscarProduto(prod.originalIndex);
                 };
                 listaSugestoes.appendChild(li);
             });
             listaSugestoes.style.display = 'block';
         } else {
             listaSugestoes.style.display = 'none';
+        }
+    },
+
+    selecionarPrimeiraSugestaoBusca: function () {
+        const listaSugestoes = document.getElementById('lista-sugestoes-busca');
+        if (listaSugestoes.style.display === 'block' && listaSugestoes.firstChild) {
+            const primeiroCodigo = listaSugestoes.firstChild.dataset.codigo;
+            const index = parseInt(listaSugestoes.firstChild.dataset.index);
+            document.getElementById('busca-codigo').value = primeiroCodigo;
+            listaSugestoes.style.display = 'none';
+            this.buscarProduto(index);
+        } else {
+            this.buscarProduto();
         }
     },
 
@@ -717,17 +735,25 @@ const LogicaNegocio = {
         document.getElementById('nota-item-variacao').innerHTML = '<option value="">--</option>';
     },
 
-    autoPreencherItemNota: function () {
-        const codigoInput = document.getElementById('nota-item-codigo').value.trim();
-        const prod = DB.get().produtos.find(p => String(p.codigo) === String(codigoInput));
-        const selectVariacao = document.getElementById('nota-item-variacao');
+    autoPreencherItemNota: function (index = null) {
+        const db = DB.get();
+        let prod = null;
 
+        if (index !== null && index >= 0) {
+            prod = db.produtos[index];
+        } else {
+            const codigoInput = document.getElementById('nota-item-codigo').value.trim();
+            prod = db.produtos.find(p => String(p.codigo) === String(codigoInput));
+        }
+
+        const selectVariacao = document.getElementById('nota-item-variacao');
         selectVariacao.innerHTML = '';
 
         if (prod) {
+            document.getElementById('nota-item-codigo').value = prod.codigo;
             document.getElementById('nota-item-nome').value = prod.nome;
             document.getElementById('nota-item-valor').value = prod.valVenda;
-            document.getElementById('nota-item-valor-producao-base').value = prod.valProducao || 0; // Puxa o custo base
+            document.getElementById('nota-item-valor-producao-base').value = prod.valProducao || 0;
 
             const variacoesDaPeca = prod.variacoes || ["Cromada"];
             variacoesDaPeca.forEach(v => {
@@ -750,13 +776,14 @@ const LogicaNegocio = {
         const variacao = document.getElementById('nota-item-variacao').value;
         const inputValor = document.getElementById('nota-item-valor');
         const codigoInput = document.getElementById('nota-item-codigo').value.trim();
+        const nomeInput = document.getElementById('nota-item-nome').value.trim();
 
         const db = DB.get();
-        const prod = db.produtos.find(p => String(p.codigo) === String(codigoInput));
+        // Filtra pelo código E nome para evitar erro em produtos duplicados
+        const prod = db.produtos.find(p => String(p.codigo) === String(codigoInput) && p.nome === nomeInput);
 
         if (!prod) return;
 
-        // Puxa o valor do banco. Se for Polida, puxa o Polida. Senão, puxa o normal.
         if (variacao === 'Polida') {
             inputValor.value = prod.valVendaPolida || prod.valVenda;
         } else {
@@ -764,9 +791,9 @@ const LogicaNegocio = {
         }
     },
 
-    toggleEditPolido: function (codigo) {
-        const isPolida = document.getElementById(`edit-prod-var-polida-${codigo}`).checked;
-        document.getElementById(`div-edit-polida-${codigo}`).style.display = isPolida ? 'block' : 'none';
+    toggleEditPolido: function (index) {
+        const isPolida = document.getElementById(`edit-prod-var-polida-${index}`).checked;
+        document.getElementById(`div-edit-polida-${index}`).style.display = isPolida ? 'block' : 'none';
     },
 
     carregarFuncionariosProducao: function () {
@@ -877,13 +904,16 @@ const LogicaNegocio = {
         if (!item) return;
 
         document.getElementById('nota-item-codigo').value = item.codigo;
-        this.autoPreencherItemNota();
+
+        const db = DB.get();
+        // Acha o produto EXATO caso existam vários com mesmo código
+        const prodIndex = db.produtos.findIndex(p => String(p.codigo) === String(item.codigo) && item.nome.startsWith(p.nome));
+        this.autoPreencherItemNota(prodIndex > -1 ? prodIndex : null);
 
         setTimeout(() => {
             const selectVariacao = document.getElementById('nota-item-variacao');
             if (item.variacaoBruta) selectVariacao.value = item.variacaoBruta;
 
-            // Retorna os dados da Mão de Obra pra tela
             document.getElementById('nota-item-tipo-mao').value = item.maoObraTipo || 'KS';
             LogicaNegocio.toggleMaoObra();
             if (item.maoObraTipo === 'PRODUCAO') {
@@ -1147,68 +1177,17 @@ const LogicaNegocio = {
             }
 
             itensNotaAtual.forEach(item => {
+                // SOMA A QUANTIDADE BOA COM A PERCA PARA ABATER O TOTAL FÍSICO DO ESTOQUE
+                const qtdBoa = parseInt(item.qtd) || 0;
+                const qtdPerca = parseInt(item.perca) || 0;
+                const totalBaixa = qtdBoa + qtdPerca;
+
                 dbE.logsPecas.push({
                     id: 'LOGP_' + Date.now() + Math.random().toString(36).substr(2, 5),
                     data: new Date().toISOString().split('T')[0],
                     tipo: 'Saída',
                     codigoPeca: item.codigo,
-                    qtd: item.qtd,
-                    origemDestino: `Nota Fiscal ${idNotaAtual} - ${cliente.nome}`
-                });
-            });
-
-            localStorage.setItem('ks_estoque_dados', JSON.stringify(dbE));
-            if (typeof DB !== 'undefined' && DB.save) DB.save(DB.get());
-
-            notaAbatida = true;
-
-            const btnEstoque = document.getElementById('btn-abater-estoque');
-            if (btnEstoque) {
-                btnEstoque.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                btnEstoque.style.borderColor = '#10b981';
-                btnEstoque.style.color = '#10b981';
-                btnEstoque.innerHTML = '<i data-lucide="check" style="width: 18px; height: 18px;"></i> Estoque Abatido';
-                lucide.createIcons();
-            }
-
-            CustomModal.show('Peças abatidas com sucesso!');
-        });
-    },
-
-    abaterEstoqueNota: function () {
-        if (itensNotaAtual.length === 0) {
-            CustomModal.show('A nota está vazia. Adicione os itens primeiro.');
-            return;
-        }
-        const clIndex = document.getElementById('nota-cliente').value;
-        if (clIndex === "") {
-            CustomModal.show('Selecione o Cliente na nota para poder registrar a saída no estoque.');
-            return;
-        }
-
-        if (notaAbatida) {
-            CustomModal.show('As peças desta nota JÁ FORAM abatidas do estoque!');
-            return;
-        }
-
-        const cliente = DB.get().clientes[clIndex];
-
-        CustomModal.show(`Confirma a baixa destas peças no Estoque de Afinação?`, true, () => {
-            const dbEraw = localStorage.getItem('ks_estoque_dados');
-            const dbE = dbEraw ? JSON.parse(dbEraw) : { insumos: [], logsInsumos: [], logsPecas: [] };
-            if (!dbE.logsPecas) dbE.logsPecas = [];
-
-            if (!idNotaAtual) {
-                idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
-            }
-
-            itensNotaAtual.forEach(item => {
-                dbE.logsPecas.push({
-                    id: 'LOGP_' + Date.now() + Math.random().toString(36).substr(2, 5),
-                    data: new Date().toISOString().split('T')[0],
-                    tipo: 'Saída',
-                    codigoPeca: item.codigo,
-                    qtd: item.qtd,
+                    qtd: totalBaixa, // Agora desconta as boas + percas juntas
                     origemDestino: `Nota Fiscal ${idNotaAtual} - ${cliente.nome}`
                 });
             });
@@ -1435,9 +1414,9 @@ const UI = {
     renderTabelaProdutos: function () {
         const tbody = document.querySelector('#tabela-produtos tbody');
         tbody.innerHTML = '';
-        DB.get().produtos.forEach(p => {
+        DB.get().produtos.forEach((p, index) => {
             const varsFormatadas = p.variacoes ? p.variacoes.join(', ') : 'Cromada';
-            tbody.innerHTML += `<tr id="tr-produto-${p.codigo}">
+            tbody.innerHTML += `<tr id="tr-produto-${index}">
                 <td>${p.codigo}</td>
                 <td>${p.nome} <br><small style="color:var(--text-muted); font-size: 12px;">(${varsFormatadas})</small></td>
                 <td>${p.fornecedor || '-'}</td>
@@ -1448,10 +1427,10 @@ const UI = {
                 <td style="color: var(--success-color); font-weight: bold;">R$ ${(p.valProducao || 0).toFixed(2)}</td>
                 <td>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button onclick="LogicaNegocio.iniciarEdicaoProduto('${p.codigo}')" style="background: transparent; border: none; cursor: pointer; color: var(--primary-color); padding: 0;" title="Editar Produto">
+                        <button onclick="LogicaNegocio.iniciarEdicaoProduto(${index})" style="background: transparent; border: none; cursor: pointer; color: var(--primary-color); padding: 0;" title="Editar Produto">
                             <i data-lucide="pencil" style="width: 14px; height: 14px;"></i>
                         </button>
-                        <button class="btn-danger" onclick="LogicaNegocio.excluirProduto('${p.codigo}')"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
+                        <button class="btn-danger" onclick="LogicaNegocio.excluirProduto(${index})"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
                     </div>
                 </td>
             </tr>`;
@@ -1511,9 +1490,10 @@ const UI = {
         const tbody = document.getElementById('lista-itens-nota');
         tbody.innerHTML = '';
         let total = 0;
+        let qtdCaixas = itensNotaAtual.length; // Conta as caixas exatas inseridas na nota
+
         itensNotaAtual.forEach((item, i) => {
             total += item.subtotal;
-            // Destaque visual se for o item sendo editado
             const trClass = (itemNotaEmEdicaoIndex === i) ? 'style="background-color: rgba(16, 185, 129, 0.1); border-left: 3px solid var(--success-color);"' : '';
 
             tbody.innerHTML += `<tr ${trClass}>
@@ -1538,7 +1518,9 @@ const UI = {
                 </td>
             </tr>`;
         });
-        document.getElementById('nota-total-display').innerText = `R$ ${total.toFixed(2)}`;
+
+        // Injeta o contador de caixas ao lado do total
+        document.getElementById('nota-total-display').innerHTML = `R$ ${total.toFixed(2)} <span style="font-size: 16px; color: var(--text-muted); margin-left: 15px; border-left: 2px solid var(--border-color); padding-left: 15px;"><i data-lucide="package" style="width: 18px; margin-right: 5px; vertical-align: middle;"></i>Caixas: <span style="color: var(--text-main);">${qtdCaixas}</span></span>`;
         lucide.createIcons();
     }
 };

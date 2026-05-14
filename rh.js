@@ -693,17 +693,22 @@ const RH = {
                     let mesStr = null;
                     let naoEncontrados = new Set();
 
+                    // NOVO: MAPEIA OS DIAS QUE JÁ TÊM PONTO NO SISTEMA ANTES DE IMPORTAR
+                    const diasExistentes = new Set();
+                    db.pontos.forEach(p => {
+                        const diaIso = p.entrada.split('T')[0];
+                        diasExistentes.add(`${p.idFunc}_${diaIso}`);
+                    });
+
                     for (let i = 0; i < jsonData.length; i++) {
                         const row = jsonData[i] || [];
 
-                        // 1. Procurar o Nome e o Período varrendo célula por célula (Pois estão separados)
                         for (let cell of row) {
                             const cellStr = String(cell || '').trim();
 
-                            // Tenta extrair o Nome (Ignora ID/CTPS na mesma célula, se houver)
                             if (cellStr.toLowerCase().match(/^(nome|funcion[aá]rio|empregado|colaborador):/)) {
                                 let rawName = cellStr.replace(/^(nome|funcion[aá]rio|empregado|colaborador):\s*/i, '');
-                                rawName = rawName.replace(/^\d+\s*-\s*/, ''); // Remove "15 - "
+                                rawName = rawName.replace(/^\d+\s*-\s*/, '');
                                 const match = rawName.match(/(.+?)(?=\s+Pis:|\s+CTPS:|\s+ID:|$)/i);
                                 if (match) {
                                     const nomeRelogio = match[1].trim();
@@ -712,14 +717,13 @@ const RH = {
                                 }
                             }
 
-                            // Tenta extrair o Período (Aceita Data:26.04.01 ou Data: 01/04/2026)
                             if (cellStr.toLowerCase().match(/^(data|per[ií]odo|periodo):/)) {
                                 const match1 = cellStr.match(/(?:Data|Per[ií]odo|Periodo):\s*(\d{2})\.(\d{2})\.(\d{2})/i);
                                 const match2 = cellStr.match(/(?:Data|Per[ií]odo|Periodo):\s*(?:\d{2}\/\d{2}\/\d{4}\s*a\s*)?\d{2}\/(\d{2})\/(\d{4})/i);
 
                                 if (match1) {
-                                    anoStr = "20" + match1[1]; // Converte '26' para '2026'
-                                    mesStr = match1[2]; // Pega o mês '04'
+                                    anoStr = "20" + match1[1];
+                                    mesStr = match1[2];
                                     currentMesAno = `${anoStr}-${mesStr}`;
                                 } else if (match2) {
                                     mesStr = match2[1];
@@ -729,19 +733,17 @@ const RH = {
                             }
                         }
 
-                        // 2. Processar Tabela de Horas
                         const col0 = String(row[0] || '').trim();
                         const col8 = String(row[8] || '').trim();
 
-                        // Se a linha começar com uma data válida em MM.DD ou DD/MM/YYYY
                         if ((/^\d{2}[\.\/]\d{2}(\/\d{4})?$/.test(col0) || /^\d{2}[\.\/]\d{2}(\/\d{4})?$/.test(col8)) && currentFunc) {
 
                             const processarDia = (dataColIndex, in1Idx, out1Idx, in2Idx, out2Idx) => {
                                 const dataCelula = String(row[dataColIndex] || '').trim();
                                 if (!dataCelula) return;
 
-                                const diaMatch1 = dataCelula.match(/^(\d{2})\.(\d{2})$/); // Formato MM.DD
-                                const diaMatch2 = dataCelula.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); // Formato DD/MM/YYYY
+                                const diaMatch1 = dataCelula.match(/^(\d{2})\.(\d{2})$/);
+                                const diaMatch2 = dataCelula.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
 
                                 let diaLinha = null;
                                 let mesLinha = null;
@@ -750,7 +752,7 @@ const RH = {
                                 if (diaMatch1) {
                                     mesLinha = diaMatch1[1];
                                     diaLinha = diaMatch1[2];
-                                    anoLinha = anoStr; // Usa o ano do cabeçalho
+                                    anoLinha = anoStr;
                                 } else if (diaMatch2) {
                                     diaLinha = diaMatch2[1];
                                     mesLinha = diaMatch2[2];
@@ -759,11 +761,18 @@ const RH = {
                                     return;
                                 }
 
-                                // Prevenção: se faltar período no cabeçalho
                                 if (!currentMesAno && anoLinha && mesLinha) {
                                     anoStr = anoLinha;
                                     mesStr = mesLinha;
                                     currentMesAno = `${anoStr}-${mesStr}`;
+                                }
+
+                                // REGRA ANTI-DUPLICIDADE DE PONTO:
+                                // Se já existe no sistema um ponto para este funcionário neste exato dia, aborta a linha do arquivo!
+                                const dataIsoPrefix = `${anoLinha}-${mesLinha}-${diaLinha}`;
+                                const chaveDia = `${currentFunc.id}_${dataIsoPrefix}`;
+                                if (diasExistentes.has(chaveDia)) {
+                                    return; // Pula a importação deste dia específico
                                 }
 
                                 const limparHora = (horaRaw) => {
@@ -776,7 +785,6 @@ const RH = {
                                 const criarDataIsoLocal = (horaLimpa) => {
                                     if (!horaLimpa) return null;
                                     const [h, m] = horaLimpa.split(':');
-                                    // Formato de data salva no banco
                                     return `${anoLinha}-${mesLinha}-${diaLinha}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00.000Z`;
                                 };
 
@@ -796,16 +804,14 @@ const RH = {
                                 }
                             };
 
-                            // Metade esquerda da tabela (Colunas: Data=0, In1=2, Out1=3, In2=4, Out2=5)
                             processarDia(0, 2, 3, 4, 5);
-                            // Metade direita da tabela (Colunas: Data=8, In1=10, Out1=11, In2=12, Out2=13)
                             processarDia(8, 10, 11, 12, 13);
                         }
                     }
 
                     RHDb.save(db);
 
-                    let msgFinal = `${pontosAdicionados} registros de ponto importados com sucesso!`;
+                    let msgFinal = `${pontosAdicionados} registros de ponto novos importados com sucesso!`;
                     if (naoEncontrados.size > 0) {
                         msgFinal += `\n\nAviso: O nome no relógio não bate com o sistema (Verifique a grafia exata):\n- ${Array.from(naoEncontrados).join('\n- ')}`;
                     }
