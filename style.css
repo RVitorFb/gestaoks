@@ -793,23 +793,32 @@ tbody tr:hover {
     body.printing-nota #print-area-nota {
         display: flex !important;
         flex-direction: row;
-        justify-content: flex-start;
-        align-items: stretch;
-        width: 100% !important;
-        min-height: calc(100vh - 8mm);
-        gap: 4mm;
+        justify-content: space-between;
+        align-items: flex-start;
+
+        width: 100%;
+        height: 200mm;
+
+        gap: 2mm;
         padding: 0;
+
         box-sizing: border-box;
     }
 
     body.printing-nota .nota-via {
-        width: 49%;
-        min-height: 100%;
+        width: 49.5%;
+        height: 200mm;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
         border: 1px solid #000;
         box-sizing: border-box;
+        height: auto !important;
+    }
+
+    body.printing-nota .nota-via>*:last-child {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
     }
 
     .print-half {
