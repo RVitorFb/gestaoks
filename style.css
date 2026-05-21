@@ -770,8 +770,8 @@ tbody tr:hover {
     }
 
     @page {
-        size: portrait;
-        margin: 0mm !important;
+        size: A4 landscape;
+        margin: 4mm;
     }
 
     body {
@@ -788,14 +788,8 @@ tbody tr:hover {
         display: flex !important;
         flex-direction: row;
         justify-content: space-between;
-        width: 297mm !important;
-        height: 210mm !important;
-        position: absolute;
-        top: 0;
-        left: 210mm;
-        -webkit-transform: rotate(90deg);
-        transform: rotate(90deg);
-        transform-origin: top left;
+        width: 100% !important;
+        min-height: 100vh !important;
         padding: 4mm;
         box-sizing: border-box;
     }
