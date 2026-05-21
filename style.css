@@ -793,7 +793,7 @@ tbody tr:hover {
     body.printing-nota #print-area-nota {
         display: flex !important;
         flex-direction: row;
-        justify-content: space-between;
+        justify-content: flex-start;
         align-items: stretch;
         width: 100% !important;
         min-height: calc(100vh - 8mm);
@@ -807,7 +807,7 @@ tbody tr:hover {
         min-height: 100%;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
         border: 1px solid #000;
         box-sizing: border-box;
     }
