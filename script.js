@@ -1113,16 +1113,16 @@ const LogicaNegocio = {
                 </div>
 
                 <div style="display: flex; min-height: 150px;">
-                    <div style="flex: 6; border-right: 1px solid black; padding: 12px 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
-                        <div style="text-align: center; margin-bottom: 6px; font-size: 11px; color: black;">
+                    <div style="flex: 6; border-right: 1px solid black; padding: 4px 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+                        <div style="text-align: center; margin-bottom: 1px; font-size: 11px; color: black;">
                             Dúvidas sobre o pedido? Contacte <strong>(44) 9 9828-8914</strong>
                         </div>
-                        <div style="text-align: center; font-weight: bold; font-size: 11px; ${viaName === '1ª VIA' ? 'margin-bottom: 45px;' : 'margin-bottom: 10px;'} color: black;">
+                        <div style="text-align: center; font-weight: bold; font-size: 11px; ${viaName === '1ª VIA' ? 'margin-bottom: 25px;' : 'margin-bottom: 4px;'} color: black;">
                             OBRIGADO PELA CONFIANÇA!
                         </div>
                         
                         ${viaName === '1ª VIA' ? `
-                        <div style="border-top: 1px solid black; width: 85%; padding-top: 6px; text-align: center; font-size: 12px; color: black;">
+                        <div style="border-top: 1px solid black; width: 85%; text-align: center; font-size: 12px; color: black;">
                             Assinatura Cliente
                         </div>` : ''}
                     </div>
@@ -1177,17 +1177,17 @@ const LogicaNegocio = {
             }
 
             itensNotaAtual.forEach(item => {
-                // SOMA A QUANTIDADE BOA COM A PERCA PARA ABATER O TOTAL FÍSICO DO ESTOQUE
-                const qtdBoa = parseInt(item.qtd) || 0;
+                // SOMA AS PEÇAS BOAS COM AS PERCAS PARA GERAR O DESCONTO TOTAL DO ESTOQUE
                 const qtdPerca = parseInt(item.perca) || 0;
-                const totalBaixa = qtdBoa + qtdPerca;
+                const qtdTotal = parseInt(item.qtd) + qtdPerca;
 
                 dbE.logsPecas.push({
                     id: 'LOGP_' + Date.now() + Math.random().toString(36).substr(2, 5),
                     data: new Date().toISOString().split('T')[0],
                     tipo: 'Saída',
                     codigoPeca: item.codigo,
-                    qtd: totalBaixa, // Agora desconta as boas + percas juntas
+                    qtd: qtdTotal,   // Salva a quantidade TOTAL já somada (ex: 50)
+                    perca: qtdPerca, // Salva o detalhe da perca separado para a UI do estoque (ex: 5)
                     origemDestino: `Nota Fiscal ${idNotaAtual} - ${cliente.nome}`
                 });
             });

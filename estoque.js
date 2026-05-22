@@ -524,12 +524,18 @@ const Estoque = {
                 financeiro = l.tipo === 'Entrada' ? '<span style="color:#38bdf8;">Chegada Afinação</span>' : '<span style="color:#eab308;">Baixa / Ajuste</span>';
             }
 
+            // LÓGICA DE EXIBIÇÃO DE PERCAS (EM VERMELHO ENTRE PARÊNTESES)
+            let formatQtd = `<strong>${l.qtd}</strong>`;
+            if (l.classe === 'Peças' && l.perca && l.perca > 0) {
+                formatQtd = `<strong>${l.qtd}</strong> <span style="color: #ef4444; font-weight: bold; font-size: 12px; margin-left: 4px;">(${l.perca})</span>`;
+            }
+
             return `<tr>
                 <td>${l.data.split('-').reverse().join('/')}</td>
                 <td><span style="border: 1px solid #334155; padding: 2px 6px; border-radius: 4px; font-size:11px;">${l.classe}</span></td>
                 <td><strong style="color:${corTipo}">${l.tipo}</strong></td>
                 <td>${nomeItem}</td>
-                <td><strong>${l.qtd}</strong> ${unidade}</td>
+                <td>${formatQtd} ${unidade}</td>
                 <td>${origemDestino}</td>
                 <td style="text-align:right;">${financeiro}</td>
                 <td><button onclick="Estoque.excluirLog('${l.id}', '${l.classe}')" style="background:transparent; border:none; color:#ef4444; cursor:pointer;" title="Desfazer Registro"><i data-lucide="trash-2" style="width:14px;"></i></button></td>
