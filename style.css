@@ -764,6 +764,13 @@ tbody tr:hover {
 
 @media print {
 
+:root {
+        --text-main: #00008B !important;
+        --text-muted: #00008B !important;
+        --border-color: #00008B !important;
+        --success-color: #00008B !important;
+    }
+
     .app-container,
     .modal-overlay {
         display: none !important;
@@ -776,7 +783,7 @@ tbody tr:hover {
 
     body {
         background-color: white !important;
-        color: black !important;
+        color: #00008B !important; 
         margin: 0 !important;
         padding: 0 !important;
         font-family: 'Arial', sans-serif;
@@ -814,12 +821,13 @@ tbody tr:hover {
         box-sizing: border-box;
     }
 
-    .print-separator {
+        .print-separator {
         width: 0px;
-        border-left: 1px dashed #000;
+        border-left: 1px dashed #00008B !important; /* Cor alterada aqui */
         margin: 0;
         height: 100%;
     }
+
 
     body.printing-tabela #print-area-tabela {
         display: block !important;
