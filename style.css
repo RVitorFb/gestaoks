@@ -765,10 +765,10 @@ tbody tr:hover {
 @media print {
 
 :root {
-        --text-main: #00008B !important;
-        --text-muted: #00008B !important;
-        --border-color: #00008B !important;
-        --success-color: #00008B !important;
+        --text-main: #070854 !important;
+        --text-muted: #070854 !important;
+        --border-color: #070854 !important;
+        --success-color: #070854 !important;
     }
 
     .app-container,
@@ -783,7 +783,7 @@ tbody tr:hover {
 
     body {
         background-color: white !important;
-        color: #00008B !important; 
+        color: #070854 !important; 
         margin: 0 !important;
         padding: 0 !important;
         font-family: 'Arial', sans-serif;
@@ -823,7 +823,7 @@ tbody tr:hover {
 
         .print-separator {
         width: 0px;
-        border-left: 1px dashed #00008B !important; /* Cor alterada aqui */
+        border-left: 1px dashed #070854 !important; /* Cor alterada aqui */
         margin: 0;
         height: 100%;
     }
@@ -881,7 +881,7 @@ tbody tr:hover {
     /* FORÇA A NOTA INTEIRA (TEXTOS E BORDAS) A FICAR AZUL ESCURO */
     body.printing-nota #print-area-nota,
     body.printing-nota #print-area-nota * {
-        color: #00008B !important;
-        border-color: #00008B !important;
+        color: #070854 !important;
+        border-color: #070854 !important;
     }
 }
