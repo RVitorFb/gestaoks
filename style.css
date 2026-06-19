@@ -821,12 +821,14 @@ tbody tr:hover {
         box-sizing: border-box;
     }
 
-        .print-separator {
+            .print-separator {
         width: 0px;
-        border-left: 1px dashed #00008B !important; /* Cor alterada aqui */
+        border-left: 1px dashed #00008B !important;
+        border-left-color: #00008B !important;
         margin: 0;
         height: 100%;
     }
+
 
 
     body.printing-tabela #print-area-tabela {
