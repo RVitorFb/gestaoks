@@ -884,4 +884,14 @@ tbody tr:hover {
         color: #00008B !important;
         border-color: #00008B !important;
     }
+
+    /* MANTER AS LINHAS DE RETRABALHO VERMELHAS */
+    body.printing-nota #print-area-nota [style*="--danger-color"],
+    body.printing-nota #print-area-nota [style*="--danger-color"] *,
+    body.printing-nota #print-area-nota [style*="red"],
+    body.printing-nota #print-area-nota [style*="red"] *,
+    body.printing-nota #print-area-nota .text-danger,
+    body.printing-nota #print-area-nota .text-danger * {
+        color: #ef4444 !important;
+    }
 }
