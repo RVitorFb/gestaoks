@@ -776,7 +776,7 @@ tbody tr:hover {
 
     body {
         background-color: white !important;
-        color: black !important;
+        color: #00008B !important;
         margin: 0 !important;
         padding: 0 !important;
         font-family: 'Arial', sans-serif;
@@ -816,7 +816,7 @@ tbody tr:hover {
 
     .print-separator {
         width: 0px;
-        border-left: 1px dashed #000;
+        border-left: 1px dashed #00008B;
         margin: 0;
         height: 100%;
     }
