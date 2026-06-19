@@ -776,7 +776,7 @@ tbody tr:hover {
 
     body {
         background-color: white !important;
-        color: #00008B !important;
+        color: black !important;
         margin: 0 !important;
         padding: 0 !important;
         font-family: 'Arial', sans-serif;
@@ -816,7 +816,7 @@ tbody tr:hover {
 
     .print-separator {
         width: 0px;
-        border-left: 1px dashed #00008B;
+        border-left: 1px dashed #000;
         margin: 0;
         height: 100%;
     }
@@ -868,5 +868,12 @@ tbody tr:hover {
 
     .print-half>div:last-child>div:last-child {
         min-height: 20px !important;
+    }
+    
+    /* FORÇA A NOTA INTEIRA (TEXTOS E BORDAS) A FICAR AZUL ESCURO */
+    body.printing-nota #print-area-nota,
+    body.printing-nota #print-area-nota * {
+        color: #00008B !important;
+        border-color: #00008B !important;
     }
 }
