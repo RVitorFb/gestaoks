@@ -821,13 +821,12 @@ tbody tr:hover {
         box-sizing: border-box;
     }
 
-        .print-separator {
+    .print-separator {
         width: 0px;
-        border-left: 1px dashed #00008B !important; /* Cor alterada aqui */
+        border-left: 1px dashed #00008B !important;
         margin: 0;
         height: 100%;
     }
-
 
     body.printing-tabela #print-area-tabela {
         display: block !important;
@@ -878,18 +877,16 @@ tbody tr:hover {
         min-height: 20px !important;
     }
     
-    /* FORÇA A NOTA INTEIRA (TEXTOS E BORDAS) A FICAR AZUL ESCURO */
+    /* 1. REGRA GERAL: FORÇA A NOTA INTEIRA A FICAR AZUL ESCURO */
     body.printing-nota #print-area-nota,
     body.printing-nota #print-area-nota * {
         color: #00008B !important;
         border-color: #00008B !important;
     }
 
-    /* MANTER AS LINHAS DE RETRABALHO VERMELHAS */
-    body.printing-nota #print-area-nota [style*="--danger-color"],
-    body.printing-nota #print-area-nota [style*="--danger-color"] *,
-    body.printing-nota #print-area-nota [style*="red"],
-    body.printing-nota #print-area-nota [style*="red"] *,
+    /* 2. EXCEÇÃO EXTREMA: FORÇA O VERMELHO DE VOLTA NAS LINHAS DE RETRABALHO */
+    body.printing-nota #print-area-nota tr[style*="danger"] *,
+    body.printing-nota #print-area-nota tr[style*="red"] *,
     body.printing-nota #print-area-nota .text-danger,
     body.printing-nota #print-area-nota .text-danger * {
         color: #ef4444 !important;
