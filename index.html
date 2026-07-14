@@ -122,11 +122,11 @@
                                 <label>Vlr. Venda Normal (R$)</label>
                                 <input type="number" step="0.01" id="prod-val-venda" required>
                             </div>
-                            <div id="div-venda-polida" style="display: none;">
-                                <label style="color: #a855f7;">Vlr. Venda Polida (R$)</label>
-                                <input type="number" step="0.01" id="prod-val-venda-polida"
-                                    placeholder="Mesmo do normal">
-                            </div>
+                            <div id="div-venda-polido" style="display: none;">
+    <label style="color: #a855f7;">Vlr. Venda Polido (R$)</label>
+    <input type="number" step="0.01" id="prod-val-venda-polido" placeholder="Mesmo do normal">
+</div>
+
                             <div>
                                 <label>Valor Produção (R$)</label>
                                 <input type="number" step="0.01" id="prod-val-producao" required placeholder="Ex: 0.50">
@@ -134,16 +134,13 @@
 
                             <div style="grid-column: 1 / -1;">
                                 <label style="color: var(--text-main);">Variações de Acabamento</label>
-                                <div class="flex" style="gap: 20px; margin-top: 10px;">
-                                    <label
-                                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);"><input
-                                            type="checkbox" id="var-pintura"
-                                            style="width: 16px; height: 16px; margin: 0;"> PINTURA</label>
-                                    <label
-                                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);"><input
-                                            type="checkbox" id="var-polida" onchange="LogicaNegocio.toggleCampoPolido()"
-                                            style="width: 16px; height: 16px; margin: 0;"> POLIDO</label>
-                                </div>
+                               <div style="display: flex; gap: 10px; margin-top: 10px;">
+    <label><input type="checkbox" id="var-cromado" checked disabled> Cromado</label>
+    <label><input type="checkbox" id="var-pintura"> Pintura</label>
+    <label><input type="checkbox" id="var-polido" onchange="LogicaNegocio.toggleCampoPolido()"> Polido</label>
+    <label><input type="checkbox" id="var-afinado"> Afinado</label>
+</div>
+
                             </div>
                         </div>
                         <button type="submit" class="btn-primary mt-4" style="width: auto;">
