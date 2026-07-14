@@ -853,7 +853,7 @@ const LogicaNegocio = {
         }
         // -----------------------------------
 
-        const nomeFinalNaNota = `${nomeBase} - ${variacaoSelecionada}`;
+        const nomeFinalNaNota = `${nomeBase.toUpperCase()} - ${variacaoSelecionada.toUpperCase()}`;
         const subtotal = valor * qtd;
         const custoProducaoTotal = custoProducao * qtd;
 
