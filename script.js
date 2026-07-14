@@ -284,27 +284,30 @@ const LogicaNegocio = {
         const nomeBase = document.getElementById('prod-nome').value.trim();
         const fornecedor = document.getElementById('prod-fornecedor').value.trim();
         const valVenda = parseFloat(document.getElementById('prod-val-venda').value);
-        const valVendaPolida = parseFloat(document.getElementById('prod-val-venda-polida').value) || valVenda;
+        
         const valProducao = parseFloat(document.getElementById('prod-val-producao').value) || 0;
 
-        const varPintura = document.getElementById('var-pintura').checked;
-        const varPolida = document.getElementById('var-polida').checked;
+const valVendaPolido = parseFloat(document.getElementById('prod-val-venda-polido').value) || valVenda;
+const varPintura = document.getElementById('var-pintura').checked;
+const varPolido = document.getElementById('var-polido').checked;
+const varAfinado = document.getElementById('var-afinado').checked;
 
-        // VALIDAÇÃO DE CÓDIGO DUPLICADO REMOVIDA PARA PERMITIR PRODUTOS COM MESMO CÓDIGO
+let variacoesArray = ["Cromado"];
+if (varPintura) variacoesArray.push("Pintura");
+if (varPolido) variacoesArray.push("Polido");
+if (varAfinado) variacoesArray.push("Afinado");
 
-        let variacoesArray = ["Cromada"];
-        if (varPintura) variacoesArray.push("Pintura");
-        if (varPolida) variacoesArray.push("Polida");
+// Ao salvar no banco, troque a chave valVendaPolida por valVendaPolido
+db.produtos.push({
+    codigo: codigoBase,
+    nome: nomeBase,
+    fornecedor: fornecedor,
+    valVenda: valVenda,
+    valVendaPolido: valVendaPolido, // <-- Alterado aqui
+    valProducao: valProducao,
+    variacoes: variacoesArray
+});
 
-        db.produtos.push({
-            codigo: codigoBase,
-            nome: nomeBase,
-            fornecedor: fornecedor,
-            valVenda: valVenda,
-            valVendaPolida: valVendaPolida,
-            valProducao: valProducao,
-            variacoes: variacoesArray
-        });
 
         DB.save(db);
 
@@ -320,10 +323,11 @@ const LogicaNegocio = {
         CustomModal.show(`Produto salvo com sucesso!`);
     },
 
-    toggleCampoPolido: function () {
-        const isPolida = document.getElementById('var-polida').checked;
-        document.getElementById('div-venda-polida').style.display = isPolida ? 'block' : 'none';
-    },
+  toggleCampoPolido: function () {
+    const isPolido = document.getElementById('var-polido').checked;
+    document.getElementById('div-venda-polido').style.display = isPolido ? 'block' : 'none';
+},
+
 
     excluirProduto: function (index) {
         CustomModal.show('Tem certeza que deseja excluir este produto?', true, () => {
@@ -346,9 +350,9 @@ const LogicaNegocio = {
         });
 
         const hasPintura = prod.variacoes && prod.variacoes.includes("Pintura") ? 'checked' : '';
-        const hasPolida = prod.variacoes && prod.variacoes.includes("Polida") ? 'checked' : '';
+        const hasPolido = prod.variacoes && prod.variacoes.includes("Polido") ? 'checked' : '';
+const valVendaPolidoAtual = prod.valVendaPolido || prod.valVendaPolida || prod.valVenda;
         const valProducaoAtual = prod.valProducao || 0;
-        const valVendaPolidaAtual = prod.valVendaPolida || prod.valVenda;
 
         const tr = document.getElementById(`tr-produto-${index}`);
         tr.innerHTML = `
@@ -357,15 +361,15 @@ const LogicaNegocio = {
                 <input type="text" id="edit-prod-nome-${index}" value="${prod.nome}" style="width: 100%; margin: 0 0 4px 0; padding: 4px; font-size: 12px;">
                 <div style="display: flex; gap: 10px; font-size: 10px; color: var(--text-main); align-items: center;">
                     <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-pintura-${index}" ${hasPintura} style="width: 12px; height: 12px; margin: 0;"> Pintura</label>
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-polida-${index}" ${hasPolida} onchange="LogicaNegocio.toggleEditPolido(${index})" style="width: 12px; height: 12px; margin: 0;"> Polida</label>
+                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-polido-${index}" ${hasPolido} onchange="LogicaNegocio.toggleEditPolido(${index})" style="width: 12px; height: 12px; margin: 0;"> Polido</label>
                 </div>
             </td>
             <td><select id="edit-prod-forn-${index}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;">${optionsForn}</select></td>
             <td>
                 <input type="number" id="edit-prod-val-${index}" value="${prod.valVenda}" step="0.01" style="width: 70px; margin: 0 0 4px 0; padding: 4px; font-size: 12px;" title="Venda Normal">
-                <div id="div-edit-polida-${index}" style="${prod.variacoes && prod.variacoes.includes('Polida') ? 'display: block;' : 'display: none;'}">
-                    <input type="number" id="edit-prod-val-polida-${index}" value="${valVendaPolidaAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px; border: 1px solid #a855f7;" title="Venda Polida">
-                </div>
+                <div id="div-edit-polido-${index}" style="${prod.variacoes && prod.variacoes.includes('Polido') ? 'display: block;' : 'display: none;'}">
+    <input type="number" id="edit-prod-val-polido-${index}" value="${valVendaPolidoAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px; border: 1px solid #a855f7;" title="Venda Polido">
+</div>
             </td>
             <td><input type="number" id="edit-prod-producao-${index}" value="${valProducaoAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px;"></td>
             <td>
@@ -387,11 +391,10 @@ const LogicaNegocio = {
         const novoNome = document.getElementById(`edit-prod-nome-${index}`).value.trim();
         const novoForn = document.getElementById(`edit-prod-forn-${index}`).value.trim();
         const novoVal = parseFloat(document.getElementById(`edit-prod-val-${index}`).value);
-        const novoValPolida = parseFloat(document.getElementById(`edit-prod-val-polida-${index}`).value) || novoVal;
         const novoValProducao = parseFloat(document.getElementById(`edit-prod-producao-${index}`).value) || 0;
-
-        const varPintura = document.getElementById(`edit-prod-var-pintura-${index}`).checked;
-        const varPolida = document.getElementById(`edit-prod-var-polida-${index}`).checked;
+        const novoValPolido = parseFloat(document.getElementById(`edit-prod-val-polido-${index}`).value) || novoVal;
+const varPolido = document.getElementById(`edit-prod-var-polido-${index}`).checked;
+const varPintura = document.getElementById(`edit-prod-var-pintura-${index}`).checked;
 
         if (!novoCod || !novoNome || isNaN(novoVal) || novoVal < 0) {
             CustomModal.show('Preencha os campos obrigatórios com valores válidos.');
@@ -401,9 +404,10 @@ const LogicaNegocio = {
         const db = DB.get();
 
         if (db.produtos[index]) {
-            let variacoesArray = ["Cromada"];
-            if (varPintura) variacoesArray.push("Pintura");
-            if (varPolida) variacoesArray.push("Polida");
+            let variacoesArray = ["Cromado"];
+if (varPintura) variacoesArray.push("Pintura");
+if (varPolido) variacoesArray.push("Polido");
+
 
             db.produtos[index] = {
                 codigo: novoCod,
@@ -755,7 +759,7 @@ const LogicaNegocio = {
             document.getElementById('nota-item-valor').value = prod.valVenda;
             document.getElementById('nota-item-valor-producao-base').value = prod.valProducao || 0;
 
-            const variacoesDaPeca = prod.variacoes || ["Cromada"];
+            const variacoesDaPeca = prod.variacoes || ["Cromado"];
             variacoesDaPeca.forEach(v => {
                 selectVariacao.innerHTML += `<option value="${v}">${v}</option>`;
             });
@@ -784,17 +788,19 @@ const LogicaNegocio = {
 
         if (!prod) return;
 
-        if (variacao === 'Polida') {
-            inputValor.value = prod.valVendaPolida || prod.valVenda;
-        } else {
-            inputValor.value = prod.valVenda;
-        }
+if (variacao === 'Polido') {
+    inputValor.value = prod.valVendaPolido || prod.valVendaPolida || prod.valVenda;
+} else {
+    inputValor.value = prod.valVenda;
+}
+
     },
 
     toggleEditPolido: function (index) {
-        const isPolida = document.getElementById(`edit-prod-var-polida-${index}`).checked;
-        document.getElementById(`div-edit-polida-${index}`).style.display = isPolida ? 'block' : 'none';
-    },
+    const isPolido = document.getElementById(`edit-prod-var-polido-${index}`).checked;
+    document.getElementById(`div-edit-polido-${index}`).style.display = isPolido ? 'block' : 'none';
+},
+
 
     carregarFuncionariosProducao: function () {
         const rh = LerRH();
@@ -1282,7 +1288,7 @@ const Tabelas = {
                     <tbody>
             `;
             produtos.forEach(p => {
-                const variacoes = p.variacoes || ["Cromada"];
+                const variacoes = p.variacoes || ["Cromado"];
 
                 let nomeExibicao = "";
                 if (variacoes.length > 1) {
@@ -1415,14 +1421,14 @@ const UI = {
         const tbody = document.querySelector('#tabela-produtos tbody');
         tbody.innerHTML = '';
         DB.get().produtos.forEach((p, index) => {
-            const varsFormatadas = p.variacoes ? p.variacoes.join(', ') : 'Cromada';
+            const varsFormatadas = p.variacoes ? p.variacoes.join(', ') : 'Cromado';
             tbody.innerHTML += `<tr id="tr-produto-${index}">
                 <td>${p.codigo}</td>
                 <td>${p.nome} <br><small style="color:var(--text-muted); font-size: 12px;">(${varsFormatadas})</small></td>
                 <td>${p.fornecedor || '-'}</td>
                 <td>
                     R$ ${p.valVenda.toFixed(2)}
-                    ${p.variacoes && p.variacoes.includes("Polida") ? `<br><small style="color:#a855f7;">Polida: R$ ${(p.valVendaPolida || p.valVenda).toFixed(2)}</small>` : ''}
+                   ${p.variacoes && p.variacoes.includes("Polido") ? `<br><small style="color:#a855f7;">Polido: R$ ${(p.valVendaPolido || p.valVendaPolida || p.valVenda).toFixed(2)}</small>` : ''}
                 </td>
                 <td style="color: var(--success-color); font-weight: bold;">R$ ${(p.valProducao || 0).toFixed(2)}</td>
                 <td>
