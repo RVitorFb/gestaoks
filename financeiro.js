@@ -32,7 +32,6 @@ const UI = {
     }
 };
 
-// Funções de Acesso Múltiplo aos Bancos
 const DbReader = {
     getNotas: function () {
         const data = localStorage.getItem('ks_afinacoes_dados');
@@ -62,9 +61,6 @@ const Financeiro = {
         this.renderDespesas();
     },
 
-    // ==========================================
-    // ABA 1: RAIO X DE NOTAS
-    // ==========================================
     renderRaioX: function () {
         const mes = document.getElementById('filtro-raiox-mes').value;
         const notas = DbReader.getNotas().filter(n => n.data.startsWith(mes) && n.tipo !== 'RETRABALHO');
@@ -78,10 +74,7 @@ const Financeiro = {
         let html = '';
         notas.forEach(nota => {
             let custoMao = 0;
-            nota.itens.forEach(item => {
-                custoMao += (item.custoProducaoTotal || 0);
-            });
-
+            nota.itens.forEach(item => { custoMao += (item.custoProducaoTotal || 0); });
             const sobra = nota.total - custoMao;
 
             html += `<tr onclick="Financeiro.detalharNota('${nota.id}')" style="cursor: pointer;" title="Clique para ver a conta de padaria">
@@ -105,7 +98,6 @@ const Financeiro = {
         const dataFormatada = nota.data.split('-').reverse().join('/');
         const isRetrabalho = nota.tipo === 'RETRABALHO';
 
-        // LADO ESQUERDO
         let visualHtml = `
             <div style="background: white; color: black !important; width: 100%; max-width: 450px; padding: 20px; font-family: Arial, sans-serif; border: 1px solid #000; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
                 <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 10px;">
@@ -139,7 +131,6 @@ const Financeiro = {
             </div>
         `;
 
-        // LADO DIREITO
         let totalCustoMao = 0;
         let itensFinanceiroHtml = '';
 
@@ -197,9 +188,6 @@ const Financeiro = {
         document.getElementById('modal-detalhe-nota').style.display = 'flex';
     },
 
-    // ==========================================
-    // ABA 2: AGENDA FINANCEIRA (INTELIGÊNCIA MOBILLS)
-    // ==========================================
     salvarDespesa: function () {
         const idEdicao = document.getElementById('desp-id-edicao').value;
         const desc = document.getElementById('desp-desc').value.trim();
@@ -213,23 +201,16 @@ const Financeiro = {
         if (!db.despesas) db.despesas = [];
 
         if (idEdicao) {
-            // Modo Edição: Altera apenas a ocorrência deste mês
             const index = db.despesas.findIndex(d => d.id === idEdicao);
             if (index !== -1) {
                 db.despesas[index] = { ...db.despesas[index], descricao: desc, categoria, valor, vencimento: venc };
             }
         } else {
-            // Novo Lançamento
-            const groupId = categoria === 'FIXA' ? 'GRP_' + Date.now() : null; // Semente para repetir
+            const groupId = categoria === 'FIXA' ? 'GRP_' + Date.now() : null;
             db.despesas.push({
                 id: 'DESP_' + Date.now() + Math.floor(Math.random() * 1000),
-                groupId: groupId,
-                descricao: desc,
-                categoria: categoria,
-                valor: valor,
-                vencimento: venc,
-                pago: false,
-                cancelada: false // Usado para quebrar a corrente de despesas fixas apagadas
+                groupId: groupId, descricao: desc, categoria: categoria,
+                valor: valor, vencimento: venc, pago: false, cancelada: false
             });
         }
 
@@ -252,9 +233,7 @@ const Financeiro = {
         const btn = document.getElementById('btn-salvar-despesa');
         btn.innerHTML = '<i data-lucide="save" style="width: 18px;"></i> Atualizar Conta';
         btn.className = 'btn-outline';
-        btn.style.borderColor = 'var(--primary-color)';
-        btn.style.color = 'var(--primary-color)';
-
+        btn.style.borderColor = 'var(--primary-color)'; btn.style.color = 'var(--primary-color)';
         document.getElementById('desp-desc').focus();
         lucide.createIcons();
     },
@@ -268,8 +247,7 @@ const Financeiro = {
         const btn = document.getElementById('btn-salvar-despesa');
         btn.innerHTML = '<i data-lucide="plus-circle" style="width: 18px;"></i> Lançar';
         btn.className = 'btn-primary';
-        btn.style.borderColor = '';
-        btn.style.color = '';
+        btn.style.borderColor = ''; btn.style.color = '';
         lucide.createIcons();
     },
 
@@ -286,16 +264,15 @@ const Financeiro = {
             instancias.sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento));
 
             const primeira = instancias[0];
-            if (primeira.vencimento.substring(0, 7) > mesView) return; // Se foi criada no futuro, ignora
+            if (primeira.vencimento.substring(0, 7) > mesView) return;
 
             const existeNesseMes = instancias.some(i => i.vencimento.startsWith(mesView));
 
             if (!existeNesseMes) {
                 const passadas = instancias.filter(i => i.vencimento.substring(0, 7) < mesView);
                 if (passadas.length > 0) {
-                    const base = passadas[passadas.length - 1]; // Puxa a do mês anterior
-
-                    if (base.cancelada) return; // Se foi excluída, não gera nos meses da frente
+                    const base = passadas[passadas.length - 1];
+                    if (base.cancelada) return;
 
                     const dia = base.vencimento.split('-')[2];
                     let dataProj = new Date(`${mesView}-${dia}T12:00:00`);
@@ -305,13 +282,9 @@ const Financeiro = {
 
                     db.despesas.push({
                         id: 'DESP_' + Date.now() + Math.floor(Math.random() * 1000),
-                        groupId: base.groupId,
-                        descricao: base.descricao,
-                        categoria: 'FIXA',
-                        valor: base.valor, // Copia o valor exato do mês anterior (inclusive se foi editado)
-                        vencimento: dataProj.toISOString().split('T')[0],
-                        pago: false,
-                        cancelada: false
+                        groupId: base.groupId, descricao: base.descricao, categoria: 'FIXA',
+                        valor: base.valor, vencimento: dataProj.toISOString().split('T')[0],
+                        pago: false, cancelada: false
                     });
                     mudouDb = true;
                 }
@@ -323,13 +296,10 @@ const Financeiro = {
 
     renderDespesas: function () {
         const mes = document.getElementById('filtro-despesas-mes').value;
-
-        // Ativa a inteligência de projetar as contas fixas pro mês
         this.autoGerarFixas(mes);
 
         const db = DbReader.getFin();
         const despesas = db.despesas.filter(d => d.vencimento.startsWith(mes) && !d.cancelada);
-
         despesas.sort((a, b) => new Date(b.vencimento) - new Date(a.vencimento));
 
         const tbody = document.querySelector('#tabela-despesas tbody');
@@ -344,11 +314,9 @@ const Financeiro = {
         let html = '';
         despesas.forEach(d => {
             if (d.pago) tPago += d.valor; else tPendente += d.valor;
-
             const isAtrasado = !d.pago && new Date(d.vencimento) < new Date(new Date().toISOString().split('T')[0]);
             const corStatus = d.pago ? 'var(--success-color)' : (isAtrasado ? 'var(--danger-color)' : 'var(--text-muted)');
 
-            // Cores das Categorias
             let corBadge = '#94a3b8'; let lblBadge = d.categoria;
             if (d.categoria === 'FIXA') { corBadge = '#38bdf8'; lblBadge = 'FIXA'; }
             if (d.categoria === 'VARIAVEL') { corBadge = '#fb923c'; lblBadge = 'VARIÁVEL'; }
@@ -369,12 +337,8 @@ const Financeiro = {
                 </td>
                 <td style="text-align:center;">
                     <div style="display: flex; gap: 5px; justify-content: center;">
-                        <button class="btn-outline" style="padding: 4px 8px; border-color: var(--primary-color); color: var(--primary-color);" onclick="Financeiro.iniciarEdicaoDespesa('${d.id}')" title="Editar este mês">
-                            <i data-lucide="pencil" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <button class="btn-danger" style="padding: 4px 8px;" onclick="Financeiro.excluirDespesa('${d.id}')" title="Excluir">
-                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-                        </button>
+                        <button class="btn-outline" style="padding: 4px 8px; border-color: var(--primary-color); color: var(--primary-color);" onclick="Financeiro.iniciarEdicaoDespesa('${d.id}')" title="Editar"><i data-lucide="pencil" style="width: 14px; height: 14px;"></i></button>
+                        <button class="btn-danger" style="padding: 4px 8px;" onclick="Financeiro.excluirDespesa('${d.id}')" title="Excluir"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
                     </div>
                 </td>
             </tr>`;
@@ -391,11 +355,7 @@ const Financeiro = {
     togglePago: function (id) {
         const db = DbReader.getFin();
         const d = db.despesas.find(x => x.id === id);
-        if (d) {
-            d.pago = !d.pago;
-            DbReader.saveFin(db);
-            this.renderDespesas();
-        }
+        if (d) { d.pago = !d.pago; DbReader.saveFin(db); this.renderDespesas(); }
     },
 
     excluirDespesa: function (id) {
@@ -403,22 +363,14 @@ const Financeiro = {
             const db = DbReader.getFin();
             const index = db.despesas.findIndex(x => x.id === id);
             if (index > -1) {
-                if (db.despesas[index].categoria === 'FIXA') {
-                    // Cancela para parar de clonar no futuro
-                    db.despesas[index].cancelada = true;
-                } else {
-                    db.despesas.splice(index, 1);
-                }
-                DbReader.saveFin(db);
-                this.renderDespesas();
+                if (db.despesas[index].categoria === 'FIXA') db.despesas[index].cancelada = true;
+                else db.despesas.splice(index, 1);
+                DbReader.saveFin(db); this.renderDespesas();
             }
         });
     }
 };
 
-// ==========================================
-// ABA 3: DRE (FECHAMENTO MENSAL PROFISSIONAL)
-// ==========================================
 const DRE = {
     gerar: function () {
         const mes = document.getElementById('dre-mes').value;
@@ -427,7 +379,6 @@ const DRE = {
         const tituloMesEl = document.getElementById('dre-titulo-mes');
         if (tituloMesEl) tituloMesEl.innerText = mes.split('-').reverse().join('/');
 
-        // 1. FATURAMENTO E CUSTO DE MÃO DE OBRA (NOTAS)
         const notas = DbReader.getNotas().filter(n => n.data.startsWith(mes) && n.tipo !== 'RETRABALHO');
         let faturamento = 0;
         let custoMaoObraNotas = 0;
@@ -449,7 +400,6 @@ const DRE = {
             </tr>`;
         });
 
-        // 2. DESPESAS DA AGENDA MANUAL E RH
         const dbFin = DbReader.getFin();
         let despFixas = 0, despVariaveis = 0, despRH = 0, despMaterial = 0, despManutencao = 0;
         let htmlDetalheDespesas = '';
@@ -472,18 +422,21 @@ const DRE = {
             });
         }
 
-        const lucroLiquido = faturamento - custoMaoObraNotas - despFixas - despVariaveis - despMaterial - despManutencao - despRH;
+        // LÓGICA MESTRE 9: FIM DA DUPLA DEDUÇÃO. REMOVIDO custoMaoObraNotas DA FÓRMULA DO LUCRO!
+        const lucroLiquido = faturamento - despFixas - despVariaveis - despMaterial - despManutencao - despRH;
 
-        // ATUALIZAÇÃO DOS CARDS NA TELA
         const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = `R$ ${val.toFixed(2).replace('.', ',')}`; };
 
         safeSet('dre-faturamento', faturamento);
-        safeSet('dre-custo-mao', custoMaoObraNotas);
         safeSet('dre-custo-fixo', despFixas);
         safeSet('dre-custo-var', despVariaveis);
         safeSet('dre-custo-mat', despMaterial);
         safeSet('dre-custo-manut', despManutencao);
         safeSet('dre-custo-rh', despRH);
+
+        // ESCONDE O CARD DA MÃO DE OBRA PARA NÃO CONFUNDIR
+        const elMaoObra = document.getElementById('dre-custo-mao');
+        if (elMaoObra && elMaoObra.parentElement) elMaoObra.parentElement.style.display = 'none';
 
         const elLucro = document.getElementById('dre-lucro-liquido');
         if (elLucro) {
@@ -491,7 +444,6 @@ const DRE = {
             elLucro.className = lucroLiquido >= 0 ? 'dre-value dre-positive' : 'dre-value dre-negative';
         }
 
-        // MONTAGEM DO DETALHAMENTO NA TELA
         const detalhamentoDiv = document.getElementById('dre-detalhamento');
         if (detalhamentoDiv) {
             detalhamentoDiv.innerHTML = `
@@ -508,7 +460,6 @@ const DRE = {
             `;
         }
 
-        // Mostra o container
         const printArea = document.getElementById('print-area-dre');
         if (printArea) printArea.style.display = 'block';
     },
@@ -526,16 +477,13 @@ const DRE = {
         const nomeMes = document.getElementById('dre-titulo-mes').innerText;
         document.title = `Fechamento_KS_${nomeMes.replace('/', '-')}`;
 
-        // DADOS PARA O LAYOUT DE LISTA ADMINISTRATIVA
         const getVal = (id) => document.getElementById(id)?.innerText || 'R$ 0,00';
         const lucroEl = document.getElementById('dre-lucro-liquido');
         const isPositivo = lucroEl?.classList.contains('dre-positive');
 
-        // Pega as tabelas que foram montadas na tela para jogar na impressão
         const tbodyNotas = document.getElementById('tbody-notas-print') ? document.getElementById('tbody-notas-print').innerHTML : '';
         const tbodyDespesas = document.getElementById('tbody-despesas-print') ? document.getElementById('tbody-despesas-print').innerHTML : '';
 
-        // Novo ID v5 para quebrar o cache de página fantasma do navegador
         let printDiv = document.getElementById('print-area-externa-dre-v5');
         if (!printDiv) {
             printDiv = document.createElement('div');
@@ -543,7 +491,6 @@ const DRE = {
             document.body.appendChild(printDiv);
         }
 
-        // LAYOUT DE LISTA PROFISSIONAL COM TÍTULOS EXCLUSIVOS NA IMPRESSÃO
         printDiv.innerHTML = `
             <div style="color: #000 !important; font-family: Arial, sans-serif; padding: 10mm;">
                 <div style="display: flex; justify-content: space-between; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
@@ -560,7 +507,6 @@ const DRE = {
                 <h3 style="color: black; font-size: 14px; border-bottom: 1px solid #000; padding-bottom: 5px;">1. RESUMO CONSOLIDADO DO PERÍODO</h3>
                 <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 30px;">
                     <tr><td style="padding: 6px 5px;">Faturamento Bruto (Total de Notas)</td><td style="text-align: right; font-weight: bold; color: #15803d !important;">+ ${getVal('dre-faturamento')}</td></tr>
-                    <tr><td style="padding: 6px 5px;">(-) Mão de Obra (Produção/Empreita)</td><td style="text-align: right; color: #b91c1c !important;">- ${getVal('dre-custo-mao')}</td></tr>
                     <tr><td style="padding: 6px 5px;">(-) Despesas Fixas</td><td style="text-align: right; color: #b91c1c !important;">- ${getVal('dre-custo-fixo')}</td></tr>
                     <tr><td style="padding: 6px 5px;">(-) Gastos Variáveis</td><td style="text-align: right; color: #b91c1c !important;">- ${getVal('dre-custo-var')}</td></tr>
                     <tr><td style="padding: 6px 5px;">(-) Manutenção de Equipamentos</td><td style="text-align: right; color: #b91c1c !important;">- ${getVal('dre-custo-manut')}</td></tr>
@@ -585,14 +531,9 @@ const DRE = {
                         <tbody>${tbodyDespesas}</tbody>
                     </table>
                 </div>
-
-                <div style="margin-top: 50px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 20px; text-align: center; color: #1a1a1a;">
-                    Documento Interno - KS Afinações | Gerado em: ${new Date().toLocaleString('pt-BR')}
-                </div>
             </div>
         `;
 
-        // INJEÇÃO DE CSS PARA IMPRESSÃO LIMPA
         let style = document.getElementById('print-style-final-v5');
         if (!style) {
             style = document.createElement('style');
@@ -602,10 +543,7 @@ const DRE = {
                 body.printing-dre .app-container, body.printing-dre .modal-overlay { display: none !important; }
                 body.printing-dre #print-area-externa-dre-v5 { display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white !important; }
                 body.printing-dre #print-area-externa-dre-v5 table td { border: 1px solid #000; padding: 6px; }
-                @media print { 
-                    @page { size: A4 portrait; margin: 0; } 
-                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } 
-                }
+                @media print { @page { size: A4 portrait; margin: 0; } body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
             `;
             document.head.appendChild(style);
         }
@@ -619,22 +557,13 @@ const DRE = {
     }
 };
 
-// ==========================================
-// INTEGRAÇÃO GLOBAL (Para Estoque/RH enviarem dados para cá)
-// ==========================================
 window.IntegracaoFinanceiro = {
     lancarDespesaAutomatica: function (descricao, valor, data, categoria) {
         const db = DbReader.getFin();
         if (!db.despesas) db.despesas = [];
-
         db.despesas.push({
             id: 'DESP_' + Date.now() + Math.floor(Math.random() * 1000),
-            descricao: descricao,
-            categoria: categoria, // 'MATERIAL' ou 'RH'
-            valor: valor,
-            vencimento: data,
-            pago: true, // Lançamentos automáticos via sistema já entram como pagos
-            cancelada: false
+            descricao: descricao, categoria: categoria, valor: valor, vencimento: data, pago: true, cancelada: false
         });
         DbReader.saveFin(db);
     }

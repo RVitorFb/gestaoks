@@ -11,21 +11,19 @@ const RHDb = {
             funcionarios: [],
             pontos: [],
             lancamentosProducao: [],
-            turnos: [], // <- NOVO
-            cargos: []  // <- NOVO
+            turnos: [],
+            cargos: []
         };
         if (!parsed.descontosFechamento) parsed.descontosFechamento = [];
         if (!parsed.lancamentosProducao) parsed.lancamentosProducao = [];
-        if (!parsed.turnos) parsed.turnos = []; // <- NOVO
-        if (!parsed.cargos) parsed.cargos = []; // <- NOVO
+        if (!parsed.turnos) parsed.turnos = [];
+        if (!parsed.cargos) parsed.cargos = [];
         return parsed;
     },
     save: function (data) {
         localStorage.setItem(this.KEY, JSON.stringify(data));
-        // Aciona o backup se ele existir no script local
         if (typeof DB !== 'undefined' && DB.save) {
-            const dadosNotas = DB.get();
-            DB.save(dadosNotas);
+            DB.save(DB.get());
         }
     }
 };
@@ -51,7 +49,7 @@ const ModalRH = {
 
         btnCancel.onclick = () => {
             this.hide();
-            if (onCancel) onCancel(); // Isso permite o botão cancelar fazer ações!
+            if (onCancel) onCancel();
         };
 
         modal.style.display = 'flex';
@@ -99,7 +97,6 @@ const ModalRH = {
 
         const h = horasIniciais || ['', '', '', ''];
 
-        // Desenha a tela exatamente como nas suas fotos (Grid com 4 campos separados)
         document.getElementById('modal-message').innerHTML = `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; margin-top: 10px;">
                 <div>
@@ -174,8 +171,7 @@ const ModalRH = {
 
 const RH_UI = {
     switchTab: function (tabId) {
-        // As novas abas incluídas aqui
-        const tabs = ['equipe', 'producao', 'fechamento', 'turnos', 'cargos', 'empreita', 'arquivo'];
+        const tabs = ['equipe', 'producao', 'fechamento', 'periodo', 'turnos', 'cargos', 'empreita', 'arquivo'];
         tabs.forEach(t => {
             const el = document.getElementById(`tab-${t}`);
             if (el) el.classList.remove('active');
@@ -188,13 +184,12 @@ const RH_UI = {
         const eventBtn = event ? event.currentTarget : null;
         if (eventBtn && eventBtn.tagName === 'BUTTON') eventBtn.classList.add('active');
 
-        // Carregar dados de acordo com a aba
         if (tabId === 'equipe') {
             RH.renderTabelaFuncionarios();
             RH.popularSelectCargos();
         }
         if (tabId === 'producao') RH.renderTabelaProducao();
-        if (tabId === 'fechamento') RH.renderSelectFechamento(); // <-- NOME CORRIGIDO AQUI
+        if (tabId === 'fechamento') RH.renderSelectFechamento();
         if (tabId === 'turnos') RH_Turnos.renderTabela();
         if (tabId === 'cargos') {
             RH_Cargos.renderTabela();
@@ -319,7 +314,7 @@ const RH = {
         const data = document.getElementById('prod-data').value;
         const codigo = document.getElementById('prod-peca-codigo').value;
         const qtd = parseInt(document.getElementById('prod-qtd').value);
-        const caixas = parseInt(document.getElementById('prod-caixas').value) || 1; // Puxa a quantidade de caixas
+        const caixas = parseInt(document.getElementById('prod-caixas').value) || 1;
 
         if (!idFunc) { ModalRH.show('Erro', 'Selecione um funcionário de Produção primeiro.'); return; }
 
@@ -330,10 +325,9 @@ const RH = {
 
         const db = RHDb.get();
 
-        // Loop para registrar cada caixa como uma linha separada no histórico
         for (let i = 0; i < caixas; i++) {
             db.lancamentosProducao.push({
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // ID único gerado para não dar conflito
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                 idFunc,
                 data,
                 pecaNome: peca.nome,
@@ -346,7 +340,6 @@ const RH = {
 
         RHDb.save(db);
 
-        // Limpa os campos para o próximo lançamento
         document.getElementById('prod-peca-codigo').value = '';
         document.getElementById('prod-qtd').value = '';
         document.getElementById('prod-caixas').value = '1';
@@ -360,7 +353,6 @@ const RH = {
         const tbody = document.querySelector('#tabela-revisao-producao tbody');
         if (!tbody) return;
 
-        // Puxa o valor do mês selecionado no filtro
         const filtroMes = document.getElementById('filtro-mes-producao') ? document.getElementById('filtro-mes-producao').value : '';
 
         let logs = [...db.lancamentosProducao];
@@ -424,7 +416,6 @@ const RH = {
 
         const tbody = document.querySelector('#tabela-revisao-producao tbody');
 
-        // Aplica o filtro de mês também na hora de montar a edição
         const filtroMes = document.getElementById('filtro-mes-producao') ? document.getElementById('filtro-mes-producao').value : '';
         let logs = [...db.lancamentosProducao];
         if (filtroMes) logs = logs.filter(lg => lg.data.startsWith(filtroMes));
@@ -485,7 +476,6 @@ const RH = {
             db.lancamentosProducao[lIndex].data = data;
             db.lancamentosProducao[lIndex].idFunc = idFunc;
             db.lancamentosProducao[lIndex].qtd = qtd;
-            // Recalcula o total baseado na nova quantidade e no valor unitário existente
             db.lancamentosProducao[lIndex].total = db.lancamentosProducao[lIndex].valorUnit * qtd;
 
             RHDb.save(db);
@@ -513,7 +503,6 @@ const RH = {
         const campoFiltroMes = document.getElementById('filtro-hist-mes');
         if (campoFiltroMes) campoFiltroMes.value = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
 
-        // Puxa a data atual por padrão no lançamento de produção
         const campoDataProd = document.getElementById('prod-data');
         if (campoDataProd) {
             const dataLocal = new Date(hoje.getTime() - (hoje.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -587,8 +576,8 @@ const RH = {
         document.getElementById('func-id').value = '';
         this.toggleCamposFuncionario();
         this.renderTabelaFuncionarios();
-        this.renderSelectFechamento();   // <-- NOME CORRIGIDO AQUI
-        this.renderSelectFuncProducao(); // <-- NOME CORRIGIDO AQUI
+        this.renderSelectFechamento();
+        this.renderSelectFuncProducao();
     },
 
     renderTabelaFuncionarios: function () {
@@ -600,7 +589,6 @@ const RH = {
         db.funcionarios.forEach(f => {
             const dataBr = f.admissao.split('-').reverse().join('/');
 
-            // Busca o nome do cargo para exibir na tabela
             let cargoNome = '-';
             if (f.cargoId) {
                 const c = db.cargos.find(cargo => cargo.id === f.cargoId);
@@ -635,7 +623,7 @@ const RH = {
             document.getElementById('func-admissao').value = f.admissao;
             document.getElementById('func-tipo').value = f.tipo;
 
-            this.toggleCamposFuncionario(); // Atualiza a visibilidade primeiro
+            this.toggleCamposFuncionario();
 
             if (f.tipo === 'Mensalista') {
                 document.getElementById('func-cargo').value = f.cargoId || '';
@@ -693,7 +681,6 @@ const RH = {
                     let mesStr = null;
                     let naoEncontrados = new Set();
 
-                    // NOVO: MAPEIA OS DIAS QUE JÁ TÊM PONTO NO SISTEMA ANTES DE IMPORTAR
                     const diasExistentes = new Set();
                     db.pontos.forEach(p => {
                         const diaIso = p.entrada.split('T')[0];
@@ -767,12 +754,10 @@ const RH = {
                                     currentMesAno = `${anoStr}-${mesStr}`;
                                 }
 
-                                // REGRA ANTI-DUPLICIDADE DE PONTO:
-                                // Se já existe no sistema um ponto para este funcionário neste exato dia, aborta a linha do arquivo!
                                 const dataIsoPrefix = `${anoLinha}-${mesLinha}-${diaLinha}`;
                                 const chaveDia = `${currentFunc.id}_${dataIsoPrefix}`;
                                 if (diasExistentes.has(chaveDia)) {
-                                    return; // Pula a importação deste dia específico
+                                    return;
                                 }
 
                                 const limparHora = (horaRaw) => {
@@ -835,16 +820,34 @@ const RH = {
     },
 
     adicionarDescontoManual: function () {
-        const desc = document.getElementById('desc-nome').value;
-        const valor = parseFloat(document.getElementById('desc-valor').value);
+        const tipo = document.getElementById('desc-tipo').value;
+        const desc = document.getElementById('desc-nome').value.trim();
+        let valorInp = parseFloat(document.getElementById('desc-valor').value);
         const idFunc = document.getElementById('fechamento-func').value;
         const mesAno = document.getElementById('fechamento-mes').value;
-        if (!desc || isNaN(valor)) return;
+        if (!desc || isNaN(valorInp)) return;
+
+        let valorFinal = tipo === '-' ? -Math.abs(valorInp) : Math.abs(valorInp);
+
         const db = RHDb.get();
-        db.descontosFechamento.push({ id: Date.now().toString(), idFunc, mesAno, desc, ref: document.getElementById('desc-ref').value, valor });
+        db.descontosFechamento.push({ id: Date.now().toString(), idFunc, mesAno, desc, ref: document.getElementById('desc-ref').value, valor: valorFinal });
         RHDb.save(db);
-        document.getElementById('desc-nome').value = '';
-        document.getElementById('desc-valor').value = '';
+        document.getElementById('desc-nome').value = ''; document.getElementById('desc-valor').value = ''; document.getElementById('desc-ref').value = '';
+        this.calcularFechamento();
+    },
+
+    editarDescontoManual: function (id) {
+        const db = RHDb.get();
+        const item = db.descontosFechamento.find(d => d.id === id);
+        if (!item) return;
+
+        document.getElementById('desc-tipo').value = item.valor < 0 ? '-' : '+';
+        document.getElementById('desc-nome').value = item.desc;
+        document.getElementById('desc-ref').value = item.ref || '';
+        document.getElementById('desc-valor').value = Math.abs(item.valor);
+
+        db.descontosFechamento = db.descontosFechamento.filter(d => d.id !== id);
+        RHDb.save(db);
         this.calcularFechamento();
     },
 
@@ -870,9 +873,6 @@ const RH = {
         this.fechamentoAtual = { func, mesAno };
         let saldoMensalMinutos = 0;
 
-        // ==============================================
-        // MODO PRODUÇÃO
-        // ==============================================
         if (func.tipo === 'Produção') {
             const producaoNoMes = db.lancamentosProducao.filter(l => l.idFunc === idFunc && l.data.startsWith(mesAno));
             const totalBruto = producaoNoMes.reduce((acc, l) => acc + l.total, 0);
@@ -916,9 +916,6 @@ const RH = {
             this.fechamentoAtual.salBase = 0;
 
         }
-        // ==============================================
-        // MODO MENSALISTA
-        // ==============================================
         else {
             document.querySelector('#tabela-extrato thead').innerHTML = `
                 <tr>
@@ -952,24 +949,28 @@ const RH = {
                 const pontosDia = db.pontos.filter(p => p.idFunc === idFunc && p.entrada.startsWith(dataIsoPrefix));
                 pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
 
-                let cargaRealizadaMinutos = 0;
                 let batidasTexto = [];
-
                 pontosDia.forEach(p => {
-                    const diff = new Date(p.saida) - new Date(p.entrada);
-                    cargaRealizadaMinutos += diff / 60000;
                     batidasTexto.push(`${p.entrada.split('T')[1].substring(0, 5)} às ${p.saida.split('T')[1].substring(0, 5)}`);
                 });
 
-                let saldoDia = 0;
-                if (cargaRealizadaMinutos > 0) {
-                    saldoDia = Math.round(cargaRealizadaMinutos - cargaEsperadaMinutos);
-                    if (Math.abs(saldoDia) <= 10) saldoDia = 0;
-                } else if (cargaEsperadaMinutos > 0 && cargaRealizadaMinutos === 0) {
-                    saldoDia = -cargaEsperadaMinutos;
-                }
+                let cargaReal1 = 0, cargaReal2 = 0;
+                if (pontosDia.length >= 2) cargaReal1 = (new Date(pontosDia[1].saida) - new Date(pontosDia[0].entrada)) / 60000;
+                if (pontosDia.length >= 4) cargaReal2 = (new Date(pontosDia[3].saida) - new Date(pontosDia[2].entrada)) / 60000;
+
+                let cargaExp1 = cargaEsperadaMinutos / 2;
+                let cargaExp2 = cargaEsperadaMinutos / 2;
+
+                let saldo1 = cargaReal1 > 0 ? (cargaReal1 - cargaExp1) : (cargaExp1 > 0 ? -cargaExp1 : 0);
+                let saldo2 = cargaReal2 > 0 ? (cargaReal2 - cargaExp2) : (cargaExp2 > 0 ? -cargaExp2 : 0);
+
+                if (Math.abs(saldo1) <= 5) saldo1 = 0;
+                if (Math.abs(saldo2) <= 5) saldo2 = 0;
+
+                let saldoDia = Math.round(saldo1 + saldo2);
 
                 saldoMensalMinutos += saldoDia;
+                let cargaRealizadaMinutos = cargaReal1 + cargaReal2;
 
                 if (cargaEsperadaMinutos > 0 || cargaRealizadaMinutos > 0) {
                     const hE = Math.floor(cargaEsperadaMinutos / 60).toString().padStart(2, '0');
@@ -1016,9 +1017,6 @@ const RH = {
                     <td style="color:${saldoMensalMinutos >= 0 ? 'var(--success-color)' : 'var(--danger-color)'}; font-weight:bold; text-align: right;">${saldoMensalMinutos === 0 ? '00:00h' : saldoFormatated}</td>
                 </tr>`;
 
-            // --- NOVA LÓGICA SÊNIOR: CÁLCULO EXATO POR MINUTOS DO MÊS ---
-
-            // 1. Soma os minutos REAIS de obrigação do funcionário neste mês específico
             let cargaTotalMesMinutos = 0;
 
             for (let d = 1; d <= numDias; d++) {
@@ -1032,13 +1030,11 @@ const RH = {
                 }
             }
 
-            // 2. Descobre o valor EXATO de cada minuto daquele mês
             let valorMinuto = 0;
             if (cargaTotalMesMinutos > 0) {
                 valorMinuto = salBase / cargaTotalMesMinutos;
             }
 
-            // 3. Multiplica os minutos de saldo (faltas ou extras) pelo valor do minuto
             const absTotalMinutos = Math.abs(saldoMensalMinutos);
             const valorSaldoFinanceiro = absTotalMinutos * valorMinuto;
 
@@ -1054,12 +1050,8 @@ const RH = {
             }
         }
 
-        // ==============================================
-        // CÁLCULO E RENDERIZAÇÃO DOS DESCONTOS (INCLUI ESTOQUE)
-        // ==============================================
         const descontosManuais = db.descontosFechamento.filter(d => d.idFunc === idFunc && d.mesAno === mesAno);
 
-        // --- MÁGICA DA INTEGRAÇÃO COM O ESTOQUE ---
         const dbEstoqueRaw = localStorage.getItem('ks_estoque_dados');
         const dbEstoque = dbEstoqueRaw ? JSON.parse(dbEstoqueRaw) : { insumos: [], logsInsumos: [], logsPecas: [] };
 
@@ -1073,11 +1065,11 @@ const RH = {
                 const itemEstoque = dbEstoque.insumos.find(i => i.id === saida.idInsumo);
                 const nomeItem = itemEstoque ? itemEstoque.nome : 'Material';
                 descontosDoEstoque.push({
-                    id: 'EST_' + saida.id, // ID fictício para renderização
+                    id: 'EST_' + saida.id,
                     desc: `Consumo: ${nomeItem} (${saida.qtd})`,
                     ref: saida.data.split('-').reverse().join('/'),
-                    valor: saida.totalCobrado,
-                    isEstoque: true // Trava para impedir o RH de apagar um dado que pertence ao Estoque
+                    valor: -Math.abs(saida.totalCobrado),
+                    isEstoque: true
                 });
             });
         }
@@ -1086,28 +1078,34 @@ const RH = {
         let somaDesc = todosDescontos.reduce((a, b) => a + b.valor, 0);
 
         if (func.tipo === 'Mensalista' && this.fechamentoAtual.saldoMinutos < 0) {
-            somaDesc += this.fechamentoAtual.valorSaldoFinanceiro;
+            somaDesc -= this.fechamentoAtual.valorSaldoFinanceiro;
         }
 
-        this.fechamentoAtual.somaDescontosManuais = somaDesc;
+        this.fechamentoAtual.somaDescontosManuais = Math.abs(somaDesc);
         this.fechamentoAtual.descontosManuais = todosDescontos;
-        this.fechamentoAtual.valorLiquido = this.fechamentoAtual.totalVencimentos - somaDesc;
+        this.fechamentoAtual.valorLiquido = this.fechamentoAtual.totalVencimentos + somaDesc;
 
         const tbodyDescontos = document.querySelector('#tabela-descontos-manuais tbody');
         if (tbodyDescontos) {
             if (todosDescontos.length === 0) {
-                tbodyDescontos.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:15px;">Nenhum desconto lançado neste mês.</td></tr>`;
+                tbodyDescontos.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:15px;">Nenhum lançamento extra neste mês.</td></tr>`;
             } else {
                 tbodyDescontos.innerHTML = todosDescontos.map(d => {
-                    const btnExcluir = d.isEstoque
-                        ? `<span style="font-size:10px; color:#38bdf8;">Registrado no Estoque</span>`
-                        : `<button class="btn-danger" onclick="RH.removerDescontoManual('${d.id}')" style="padding:4px;"><i data-lucide="trash-2" style="width:14px;"></i></button>`;
+                    const btnAcoes = d.isEstoque ? `<span style="font-size:10px; color:#38bdf8;">Estoque</span>` :
+                        `<div style="display:flex; gap:8px; justify-content:center;">
+                             <button style="background:transparent; border:none; color:#eab308; cursor:pointer; padding:4px;" onclick="RH.editarDescontoManual('${d.id}')"><i data-lucide="pencil" style="width:14px;"></i></button>
+                             <button class="btn-danger" onclick="RH.removerDescontoManual('${d.id}')" style="padding:4px;"><i data-lucide="trash-2" style="width:14px;"></i></button>
+                         </div>`;
+
+                    const cor = d.valor < 0 ? 'var(--danger-color)' : 'var(--success-color)';
+                    const sinal = d.valor < 0 ? '-' : '+';
+
                     return `
                     <tr style="border-bottom: 1px solid var(--border-color);">
                         <td style="${d.isEstoque ? 'color:#38bdf8;' : ''}">${d.desc}</td>
                         <td>${d.ref || '-'}</td>
-                        <td style="color:var(--danger-color); font-weight:bold;">R$ ${d.valor.toFixed(2).replace('.', ',')}</td>
-                        <td style="text-align: center;">${btnExcluir}</td>
+                        <td style="color:${cor}; font-weight:bold;">${sinal} R$ ${Math.abs(d.valor).toFixed(2).replace('.', ',')}</td>
+                        <td style="text-align: center;">${btnAcoes}</td>
                     </tr>
                 `}).join('');
             }
@@ -1132,7 +1130,6 @@ const RH = {
             const db = RHDb.get();
             const pontosIniciais = db.pontos.length;
 
-            // Remove os pontos que batem com o funcionário e o mês
             db.pontos = db.pontos.filter(p => !(p.idFunc === idFunc && p.entrada.startsWith(mesAno)));
 
             const removidos = pontosIniciais - db.pontos.length;
@@ -1140,7 +1137,7 @@ const RH = {
             if (removidos > 0) {
                 RHDb.save(db);
                 ModalRH.show('Sucesso', `${removidos} batidas removidas com sucesso.`);
-                RH.calcularFechamento(); // Atualiza a tela na hora
+                RH.calcularFechamento();
             } else {
                 ModalRH.show('Aviso', 'Nenhuma hora para remover neste período.');
             }
@@ -1152,7 +1149,6 @@ const RH = {
         const pontosDia = db.pontos.filter(p => p.idFunc === idFunc && p.entrada.startsWith(dataIsoPrefix));
         pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
 
-        // Prepara as horas iniciais caso já existam batidas no dia
         let horasIniciais = ['', '', '', ''];
         if (pontosDia.length > 0) {
             horasIniciais[0] = pontosDia[0].entrada.split('T')[1].substring(0, 5);
@@ -1165,15 +1161,12 @@ const RH = {
 
         const dataFormatada = dataIsoPrefix.split('-').reverse().join('/');
 
-        // Aciona a nova tela com os 4 campos
         ModalRH.promptEdicaoHoras(`Editar Horas - ${dataFormatada}`, horasIniciais, (novasHoras) => {
             if (!novasHoras) return;
 
             const dbAtual = RHDb.get();
-            // Remove as batidas antigas daquele dia
             dbAtual.pontos = dbAtual.pontos.filter(p => !(p.idFunc === idFunc && p.entrada.startsWith(dataIsoPrefix)));
 
-            // Se preencheu o Turno 1, salva
             if (novasHoras[0] && novasHoras[1]) {
                 dbAtual.pontos.push({
                     id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
@@ -1183,7 +1176,6 @@ const RH = {
                 });
             }
 
-            // Se preencheu o Turno 2, salva
             if (novasHoras[2] && novasHoras[3]) {
                 dbAtual.pontos.push({
                     id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
@@ -1194,18 +1186,60 @@ const RH = {
             }
 
             RHDb.save(dbAtual);
-            RH.calcularFechamento(); // Recalcula tudo na hora
+            RH.calcularFechamento();
         });
     },
 
     excluirDiaPonto: function (idFunc, dataIsoPrefix) {
         ModalRH.show('Confirmar Exclusão', `Você tem certeza que deseja excluir as horas do dia ${dataIsoPrefix.split('-').reverse().join('/')}?`, 'confirm', () => {
             const db = RHDb.get();
-            // Filtra o banco removendo os pontos daquele dia exato
             db.pontos = db.pontos.filter(p => !(p.idFunc === idFunc && p.entrada.startsWith(dataIsoPrefix)));
             RHDb.save(db);
-            RH.calcularFechamento(); // Recalcula a tabela automaticamente
+            RH.calcularFechamento();
         });
+    },
+
+    gerarRelatorioPeriodo: function () {
+        const inicio = document.getElementById('rel-periodo-inicio').value;
+        const fim = document.getElementById('rel-periodo-fim').value;
+        if (!inicio || !fim) { ModalRH.show('Aviso', 'Preencha as datas de início e fim.'); return; }
+
+        const db = RHDb.get();
+        let htmlTabela = `<table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; color: black;">
+            <thead style="background: white;"><tr><th style="padding: 12px; border-bottom: 2px solid black; color: black;">Funcionário</th><th style="padding: 12px; text-align: right; border-bottom: 2px solid black; color: black;">Total Líquido a Receber</th></tr></thead><tbody>`;
+
+        let temGente = false;
+        db.funcionarios.forEach(f => {
+            const prod = db.lancamentosProducao.filter(l => l.idFunc === f.id && l.data >= inicio && l.data <= fim).reduce((a, b) => a + b.total, 0);
+            const mesInicio = inicio.substring(0, 7);
+            const mesFim = fim.substring(0, 7);
+            const desc = db.descontosFechamento.filter(d => d.idFunc === f.id && d.mesAno >= mesInicio && d.mesAno <= mesFim).reduce((a, b) => a + b.valor, 0);
+
+            const totalL = prod + desc;
+            if (totalL !== 0 || prod > 0) {
+                htmlTabela += `<tr style="border-bottom: 1px solid black;"><td style="padding: 12px; color: black;">${f.nome.toUpperCase()}</td><td style="padding: 12px; font-weight:bold; color: black; text-align: right;">R$ ${totalL.toFixed(2).replace('.', ',')}</td></tr>`;
+                temGente = true;
+            }
+        });
+        htmlTabela += `</tbody></table>`;
+        if (!temGente) htmlTabela = `<div style="padding: 20px; text-align: center; color: black;">Nenhum valor encontrado neste período.</div>`;
+
+        const htmlCompleto = `
+            <div style="background: white; color: black; padding: 20px; font-family: Arial, sans-serif; box-sizing: border-box; width: 100%;">
+                <div style="text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
+                    <h2 style="margin: 0; text-transform: uppercase; font-size: 18px; color: black;">KS AFINAÇÕES - FECHAMENTO DE PERÍODO</h2>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; color: black;"><strong>Período:</strong> ${inicio.split('-').reverse().join('/')} a ${fim.split('-').reverse().join('/')}</p>
+                </div>
+                ${htmlTabela}
+            </div>
+        `;
+
+        document.getElementById('preview-title').innerText = `Relatório de Período`;
+        document.getElementById('preview-content').innerHTML = htmlCompleto;
+        document.getElementById('modal-preview-doc').style.display = 'flex';
+
+        RH_Historico.documentoVisualizadoId = 'PERIODO';
+        window.htmlPeriodoPendente = htmlCompleto;
     },
 
     mostrarRelatorio: function () {
@@ -1268,10 +1302,12 @@ const RH = {
 
         if (data.descontosManuais && data.descontosManuais.length > 0) {
             data.descontosManuais.forEach(desc => {
+                const sinal = desc.valor < 0 ? '-' : '+';
+                const cor = desc.valor < 0 ? '#ef4444' : '#10b981';
                 descontosHtml += `
                     <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #334155;">
                         <span style="color: #94a3b8;">${desc.desc}</span>
-                        <span style="color: #ef4444; font-weight: bold;">- R$ ${desc.valor.toFixed(2).replace('.', ',')}</span>
+                        <span style="color: ${cor}; font-weight: bold;">${sinal} R$ ${Math.abs(desc.valor).toFixed(2).replace('.', ',')}</span>
                     </div>
                 `;
             });
@@ -1317,7 +1353,6 @@ const RH = {
             extratoDiasHtml += `</tbody></table>`;
 
         } else {
-            // Lógica do Mensalista (mantida a mesma)
             const [anoStr, mesStr] = data.mesAno.split('-');
             const numDias = new Date(anoStr, mesStr, 0).getDate();
             const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
@@ -1365,7 +1400,7 @@ const RH = {
 
                 if (cargaExp > 0 || cargaReal > 0) {
                     let saldoDia = cargaReal > 0 ? Math.round(cargaReal - cargaExp) : 0;
-                    if (Math.abs(saldoDia) <= 10) saldoDia = 0;
+                    if (Math.abs(saldoDia) <= 5) saldoDia = 0;
 
                     const corS = saldoDia >= 0 ? '#10b981' : '#ef4444';
                     const absS = Math.abs(saldoDia);
@@ -1383,7 +1418,6 @@ const RH = {
             extratoDiasHtml += `</tbody></table>`;
         }
 
-        // --- 3. MONTAGEM FINAL DA ESTRUTURA ---
         conteudo.innerHTML = `
             <div style="display: flex; height: 100%; width: 100%; border-radius: 8px; overflow: hidden;">
                 
@@ -1450,7 +1484,6 @@ const RH = {
 
         let linhasDescontosExtrasHTML = '';
 
-        // LINHA DE DESCONTO: Se o saldo for negativo, imprime a linha na coluna de descontos
         if (data.func.tipo !== 'Produção' && data.saldoMinutos < 0) {
             linhasDescontosExtrasHTML += `
                 <tr>
@@ -1460,20 +1493,6 @@ const RH = {
                     <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;"></td>
                     <td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${data.valorSaldoFinanceiro.toFixed(2).replace('.', ',')}</td>
                 </tr>`;
-        }
-
-        // Outros descontos manuais
-        if (data.descontosManuais && data.descontosManuais.length > 0) {
-            data.descontosManuais.forEach((desc, index) => {
-                linhasDescontosExtrasHTML += `
-                    <tr>
-                        <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">00${index + 2}</td>
-                        <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">${desc.desc.toUpperCase()}</td>
-                        <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${desc.ref || ''}</td>
-                        <td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;"></td>
-                        <td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${desc.valor.toFixed(2).replace('.', ',')}</td>
-                    </tr>`;
-            });
         }
 
         let linhasVencimentosHTML = '';
@@ -1493,7 +1512,6 @@ const RH = {
             const cargo = db.cargos.find(c => c.id === data.func.cargoId);
             if (cargo) cargoNome = cargo.nome.toUpperCase();
 
-            // LINHA DE VENCIMENTO: Salário Base
             linhasVencimentosHTML = `
                 <tr>
                     <td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">001</td>
@@ -1503,7 +1521,6 @@ const RH = {
                     <td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td>
                 </tr>`;
 
-            // LINHA DE VENCIMENTO EXTRA: Se houver saldo positivo, entra como Horas Extras
             if (data.saldoMinutos > 0) {
                 linhasVencimentosHTML += `
                 <tr>
@@ -1516,14 +1533,25 @@ const RH = {
             }
         }
 
+        if (data.descontosManuais && data.descontosManuais.length > 0) {
+            data.descontosManuais.forEach((desc, index) => {
+                if (desc.valor < 0) {
+                    linhasDescontosExtrasHTML += `<tr><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">00${index + 2}</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">${desc.desc.toUpperCase()}</td><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${desc.ref || ''}</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;"></td><td style="padding: 4px; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${Math.abs(desc.valor).toFixed(2).replace('.', ',')}</td></tr>`;
+                } else {
+                    linhasVencimentosHTML += `<tr><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">B0${index}</td><td style="padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; color: #000 !important;">${desc.desc.toUpperCase()}</td><td style="padding: 4px; border-right: 1px solid #000; text-align: center; border-bottom: 1px solid #000; color: #000 !important;">${desc.ref || ''}</td><td style="padding: 4px; border-right: 1px solid #000; text-align: right; border-bottom: 1px solid #000; color: #000 !important;">${desc.valor.toFixed(2).replace('.', ',')}</td><td style="padding: 4px; border-bottom: 1px solid #000; color: #000 !important;"></td></tr>`;
+                }
+            });
+        }
+
+        const totalVencimentosTela = data.totalVencimentos + data.descontosManuais.filter(d => d.valor > 0).reduce((a, b) => a + b.valor, 0);
+        const totalDescontosTela = data.descontosManuais.filter(d => d.valor < 0).reduce((a, b) => a + Math.abs(b.valor), 0) + (data.func.tipo === 'Mensalista' && data.saldoMinutos < 0 ? data.valorSaldoFinanceiro : 0);
+
         const generateVia = (viaName) => `
         <div style="width: 100%; height: 100%; border: 1px solid #000; box-sizing: border-box; background: #fff; display: flex; flex-direction: column; font-family: Arial, sans-serif; color: #000 !important;">
             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding: 6px;">
                 <div style="font-size: 10px; line-height: 1.3; color: #000 !important;">
                     <strong style="font-size: 12px; color: #000 !important;">KS AFINAÇÕES</strong><br>
-                    <span style="color: #000 !important;">Estância Triângulo - Estrada, Rodovia - Santa Isabel do Ivaí a<br>
-                    Loanda - PR, 87910-000<br>
-                    CNPJ: 42.360.395/0001-83</span>
+                    <span style="color: #000 !important;">Estância Triângulo - Estrada, Rodovia - Santa Isabel do Ivaí a<br>Loanda - PR, 87910-000<br>CNPJ: 42.360.395/0001-83</span>
                 </div>
                 <div style="text-align: right; font-size: 10px; color: #000 !important;">
                     <strong style="font-size: 14px; text-transform: uppercase; color: #000 !important;">Recibo de Pagamento de Salário</strong><br>
@@ -1531,70 +1559,34 @@ const RH = {
                     <span style="font-size: 9px; font-weight: bold; color: #000 !important;">(${viaName})</span>
                 </div>
             </div>
-
             <div style="border-bottom: 1px solid #000; display: flex; flex-direction: column; font-size: 10px; color: #000 !important;">
                 <div style="display: flex; border-bottom: 1px solid #000; width: 100%;">
-                    <div style="width: 70%; padding: 4px; border-right: 1px solid #000; color: #000 !important;">
-                        <span style="font-size: 8px; color: #000 !important;">Código &nbsp;&nbsp;&nbsp; Nome do Funcionário</span><br>
-                        <strong style="font-size: 11px; color: #000 !important;">${data.func.id.slice(-4).padStart(5, '0')} &nbsp;&nbsp;&nbsp; ${data.func.nome.toUpperCase()}</strong>
-                    </div>
-                    <div style="width: 30%; padding: 4px; color: #000 !important;">
-                        <span style="font-size: 8px; color: #000 !important;">Data de Admissão</span><br>
-                        <strong style="font-size: 11px; color: #000 !important;">${admissaoStr}</strong>
-                    </div>
+                    <div style="width: 70%; padding: 4px; border-right: 1px solid #000; color: #000 !important;"><span style="font-size: 8px; color: #000 !important;">Código &nbsp;&nbsp;&nbsp; Nome do Funcionário</span><br><strong style="font-size: 11px; color: #000 !important;">${data.func.id.slice(-4).padStart(5, '0')} &nbsp;&nbsp;&nbsp; ${data.func.nome.toUpperCase()}</strong></div>
+                    <div style="width: 30%; padding: 4px; color: #000 !important;"><span style="font-size: 8px; color: #000 !important;">Data de Admissão</span><br><strong style="font-size: 11px; color: #000 !important;">${admissaoStr}</strong></div>
                 </div>
                 <div style="display: flex; width: 100%; justify-content: space-between;">
-                    <div style="padding: 4px; color: #000 !important;">
-                        <span style="font-size: 8px; color: #000 !important;">Cargo:</span> <strong style="font-size: 11px; color: #000 !important;">${cargoNome}</strong>
-                    </div>
-                    ${data.func.tipo === 'Mensalista' ? `
-                    <div style="padding: 4px; color: #000 !important; text-align: right;">
-                        <span style="font-size: 8px; color: #000 !important;">Saldo de Horas Resumido:</span> <strong style="font-size: 11px; color: ${data.saldoMinutos >= 0 ? '#16a34a' : '#dc2626'} !important;">${data.saldoFormatado}</strong>
-                    </div>` : ''}
+                    <div style="padding: 4px; color: #000 !important;"><span style="font-size: 8px; color: #000 !important;">Cargo:</span> <strong style="font-size: 11px; color: #000 !important;">${cargoNome}</strong></div>
+                    ${data.func.tipo === 'Mensalista' ? `<div style="padding: 4px; color: #000 !important; text-align: right;"><span style="font-size: 8px; color: #000 !important;">Saldo de Horas Resumido:</span> <strong style="font-size: 11px; color: ${data.saldoMinutos >= 0 ? '#16a34a' : '#dc2626'} !important;">${data.saldoFormatado}</strong></div>` : ''}
                 </div>
             </div>
-
             <div style="flex: 1; width: 100%; border-bottom: 1px solid #000;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 10px; color: #000 !important;">
-                    <thead>
-                        <tr style="border-bottom: 1px solid #000;">
-                            <th style="width: 10%; padding: 4px; border-right: 1px solid #000; font-weight: bold; text-align: center; color: #000 !important;">Cód.</th>
-                            <th style="width: 45%; padding: 4px; border-right: 1px solid #000; text-align: left; font-weight: bold; color: #000 !important;">Descrição</th>
-                            <th style="width: 15%; padding: 4px; border-right: 1px solid #000; font-weight: bold; text-align: center; color: #000 !important;">Referência</th>
-                            <th style="width: 15%; padding: 4px; border-right: 1px solid #000; text-align: right; font-weight: bold; color: #000 !important;">Vencimentos</th>
-                            <th style="width: 15%; padding: 4px; text-align: right; font-weight: bold; color: #000 !important;">Descontos</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${linhasVencimentosHTML}
-                        ${linhasDescontosExtrasHTML}
-                    </tbody>
+                    <thead><tr style="border-bottom: 1px solid #000;"><th style="width: 10%; padding: 4px; border-right: 1px solid #000; font-weight: bold; text-align: center; color: #000 !important;">Cód.</th><th style="width: 45%; padding: 4px; border-right: 1px solid #000; text-align: left; font-weight: bold; color: #000 !important;">Descrição</th><th style="width: 15%; padding: 4px; border-right: 1px solid #000; font-weight: bold; text-align: center; color: #000 !important;">Referência</th><th style="width: 15%; padding: 4px; border-right: 1px solid #000; text-align: right; font-weight: bold; color: #000 !important;">Vencimentos</th><th style="width: 15%; padding: 4px; text-align: right; font-weight: bold; color: #000 !important;">Descontos</th></tr></thead>
+                    <tbody>${linhasVencimentosHTML}${linhasDescontosExtrasHTML}</tbody>
                 </table>
             </div>
-
             <div style="display: flex; border-bottom: 1px solid #000; font-size: 10px; color: #000 !important; width: 100%;">
-                <div style="width: 60%; padding: 6px; border-right: 1px solid #000; color: #000 !important;">
-                    Forma de Pagamento<br>
-                    <strong style="font-size: 12px; color: #000 !important;">PIX / DINHEIRO</strong>
-                </div>
+                <div style="width: 60%; padding: 6px; border-right: 1px solid #000; color: #000 !important;">Forma de Pagamento<br><strong style="font-size: 12px; color: #000 !important;">PIX / DINHEIRO</strong></div>
                 <div style="width: 40%; display: flex; flex-direction: column;">
                     <div style="display: flex; border-bottom: 1px solid #000; flex: 1;">
-                        <div style="width: 50%; padding: 4px; border-right: 1px solid #000; text-align: right; color: #000 !important;">
-                            <span style="font-size: 8px; color: #000 !important;">Total Vencimentos</span><br>
-                            <strong style="color: #000 !important;">${data.totalVencimentos.toFixed(2).replace('.', ',')}</strong>
-                        </div>
-                        <div style="width: 50%; padding: 4px; text-align: right; color: #000 !important;">
-                            <span style="font-size: 8px; color: #000 !important;">Total Descontos</span><br>
-                            <strong style="color: #000 !important;">${data.somaDescontosManuais.toFixed(2).replace('.', ',')}</strong>
-                        </div>
+                        <div style="width: 50%; padding: 4px; border-right: 1px solid #000; text-align: right; color: #000 !important;"><span style="font-size: 8px; color: #000 !important;">Total Vencimentos</span><br><strong style="color: #000 !important;">${totalVencimentosTela.toFixed(2).replace('.', ',')}</strong></div>
+                        <div style="width: 50%; padding: 4px; text-align: right; color: #000 !important;"><span style="font-size: 8px; color: #000 !important;">Total Descontos</span><br><strong style="color: #000 !important;">${totalDescontosTela.toFixed(2).replace('.', ',')}</strong></div>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px; flex: 1; color: #000 !important;">
-                        <span style="font-size: 10px; font-weight: bold; color: #000 !important;">Valor Líquido ⇨</span>
-                        <strong style="font-size: 14px; color: #000 !important;">R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</strong>
+                        <span style="font-size: 10px; font-weight: bold; color: #000 !important;">Valor Líquido ⇨</span><strong style="font-size: 14px; color: #000 !important;">R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</strong>
                     </div>
                 </div>
             </div>
-
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; font-size: 10px; color: #000 !important;">
                 <span style="margin-bottom: 25px; font-weight: bold; font-size: 11px; color: #000 !important;">RECEBI O VALOR LÍQUIDO DESCRITO NESTE RECIBO</span>
                 <div style="display: flex; width: 80%; justify-content: space-between;">
@@ -1608,24 +1600,16 @@ const RH = {
         const area = document.getElementById('print-area-holerite');
         if (area) {
             area.style.display = 'block';
-            const printHtml = `
-            <div class="print-half-holerite">${generateVia('1ª VIA - EMPRESA')}</div>
-            <div class="print-separator-holerite" style="border-top: 1px dashed #000; margin: 15px 0;"></div>
-            <div class="print-half-holerite">${generateVia('2ª VIA - FUNCIONÁRIO')}</div>
-        `;
+            const printHtml = `<div class="print-half-holerite">${generateVia('1ª VIA - EMPRESA')}</div><div class="print-separator-holerite" style="border-top: 1px dashed #000; margin: 15px 0;"></div><div class="print-half-holerite">${generateVia('2ª VIA - FUNCIONÁRIO')}</div>`;
 
             const executarImpressao = () => {
                 const area = document.getElementById('print-area-holerite');
                 if (area) {
                     area.innerHTML = printHtml;
-                    document.body.className = 'printing-holerite';
-                    area.style.display = 'block';
-                    setTimeout(() => {
-                        window.print();
-                        document.title = tituloOriginal;
-                        document.body.className = '';
-                        area.style.display = 'none';
-                    }, 500);
+                    const style = document.createElement('style'); style.id = 'print-extrato-style';
+                    style.innerHTML = `body.printing-holerite .app-container, body.printing-holerite .modal-overlay { display: none !important; } body.printing-holerite #print-area-holerite { display: flex !important; flex-direction: column !important; justify-content: space-between !important; width: 100% !important; height: 297mm !important; padding: 4mm 4mm 14mm 4mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 0mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }`;
+                    document.head.appendChild(style); document.body.className = 'printing-holerite'; area.style.display = 'block';
+                    setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); ArquivoNotas.renderLista(); }, 500);
                 }
             };
 
@@ -1633,66 +1617,32 @@ const RH = {
                 const dbParaSalvar = RHDb.get();
                 if (!dbParaSalvar.historico) dbParaSalvar.historico = [];
 
-                const historicoObj = {
-                    id: Date.now().toString(),
-                    idOriginal: chave,
-                    timestamp: new Date().toISOString(),
-                    tipo: 'Holerite',
-                    mesRef: `${ano}-${mes}`,
-                    nome: data.func.nome,
-                    valorLiquido: data.valorLiquido,
-                    htmlImpressao: printHtml
-                };
-
-                const idx = dbParaSalvar.historico.findIndex(h => h.idOriginal === chave);
-                if (idx > -1) dbParaSalvar.historico[idx] = historicoObj;
-                else dbParaSalvar.historico.push(historicoObj);
-
+                dbParaSalvar.historico.push({
+                    id: Date.now().toString(), idOriginal: chave, timestamp: new Date().toISOString(),
+                    tipo: 'Holerite', mesRef: `${ano}-${mes}`, nome: data.func.nome, valorLiquido: data.valorLiquido, htmlImpressao: printHtml
+                });
                 RHDb.save(dbParaSalvar);
 
-                // --- INTEGRAÇÃO FINANCEIRA (AUTOMÁTICA E PAGA) ---
                 const dbFinRaw = localStorage.getItem('ks_financeiro_dados');
                 let dbFin = { despesas: [] };
-                if (dbFinRaw) {
-                    dbFin = JSON.parse(dbFinRaw);
-                    if (!dbFin.despesas) dbFin.despesas = [];
-                }
+                if (dbFinRaw) { dbFin = JSON.parse(dbFinRaw); if (!dbFin.despesas) dbFin.despesas = []; }
 
                 const idFin = 'RH_' + data.func.id + '_' + ano + '_' + mes;
                 const idxFin = dbFin.despesas.findIndex(t => t.id === idFin);
 
+                const dataFechamento = new Date(ano, mes, 0).toISOString().split('T')[0];
                 const despesaRH = {
-                    id: idFin,
-                    descricao: `Folha RH: ${data.func.nome.toUpperCase()} (${mes}/${ano})`,
-                    categoria: 'RH',
-                    valor: data.valorLiquido,
-                    vencimento: new Date().toISOString().split('T')[0],
-                    pago: true, // Já entra como PAGO no Fechamento
-                    cancelada: false
+                    id: idFin, descricao: `Folha RH: ${data.func.nome.toUpperCase()} (${mes}/${ano})`,
+                    categoria: 'RH', valor: data.valorLiquido, vencimento: dataFechamento, pago: true, cancelada: false
                 };
 
-                if (idxFin > -1) dbFin.despesas[idxFin] = despesaRH;
-                else dbFin.despesas.push(despesaRH);
-
+                if (idxFin > -1) dbFin.despesas[idxFin] = despesaRH; else dbFin.despesas.push(despesaRH);
                 localStorage.setItem('ks_financeiro_dados', JSON.stringify(dbFin));
             };
 
-            // PERGUNTA DE SALVAMENTO PARA RELATÓRIO
-            const dbBusca = RHDb.get();
-            const chaveRelatorio = `relatorio_${data.func.id}_${ano}-${mes}`;
-            const existente = (dbBusca.historico || []).find(h => h.idOriginal === chaveRelatorio);
-
-            if (existente) {
-                ModalRH.show('Atualizar Relatório?', 'Já existe um relatório de conferência salvo para este funcionário neste mês.\n\n[OK] ATUALIZAR arquivo e imprimir.\n[Cancelar] Apenas IMPRIMIR cópia solta.', 'confirm',
-                    () => { salvarNoHistorico(chaveRelatorio); executarImpressao(); },
-                    () => { executarImpressao(); }
-                );
-            } else {
-                ModalRH.show('Salvar Oficialmente?', 'Deseja salvar uma cópia deste Relatório no Arquivo Central?\n\n[OK] Sim, salvar e imprimir.\n[Cancelar] Não, apenas imprimir (Rascunho).', 'confirm',
-                    () => { salvarNoHistorico(chaveRelatorio); executarImpressao(); },
-                    () => { executarImpressao(); }
-                );
-            }
+            const chaveRelatorio = `doc_${Date.now()}_${data.func.id}`;
+            salvarNoHistorico(chaveRelatorio);
+            executarImpressao();
         }
     },
 
@@ -1705,50 +1655,15 @@ const RH = {
         const tituloOriginal = document.title;
         document.title = `Relatorio - ${data.func.nome} - ${mes}_${ano}`;
 
-        let relatorioHTML = `
-            <div style="font-family: Arial, sans-serif; padding: 0; color: #000; background: #fff;">
-                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 5px;">
-                    <h2 style="margin: 0; text-transform: uppercase; color: #000;">KS AFINAÇÕES - EXTRATO DE ${data.func.tipo.toUpperCase()}</h2>
-                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #000;"><strong>Funcionário:</strong> ${data.func.nome.toUpperCase()} | <strong>Mês de Referência:</strong> ${mes}/${ano}</p>
-                </div>
-        `;
+        let relatorioHTML = `<div style="font-family: Arial, sans-serif; padding: 0; color: #000; background: #fff;"><div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 5px;"><h2 style="margin: 0; text-transform: uppercase; color: #000;">KS AFINAÇÕES - EXTRATO DE ${data.func.tipo.toUpperCase()}</h2><p style="margin: 5px 0 0 0; font-size: 14px; color: #000;"><strong>Funcionário:</strong> ${data.func.nome.toUpperCase()} | <strong>Mês de Referência:</strong> ${mes}/${ano}</p></div>`;
 
-        // ==========================================
-        // TABELA 1: PRODUÇÃO OU PONTO
-        // ==========================================
         if (data.func.tipo === 'Produção') {
             const producoes = db.lancamentosProducao.filter(lp => lp.idFunc === data.func.id && lp.data.startsWith(data.mesAno));
             producoes.sort((a, b) => new Date(a.data) - new Date(b.data));
+            relatorioHTML += `<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;"><thead><tr><th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Data</th><th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Descrição da Peça / Serviço</th><th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Qtd</th><th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Val. Unit.</th><th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Total</th></tr></thead><tbody>`;
 
-            relatorioHTML += `
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;">
-                    <thead>
-                        <tr>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Data</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Descrição da Peça / Serviço</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Qtd</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Val. Unit.</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            if (producoes.length === 0) {
-                relatorioHTML += `<tr><td colspan="5" style="border: 1px solid #000; padding: 15px; text-align: center; color: #000;">Nenhum lançamento no período.</td></tr>`;
-            } else {
-                producoes.forEach(lp => {
-                    relatorioHTML += `
-                        <tr>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${lp.data.split('-').reverse().join('/')}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: left; color: #000;">${lp.pecaCodigo} - ${lp.pecaNome.toUpperCase()}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${lp.qtd}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">R$ ${lp.valorUnit.toFixed(2).replace('.', ',')}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">R$ ${lp.total.toFixed(2).replace('.', ',')}</td>
-                        </tr>
-                    `;
-                });
-            }
+            if (producoes.length === 0) { relatorioHTML += `<tr><td colspan="5" style="border: 1px solid #000; padding: 15px; text-align: center; color: #000;">Nenhum lançamento no período.</td></tr>`; }
+            else { producoes.forEach(lp => { relatorioHTML += `<tr><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${lp.data.split('-').reverse().join('/')}</td><td style="border: 1px solid #000; padding: 6px; text-align: left; color: #000;">${lp.pecaCodigo} - ${lp.pecaNome.toUpperCase()}</td><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${lp.qtd}</td><td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">R$ ${lp.valorUnit.toFixed(2).replace('.', ',')}</td><td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">R$ ${lp.total.toFixed(2).replace('.', ',')}</td></tr>`; }); }
             relatorioHTML += `</tbody></table>`;
         } else {
             relatorioHTML += `<h3 style="text-align: center; margin-top: 5px; margin-bottom: 5px; color: #000;">ESPELHO DE PONTO DETALHADO</h3>`;
@@ -1756,119 +1671,65 @@ const RH = {
             const cargo = db.cargos.find(c => c.id === data.func.cargoId);
             const numDias = new Date(ano, mes, 0).getDate();
 
-            relatorioHTML += `
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;">
-                    <thead>
-                        <tr>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Data</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Entrada 1</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Saída 1</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Entrada 2</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Saída 2</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Saldo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+            relatorioHTML += `<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;"><thead><tr><th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Data</th><th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Entrada 1</th><th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Saída 1</th><th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Entrada 2</th><th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Saída 2</th><th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Saldo</th></tr></thead><tbody>`;
 
             for (let dia = 1; dia <= numDias; dia++) {
                 const dataIso = `${ano}-${mes}-${dia.toString().padStart(2, '0')}`;
                 const diaSemana = mapaDias[new Date(ano, mes - 1, dia).getDay()];
-
                 const pontosDia = db.pontos.filter(p => p.idFunc === data.func.id && p.entrada.startsWith(dataIso));
                 pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
 
                 let cargaReal = 0, tE1 = '-', tS1 = '-', tE2 = '-', tS2 = '-';
                 pontosDia.forEach((p, i) => {
                     cargaReal += (new Date(p.saida) - new Date(p.entrada)) / 60000;
-                    const hIn = p.entrada.split('T')[1].substring(0, 5);
-                    const hOut = p.saida.split('T')[1].substring(0, 5);
-                    if (i === 0) { tE1 = hIn; tS1 = hOut; }
-                    if (i === 1) { tE2 = hIn; tS2 = hOut; }
+                    const hIn = p.entrada.split('T')[1].substring(0, 5); const hOut = p.saida.split('T')[1].substring(0, 5);
+                    if (i === 0) { tE1 = hIn; tS1 = hOut; } if (i === 1) { tE2 = hIn; tS2 = hOut; }
                 });
 
                 let cargaExp = 0;
                 if (cargo && cargo.escala && cargo.escala[diaSemana]) {
                     const turno = db.turnos.find(t => t.id === cargo.escala[diaSemana]);
-                    if (turno && turno.carga) {
-                        const [th, tm] = turno.carga.split(':').map(Number);
-                        cargaExp = (th * 60) + tm;
-                    }
+                    if (turno && turno.carga) { const [th, tm] = turno.carga.split(':').map(Number); cargaExp = (th * 60) + tm; }
                 }
 
                 if (cargaExp > 0 || cargaReal > 0) {
                     let saldoDia = cargaReal > 0 ? Math.round(cargaReal - cargaExp) : 0;
-                    if (Math.abs(saldoDia) <= 10) saldoDia = 0;
-
+                    if (Math.abs(saldoDia) <= 5) saldoDia = 0;
                     const absS = Math.abs(saldoDia);
                     const saldoFormat = `${saldoDia < 0 ? '-' : '+'}${Math.floor(absS / 60).toString().padStart(2, '0')}:${(absS % 60).toString().padStart(2, '0')}h`;
-
-                    relatorioHTML += `
-                        <tr>
-                            <td style="border: 1px solid #000; padding: 6px; color: #000;"><strong>${dia.toString().padStart(2, '0')}/${mes}</strong> <span style="font-size:10px;">(${diaSemana.toUpperCase()})</span></td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tE1}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tS1}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tE2}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tS2}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">${cargaReal > 0 ? (saldoDia === 0 ? '00:00h' : saldoFormat) : 'Falta'}</td>
-                        </tr>`;
+                    relatorioHTML += `<tr><td style="border: 1px solid #000; padding: 6px; color: #000;"><strong>${dia.toString().padStart(2, '0')}/${mes}</strong> <span style="font-size:10px;">(${diaSemana.toUpperCase()})</span></td><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tE1}</td><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tS1}</td><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tE2}</td><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${tS2}</td><td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">${cargaReal > 0 ? (saldoDia === 0 ? '00:00h' : saldoFormat) : 'Falta'}</td></tr>`;
                 }
             }
             relatorioHTML += `</tbody></table>`;
         }
 
-        // ==========================================
-        // TABELA 2: DESCONTOS (SE HOUVER)
-        // ==========================================
         let descontosTabelaHTML = '';
         if ((data.func.tipo === 'Mensalista' && data.saldoMinutos < 0) || (data.descontosManuais && data.descontosManuais.length > 0)) {
-            descontosTabelaHTML += `
-                <div style="page-break-inside: avoid;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;">
-                    <thead>
-                        <tr>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Descrição do Desconto</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Referência</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #d32f2f;">Valor (R$)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+            descontosTabelaHTML += `<div style="page-break-inside: avoid;"><table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; color: #000;"><thead><tr><th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">Descrição Adicional (Acréscimo/Desconto)</th><th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">Referência</th><th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">Valor (R$)</th></tr></thead><tbody>`;
 
             if (data.func.tipo === 'Mensalista' && data.saldoMinutos < 0) {
-                descontosTabelaHTML += `
-                    <tr>
-                        <td style="border: 1px solid #000; padding: 6px; color: #000;">Atrasos e Faltas (Saldo Negativo)</td>
-                        <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${data.saldoFormatado.replace('-', '')}</td>
-                        <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #d32f2f; font-weight: bold;">- R$ ${data.valorSaldoFinanceiro.toFixed(2).replace('.', ',')}</td>
-                    </tr>
-                `;
+                descontosTabelaHTML += `<tr><td style="border: 1px solid #000; padding: 6px; color: #000;">Atrasos e Faltas (Saldo Negativo)</td><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${data.saldoFormatado.replace('-', '')}</td><td style="border: 1px solid #000; padding: 6px; text-align: right; color: #d32f2f; font-weight: bold;">- R$ ${data.valorSaldoFinanceiro.toFixed(2).replace('.', ',')}</td></tr>`;
             }
 
             if (data.descontosManuais && data.descontosManuais.length > 0) {
                 data.descontosManuais.forEach(desc => {
-                    descontosTabelaHTML += `
-                        <tr>
-                            <td style="border: 1px solid #000; padding: 6px; color: #000;">${desc.desc}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${desc.ref || '-'}</td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: right; color: #d32f2f; font-weight: bold;">- R$ ${desc.valor.toFixed(2).replace('.', ',')}</td>
-                        </tr>
-                    `;
+                    const cor = desc.valor < 0 ? '#d32f2f' : '#15803d';
+                    const sinal = desc.valor < 0 ? '-' : '+';
+                    descontosTabelaHTML += `<tr><td style="border: 1px solid #000; padding: 6px; color: #000;">${desc.desc}</td><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${desc.ref || '-'}</td><td style="border: 1px solid #000; padding: 6px; text-align: right; color: ${cor}; font-weight: bold;">${sinal} R$ ${Math.abs(desc.valor).toFixed(2).replace('.', ',')}</td></tr>`;
                 });
             }
-
             descontosTabelaHTML += `</tbody></table></div>`;
         }
 
-        // ==========================================
-        // RODAPÉ: LINHA ÚNICA LIMPA
-        // ==========================================
+        const totalVencimentosTela = data.totalVencimentos + data.descontosManuais.filter(d => d.valor > 0).reduce((a, b) => a + b.valor, 0);
+        const totalDescontosTela = data.descontosManuais.filter(d => d.valor < 0).reduce((a, b) => a + Math.abs(b.valor), 0) + (data.func.tipo === 'Mensalista' && data.saldoMinutos < 0 ? data.valorSaldoFinanceiro : 0);
+
         relatorioHTML += `
                 ${descontosTabelaHTML}
                 <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #000; page-break-inside: avoid;">
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #000;">
-                        <span><strong>TOTAL VENCIMENTOS:</strong> R$ ${data.totalVencimentos.toFixed(2).replace('.', ',')}</span>
-                        <span><strong>TOTAL DESCONTOS:</strong> <span style="color: #d32f2f;">- R$ ${data.somaDescontosManuais.toFixed(2).replace('.', ',')}</span></span>
+                        <span><strong>TOTAL VENCIMENTOS:</strong> R$ ${totalVencimentosTela.toFixed(2).replace('.', ',')}</span>
+                        <span><strong>TOTAL DESCONTOS:</strong> <span style="color: #d32f2f;">- R$ ${totalDescontosTela.toFixed(2).replace('.', ',')}</span></span>
                         <span style="font-size: 18px;"><strong>LÍQUIDO A PAGAR: R$ ${data.valorLiquido.toFixed(2).replace('.', ',')}</strong></span>
                     </div>
                 </div>
@@ -1879,725 +1740,221 @@ const RH = {
             const area = document.getElementById('print-area-holerite');
             if (area) {
                 area.innerHTML = relatorioHTML;
-
                 const style = document.createElement('style');
                 style.id = 'print-extrato-style';
-                style.innerHTML = `
-                    body.printing-extrato .app-container,
-                    body.printing-extrato .modal-overlay { display: none !important; }
-                    body.printing-extrato #print-area-holerite {
-                        display: block !important;
-                        position: static !important;
-                        width: 100% !important;
-                        height: auto !important;
-                        padding: 0 !important;
-                        box-sizing: border-box !important;
-                    }
-                    @media print {
-                        @page { size: A4 portrait; margin: 15mm; }
-                        body { background: #fff !important; }
-                    }
-                `;
+                style.innerHTML = `body.printing-extrato .app-container, body.printing-extrato .modal-overlay { display: none !important; } body.printing-extrato #print-area-holerite { display: block !important; position: static !important; width: 100% !important; min-height: 297mm !important; padding: 4mm 4mm 14mm 4mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 0mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }`;
                 document.head.appendChild(style);
-
                 document.body.className = 'printing-extrato';
                 area.style.display = 'block';
 
-                setTimeout(() => {
-                    window.print();
-                    document.title = tituloOriginal;
-                    document.body.className = '';
-                    area.style.display = 'none';
-                    const styleEl = document.getElementById('print-extrato-style');
-                    if (styleEl) styleEl.remove();
-                }, 500);
+                setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); ArquivoNotas.renderLista(); }, 500);
             }
         };
 
         const salvarNoHistorico = (chave) => {
             const dbParaSalvar = RHDb.get();
             if (!dbParaSalvar.historico) dbParaSalvar.historico = [];
-
-            const historicoObj = {
-                id: Date.now().toString(),
-                idOriginal: chave,
-                timestamp: new Date().toISOString(),
-                tipo: 'Relatório',
-                mesRef: `${ano}-${mes}`,
-                nome: data.func.nome,
-                valorLiquido: data.valorLiquido,
-                htmlImpressao: relatorioHTML
-            };
-
-            const idx = dbParaSalvar.historico.findIndex(h => h.idOriginal === chave);
-            if (idx > -1) dbParaSalvar.historico[idx] = historicoObj;
-            else dbParaSalvar.historico.push(historicoObj);
-
+            dbParaSalvar.historico.push({ id: Date.now().toString(), idOriginal: chave, timestamp: new Date().toISOString(), tipo: 'Relatório', mesRef: `${ano}-${mes}`, nome: data.func.nome, valorLiquido: data.valorLiquido, htmlImpressao: relatorioHTML });
             RHDb.save(dbParaSalvar);
         };
 
-        const dbBusca = RHDb.get();
-        const chaveRelatorio = `relatorio_${data.func.id}_${ano}-${mes}`;
-        const existente = (dbBusca.historico || []).find(h => h.idOriginal === chaveRelatorio);
-
-        if (existente) {
-            ModalRH.show('Atualizar Relatório?', 'Já existe um relatório de conferência salvo para este funcionário neste mês.\n\n[OK] ATUALIZAR arquivo e imprimir.\n[Cancelar] Apenas IMPRIMIR cópia solta.', 'confirm',
-                () => { salvarNoHistorico(chaveRelatorio); executarImpressao(); },
-                () => { executarImpressao(); }
-            );
-        } else {
-            salvarNoHistorico(chaveRelatorio);
-            executarImpressao();
-        }
-    },
-
+        const chaveRelatorio = `doc_${Date.now()}_${data.func.id}`;
+        salvarNoHistorico(chaveRelatorio);
+        executarImpressao();
+    }
 };
 
-// ==========================================
-// MÓDULO: TURNOS
-// ==========================================
 const RH_Turnos = {
     calcularCarga: function (e1, s1, e2, s2) {
-        const toMin = (t) => {
-            if (!t) return 0;
-            const [h, m] = t.split(':').map(Number);
-            return (h * 60) + m;
-        };
-        const manha = toMin(s1) - toMin(e1);
-        const tarde = toMin(s2) - toMin(e2);
+        const toMin = (t) => { if (!t) return 0; const [h, m] = t.split(':').map(Number); return (h * 60) + m; };
+        const manha = toMin(s1) - toMin(e1); const tarde = toMin(s2) - toMin(e2);
         const total = (manha > 0 ? manha : 0) + (tarde > 0 ? tarde : 0);
-        const h = Math.floor(total / 60);
-        const m = total % 60;
+        const h = Math.floor(total / 60); const m = total % 60;
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
     },
-
     salvarTurno: function () {
         const id = document.getElementById('turno-id').value;
         const nome = document.getElementById('turno-nome').value.trim();
-        const e1 = document.getElementById('turno-e1').value;
-        const s1 = document.getElementById('turno-s1').value;
-        const e2 = document.getElementById('turno-e2').value;
-        const s2 = document.getElementById('turno-s2').value;
+        const e1 = document.getElementById('turno-e1').value; const s1 = document.getElementById('turno-s1').value;
+        const e2 = document.getElementById('turno-e2').value; const s2 = document.getElementById('turno-s2').value;
 
-        if (!nome || !e1 || !s1 || !e2 || !s2) {
-            ModalRH.show('Erro', 'Preencha todos os horários do turno.');
-            return;
-        }
-
+        if (!nome || !e1 || !s1 || !e2 || !s2) { ModalRH.show('Erro', 'Preencha todos os horários do turno.'); return; }
         const db = RHDb.get();
         const carga = this.calcularCarga(e1, s1, e2, s2);
-
-        const turnoObj = {
-            id: id || 'T_' + Date.now(),
-            nome, e1, s1, e2, s2, carga
-        };
-
-        if (id) {
-            const idx = db.turnos.findIndex(t => t.id === id);
-            if (idx > -1) db.turnos[idx] = turnoObj;
-        } else {
-            db.turnos.push(turnoObj);
-        }
-
-        RHDb.save(db);
-        document.getElementById('form-turno').reset();
-        document.getElementById('turno-id').value = '';
-        this.renderTabela();
-        RH_Cargos.popularSelectsTurnos();
+        const turnoObj = { id: id || 'T_' + Date.now(), nome, e1, s1, e2, s2, carga };
+        if (id) { const idx = db.turnos.findIndex(t => t.id === id); if (idx > -1) db.turnos[idx] = turnoObj; }
+        else { db.turnos.push(turnoObj); }
+        RHDb.save(db); document.getElementById('form-turno').reset(); document.getElementById('turno-id').value = '';
+        this.renderTabela(); RH_Cargos.popularSelectsTurnos();
     },
-
     excluirTurno: function (id) {
         ModalRH.show('Atenção', 'Deseja excluir este turno?', 'confirm', () => {
             const db = RHDb.get();
             const emUso = db.cargos.some(c => Object.values(c.escala).includes(id));
-            if (emUso) {
-                ModalRH.show('Erro', 'Turno em uso por um Cargo. Remova do cargo primeiro.');
-                return;
-            }
+            if (emUso) { ModalRH.show('Erro', 'Turno em uso por um Cargo. Remova do cargo primeiro.'); return; }
             db.turnos = db.turnos.filter(t => t.id !== id);
-            RHDb.save(db);
-            this.renderTabela();
-            RH_Cargos.popularSelectsTurnos();
+            RHDb.save(db); this.renderTabela(); RH_Cargos.popularSelectsTurnos();
         });
     },
-
     renderTabela: function () {
-        const db = RHDb.get();
-        const tbody = document.querySelector('#tabela-turnos tbody');
-        if (!tbody) return;
+        const db = RHDb.get(); const tbody = document.querySelector('#tabela-turnos tbody'); if (!tbody) return;
         tbody.innerHTML = '';
-        db.turnos.forEach(t => {
-            tbody.innerHTML += `<tr>
-                <td>${t.nome}</td>
-                <td>${t.e1}</td>
-                <td>${t.s1}</td>
-                <td>${t.e2}</td>
-                <td>${t.s2}</td>
-                <td style="color:var(--primary-color); font-weight:bold;">${t.carga}</td>
-                <td>
-                    <button class=\"btn-danger\" onclick=\"RH_Turnos.excluirTurno('${t.id}')\" style=\"padding:4px;\" title=\"Excluir\"><i data-lucide=\"trash-2\" style=\"width:14px;\"></i></button>
-                </td>
-            </tr>`;
-        });
+        db.turnos.forEach(t => { tbody.innerHTML += `<tr><td>${t.nome}</td><td>${t.e1}</td><td>${t.s1}</td><td>${t.e2}</td><td>${t.s2}</td><td style="color:var(--primary-color); font-weight:bold;">${t.carga}</td><td><button class=\"btn-danger\" onclick=\"RH_Turnos.excluirTurno('${t.id}')\" style=\"padding:4px;\" title=\"Excluir\"><i data-lucide=\"trash-2\" style=\"width:14px;\"></i></button></td></tr>`; });
         lucide.createIcons();
     }
 };
 
-// ==========================================
-// MÓDULO: CARGOS E ESCALAS
-// ==========================================
 const RH_Cargos = {
     popularSelectsTurnos: function () {
         const db = RHDb.get();
-        const options = `<option value="">-- Folga / Extra --</option>` +
-            db.turnos.map(t => `<option value="${t.id}">${t.nome} (${t.carga})</option>`).join('');
-
-        const dias = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
-        dias.forEach(d => {
-            const sel = document.getElementById(`cargo-${d}`);
-            if (sel) {
-                const val = sel.value;
-                sel.innerHTML = options;
-                sel.value = val;
-            }
-        });
+        const options = `<option value="">-- Folga / Extra --</option>` + db.turnos.map(t => `<option value="${t.id}">${t.nome} (${t.carga})</option>`).join('');
+        ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].forEach(d => { const sel = document.getElementById(`cargo-${d}`); if (sel) { const val = sel.value; sel.innerHTML = options; sel.value = val; } });
     },
-
     salvarCargo: function () {
-        const id = document.getElementById('cargo-id').value;
-        const nome = document.getElementById('cargo-nome').value.trim();
-
-        if (!nome) {
-            ModalRH.show('Erro', 'Preencha o nome do cargo.');
-            return;
-        }
-
-        const escala = {
-            seg: document.getElementById('cargo-seg').value,
-            ter: document.getElementById('cargo-ter').value,
-            qua: document.getElementById('cargo-qua').value,
-            qui: document.getElementById('cargo-qui').value,
-            sex: document.getElementById('cargo-sex').value,
-            sab: document.getElementById('cargo-sab').value,
-            dom: document.getElementById('cargo-dom').value
-        };
-
-        const db = RHDb.get();
-        const cargoObj = {
-            id: id || 'C_' + Date.now(),
-            nome,
-            escala
-        };
-
-        if (id) {
-            const idx = db.cargos.findIndex(c => c.id === id);
-            if (idx > -1) db.cargos[idx] = cargoObj;
-        } else {
-            db.cargos.push(cargoObj);
-        }
-
-        RHDb.save(db);
-        document.getElementById('form-cargo').reset();
-        document.getElementById('cargo-id').value = '';
-        this.renderTabela();
-        RH.popularSelectCargos();
+        const id = document.getElementById('cargo-id').value; const nome = document.getElementById('cargo-nome').value.trim();
+        if (!nome) { ModalRH.show('Erro', 'Preencha o nome do cargo.'); return; }
+        const escala = { seg: document.getElementById('cargo-seg').value, ter: document.getElementById('cargo-ter').value, qua: document.getElementById('cargo-qua').value, qui: document.getElementById('cargo-qui').value, sex: document.getElementById('cargo-sex').value, sab: document.getElementById('cargo-sab').value, dom: document.getElementById('cargo-dom').value };
+        const db = RHDb.get(); const cargoObj = { id: id || 'C_' + Date.now(), nome, escala };
+        if (id) { const idx = db.cargos.findIndex(c => c.id === id); if (idx > -1) db.cargos[idx] = cargoObj; }
+        else { db.cargos.push(cargoObj); }
+        RHDb.save(db); document.getElementById('form-cargo').reset(); document.getElementById('cargo-id').value = ''; this.renderTabela(); RH.popularSelectCargos();
     },
-
     excluirCargo: function (id) {
         ModalRH.show('Atenção', 'Deseja excluir este cargo?', 'confirm', () => {
-            const db = RHDb.get();
-            const emUso = db.funcionarios.some(f => f.cargoId === id);
-            if (emUso) {
-                ModalRH.show('Erro', 'Este cargo está atribuído a um funcionário. Altere o funcionário primeiro.');
-                return;
-            }
-            db.cargos = db.cargos.filter(c => c.id !== id);
-            RHDb.save(db);
-            this.renderTabela();
-            RH.popularSelectCargos();
+            const db = RHDb.get(); const emUso = db.funcionarios.some(f => f.cargoId === id);
+            if (emUso) { ModalRH.show('Erro', 'Cargo em uso por um funcionário.'); return; }
+            db.cargos = db.cargos.filter(c => c.id !== id); RHDb.save(db); this.renderTabela(); RH.popularSelectCargos();
         });
     },
-
     renderTabela: function () {
-        const db = RHDb.get();
-        const tbody = document.querySelector('#tabela-cargos tbody');
-        if (!tbody) return;
+        const db = RHDb.get(); const tbody = document.querySelector('#tabela-cargos tbody'); if (!tbody) return;
         tbody.innerHTML = '';
         db.cargos.forEach(c => {
-            // Função para pegar o nome do turno ou "Folga"
             const getT = (idT) => idT ? (db.turnos.find(t => t.id === idT)?.nome || 'Folga') : 'Folga';
             const resumo = `Seg-Qui: ${getT(c.escala.seg)} | Sex: ${getT(c.escala.sex)}`;
-
-            tbody.innerHTML += `<tr>
-                <td><strong>${c.nome}</strong></td>
-                <td style="font-size: 12px; color: var(--text-muted);">${resumo}</td>
-                <td>
-                    <button class=\"btn-danger\" onclick=\"RH_Cargos.excluirCargo('${c.id}')\" style=\"padding:4px;\" title=\"Excluir\"><i data-lucide=\"trash-2\" style=\"width:14px;\"></i></button>
-                </td>
-            </tr>`;
+            tbody.innerHTML += `<tr><td><strong>${c.nome}</strong></td><td style="font-size: 12px; color: var(--text-muted);">${resumo}</td><td><button class=\"btn-danger\" onclick=\"RH_Cargos.excluirCargo('${c.id}')\" style=\"padding:4px;\" title=\"Excluir\"><i data-lucide=\"trash-2\" style=\"width:14px;\"></i></button></td></tr>`;
         });
         lucide.createIcons();
     }
 };
 
-// ==========================================
-// MÓDULO: EMPREITA AVULSA (TERCEIRIZADOS)
-// ==========================================
 const RH_Empreita = {
-    itens: [],
-    sugestaoIndex: -1,
-
-    // Motor Inteligente para Converter Número em Texto (Ex: 200 -> duzentos reais)
+    itens: [], sugestaoIndex: -1,
     valorPorExtenso: function (numero) {
         const unidades = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
         const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
         const centenas = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
-
         if (numero === 0) return "zero reais";
-
         function converterGrupo(n) {
             if (n === 100) return "cem";
-            let c = Math.floor(n / 100);
-            let d = Math.floor((n % 100) / 10);
-            let u = n % 10;
-            let res = [];
-
+            let c = Math.floor(n / 100); let d = Math.floor((n % 100) / 10); let u = n % 10; let res = [];
             if (c > 0) res.push(centenas[c]);
-            if (d === 1) {
-                res.push(unidades[n % 100]);
-            } else {
-                if (d > 1) res.push(dezenas[d]);
-                if (u > 0) res.push(unidades[u]);
-            }
-            return res.join(" e ");
+            if (d === 1) { res.push(unidades[n % 100]); } else { if (d > 1) res.push(dezenas[d]); if (u > 0) res.push(unidades[u]); }
+            return res.join(" ");
         }
-
-        let reais = Math.floor(numero);
-        let centavos = Math.round((numero - reais) * 100);
-        let partes = [];
-
+        let reais = Math.floor(numero); let centavos = Math.round((numero - reais) * 100); let partes = [];
         if (reais > 0) {
-            let milhoes = Math.floor(reais / 1000000);
-            let milhares = Math.floor((reais % 1000000) / 1000);
-            let resto = reais % 1000;
-
+            let milhoes = Math.floor(reais / 1000000); let milhares = Math.floor((reais % 1000000) / 1000); let resto = reais % 1000;
             let reaisExtenso = [];
             if (milhoes > 0) reaisExtenso.push(converterGrupo(milhoes) + (milhoes === 1 ? " milhão" : " milhões"));
             if (milhares > 0) reaisExtenso.push((milhares === 1 ? "um" : converterGrupo(milhares)) + " mil");
-            if (resto > 0) {
-                let prefix = (reaisExtenso.length > 0 && (resto < 100 || resto % 100 === 0)) ? " e " : (reaisExtenso.length > 0 ? " " : "");
-                reaisExtenso.push(prefix + converterGrupo(resto));
-            }
-            let strReais = reaisExtenso.join("").replace(/  +/g, ' ').trim();
-            strReais += (reais === 1 ? " real" : " reais");
-            partes.push(strReais);
+            if (resto > 0) { let prefix = (reaisExtenso.length > 0 && (resto < 100 || resto % 100 === 0)) ? " e " : (reaisExtenso.length > 0 ? " " : ""); reaisExtenso.push(prefix + converterGrupo(resto)); }
+            let strReais = reaisExtenso.join("").replace(/  +/g, ' ').trim(); strReais += (reais === 1 ? " real" : " reais"); partes.push(strReais);
         }
-
-        if (centavos > 0) {
-            let strCentavos = converterGrupo(centavos) + (centavos === 1 ? " centavo" : " centavos");
-            partes.push(strCentavos);
-        }
-
+        if (centavos > 0) { let strCentavos = converterGrupo(centavos) + (centavos === 1 ? " centavo" : " centavos"); partes.push(strCentavos); }
         return partes.join(" e ");
     },
-
     toggleCampos: function () {
-        const formato = document.getElementById('emp-formato').value;
-        const container = document.getElementById('emp-campos-dinamicos');
-
-        container.style.display = 'flex';
-        container.style.gap = '10px';
-        container.style.alignItems = 'flex-end';
-        container.style.flex = '1';
-
+        const formato = document.getElementById('emp-formato').value; const container = document.getElementById('emp-campos-dinamicos');
+        container.style.display = 'flex'; container.style.gap = '10px'; container.style.alignItems = 'flex-end'; container.style.flex = '1';
         if (formato === 'hora') {
-            container.innerHTML = `
-                <div style="flex: 2; min-width: 150px;">
-                    <label>Descrição do Serviço</label>
-                    <input type="text" id="emp-desc" placeholder="Ex: Diária" style="margin-bottom: 0; width: 100%;">
-                </div>
-                <div style="flex: 0.8; min-width: 80px;">
-                    <label>Total de Horas</label>
-                    <input type="number" id="emp-qtd" min="0.1" step="0.1" placeholder="Ex: 8.5" style="margin-bottom: 0; width: 100%;">
-                </div>
-                <div style="flex: 1; min-width: 100px;">
-                    <label>Valor/Hora (R$)</label>
-                    <input type="number" id="emp-valor" min="0.1" step="0.01" placeholder="Ex: 25.00" style="margin-bottom: 0; width: 100%;">
-                </div>
-            `;
+            container.innerHTML = `<div style="flex: 2; min-width: 150px;"><label>Descrição do Serviço</label><input type="text" id="emp-desc" placeholder="Ex: Diária" style="margin-bottom: 0; width: 100%;"></div><div style="flex: 0.8; min-width: 80px;"><label>Total de Horas</label><input type="number" id="emp-qtd" min="0.1" step="0.1" placeholder="Ex: 8.5" style="margin-bottom: 0; width: 100%;"></div><div style="flex: 1; min-width: 100px;"><label>Valor/Hora (R$)</label><input type="number" id="emp-valor" min="0.1" step="0.01" placeholder="Ex: 25.00" style="margin-bottom: 0; width: 100%;"></div>`;
         } else {
-            container.innerHTML = `
-                <div style="flex: 2; min-width: 150px; position: relative;">
-                    <label>Busca (Cód ou Nome)</label>
-                    <input type="text" id="emp-desc" placeholder="Ex: 6161 ou Corpo" onkeyup="RH_Empreita.filtrarPecas(event)" onkeydown="RH_Empreita.navegarSugestoes(event)" autocomplete="off" style="margin-bottom: 0; width: 100%;">
-                    <ul id="sugestoes-pecas-emp" class="sugestao-lista" style="display: none; top: calc(100% + 2px);"></ul>
-                </div>
-                <div style="flex: 0.8; min-width: 70px;">
-                    <label>Qtd.</label>
-                    <input type="number" id="emp-qtd" min="1" step="1" placeholder="Ex: 50" style="margin-bottom: 0; width: 100%;">
-                </div>
-                <div style="flex: 0.8; min-width: 70px;">
-                    <label>Caixas</label>
-                    <input type="number" id="emp-caixas" min="1" value="1" style="margin-bottom: 0; width: 100%;">
-                </div>
-                <div style="flex: 1; min-width: 90px;">
-                    <label>Val. Unit. (R$)</label>
-                    <input type="number" id="emp-valor" min="0.00" step="0.01" placeholder="Ex: 1.50" style="margin-bottom: 0; width: 100%;">
-                </div>
-            `;
+            container.innerHTML = `<div style="flex: 2; min-width: 150px; position: relative;"><label>Busca (Cód ou Nome)</label><input type="text" id="emp-desc" placeholder="Ex: 6161 ou Corpo" onkeyup="RH_Empreita.filtrarPecas(event)" onkeydown="RH_Empreita.navegarSugestoes(event)" autocomplete="off" style="margin-bottom: 0; width: 100%;"><ul id="sugestoes-pecas-emp" class="sugestao-lista" style="display: none; top: calc(100% + 2px);"></ul></div><div style="flex: 0.8; min-width: 70px;"><label>Qtd.</label><input type="number" id="emp-qtd" min="1" step="1" placeholder="Ex: 50" style="margin-bottom: 0; width: 100%;"></div><div style="flex: 0.8; min-width: 70px;"><label>Caixas</label><input type="number" id="emp-caixas" min="1" value="1" style="margin-bottom: 0; width: 100%;"></div><div style="flex: 1; min-width: 90px;"><label>Val. Unit. (R$)</label><input type="number" id="emp-valor" min="0.00" step="0.01" placeholder="Ex: 1.50" style="margin-bottom: 0; width: 100%;"></div>`;
         }
     },
-
     filtrarPecas: function (event) {
         if (event && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
-
-        this.sugestaoIndex = -1;
-        const input = document.getElementById('emp-desc');
-        const termo = input.value.trim().toLowerCase();
-        const lista = document.getElementById('sugestoes-pecas-emp');
-        const dadosERP = JSON.parse(localStorage.getItem('ks_afinacoes_dados')) || { produtos: [] };
-
+        this.sugestaoIndex = -1; const input = document.getElementById('emp-desc'); const termo = input.value.trim().toLowerCase();
+        const lista = document.getElementById('sugestoes-pecas-emp'); const dadosERP = JSON.parse(localStorage.getItem('ks_afinacoes_dados')) || { produtos: [] };
         if (!termo) { lista.style.display = 'none'; return; }
-
-        // Igual ao original: Filtra apenas pelo CÓDIGO que COMEÇA com o termo digitado
         const filtrados = dadosERP.produtos.filter(p => String(p.codigo).toLowerCase().startsWith(termo));
-
         if (filtrados.length > 0) {
             lista.innerHTML = '';
             filtrados.forEach((prod, index) => {
-                const li = document.createElement('li');
-                li.innerText = `${prod.codigo} - ${prod.nome}`;
-                li.className = 'sugestao-item';
-
-                li.dataset.codigo = prod.codigo;
-                li.dataset.nome = prod.nome;
-                li.dataset.valor = prod.valProducao || 0;
-
-                // Destaca apenas o termo digitado, APENAS no começo da string
-                const regex = new RegExp(`^(${termo})`, "i");
-                li.innerHTML = li.innerText.replace(regex, "<strong>$1</strong>");
-
-                li.onmouseenter = () => {
-                    this.sugestaoIndex = index;
-                    this.atualizarSelecaoVisual(lista.getElementsByTagName('li'), index);
-                };
-
-                li.onclick = () => {
-                    this.selecionarPeca(prod);
-                };
+                const li = document.createElement('li'); li.innerText = `${prod.codigo} - ${prod.nome}`; li.className = 'sugestao-item';
+                li.dataset.codigo = prod.codigo; li.dataset.nome = prod.nome; li.dataset.valor = prod.valProducao || 0;
+                const regex = new RegExp(`^(${termo})`, "i"); li.innerHTML = li.innerText.replace(regex, "<strong>$1</strong>");
+                li.onmouseenter = () => { this.sugestaoIndex = index; this.atualizarSelecaoVisual(lista.getElementsByTagName('li'), index); };
+                li.onclick = () => { this.selecionarPeca(prod); };
                 lista.appendChild(li);
             });
             lista.style.display = 'block';
-        } else {
-            lista.style.display = 'none';
-        }
+        } else { lista.style.display = 'none'; }
     },
-
     navegarSugestoes: function (event) {
-        const lista = document.getElementById('sugestoes-pecas-emp');
-        if (!lista || lista.style.display === 'none') return;
-
-        const items = lista.getElementsByTagName('li');
-        if (items.length === 0) return;
-
-        if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            this.sugestaoIndex++;
-            if (this.sugestaoIndex >= items.length) this.sugestaoIndex = 0;
-            this.atualizarSelecaoVisual(items, this.sugestaoIndex);
-        }
-        else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            this.sugestaoIndex--;
-            if (this.sugestaoIndex < 0) this.sugestaoIndex = items.length - 1;
-            this.atualizarSelecaoVisual(items, this.sugestaoIndex);
-        }
-        else if (event.key === 'Enter' || event.key === 'Tab') {
-            event.preventDefault();
-            if (this.sugestaoIndex >= 0 && this.sugestaoIndex < items.length) {
-                items[this.sugestaoIndex].click();
-            } else if (items.length > 0) {
-                items[0].click();
-            }
-        }
+        const lista = document.getElementById('sugestoes-pecas-emp'); if (!lista || lista.style.display === 'none') return;
+        const items = lista.getElementsByTagName('li'); if (items.length === 0) return;
+        if (event.key === 'ArrowDown') { event.preventDefault(); this.sugestaoIndex++; if (this.sugestaoIndex >= items.length) this.sugestaoIndex = 0; this.atualizarSelecaoVisual(items, this.sugestaoIndex); }
+        else if (event.key === 'ArrowUp') { event.preventDefault(); this.sugestaoIndex--; if (this.sugestaoIndex < 0) this.sugestaoIndex = items.length - 1; this.atualizarSelecaoVisual(items, this.sugestaoIndex); }
+        else if (event.key === 'Enter' || event.key === 'Tab') { event.preventDefault(); if (this.sugestaoIndex >= 0 && this.sugestaoIndex < items.length) { items[this.sugestaoIndex].click(); } else if (items.length > 0) { items[0].click(); } }
     },
-
     atualizarSelecaoVisual: function (items, indexAtual) {
-        for (let i = 0; i < items.length; i++) {
-            items[i].classList.remove('selecionado');
-        }
-        if (indexAtual >= 0 && indexAtual < items.length) {
-            const selecionado = items[indexAtual];
-            selecionado.classList.add('selecionado');
-            selecionado.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
+        for (let i = 0; i < items.length; i++) items[i].classList.remove('selecionado');
+        if (indexAtual >= 0 && indexAtual < items.length) { items[indexAtual].classList.add('selecionado'); items[indexAtual].scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
     },
-
-    selecionarPeca: function (prod) {
-        document.getElementById('emp-desc').value = `${prod.codigo} - ${prod.nome}`;
-        document.getElementById('emp-valor').value = prod.valProducao || 0;
-        document.getElementById('sugestoes-pecas-emp').style.display = 'none';
-        document.getElementById('emp-qtd').focus();
-    },
-
+    selecionarPeca: function (prod) { document.getElementById('emp-desc').value = `${prod.codigo} - ${prod.nome}`; document.getElementById('emp-valor').value = prod.valProducao || 0; document.getElementById('sugestoes-pecas-emp').style.display = 'none'; document.getElementById('emp-qtd').focus(); },
     adicionarItem: function () {
-        const prestador = document.getElementById('emp-nome').value.trim();
-        if (!prestador) {
-            ModalRH.show('Aviso', 'Preencha o nome do prestador primeiro.');
-            return;
-        }
-
-        const desc = document.getElementById('emp-desc').value.trim();
-        const qtd = parseFloat(document.getElementById('emp-qtd').value);
-        const valor = parseFloat(document.getElementById('emp-valor').value);
-        const formato = document.getElementById('emp-formato').value;
-        const caixas = formato === 'producao' ? (parseInt(document.getElementById('emp-caixas').value) || 1) : 1;
-
-        if (!desc || isNaN(qtd) || isNaN(valor) || qtd <= 0 || valor < 0) {
-            ModalRH.show('Aviso', 'Preencha a descrição, quantidade e valor corretamente.');
-            return;
-        }
-
+        const prestador = document.getElementById('emp-nome').value.trim(); if (!prestador) { ModalRH.show('Aviso', 'Preencha o nome do prestador primeiro.'); return; }
+        const desc = document.getElementById('emp-desc').value.trim(); const qtd = parseFloat(document.getElementById('emp-qtd').value); const valor = parseFloat(document.getElementById('emp-valor').value); const formato = document.getElementById('emp-formato').value; const caixas = formato === 'producao' ? (parseInt(document.getElementById('emp-caixas').value) || 1) : 1;
+        if (!desc || isNaN(qtd) || isNaN(valor) || qtd <= 0 || valor < 0) { ModalRH.show('Aviso', 'Preencha a descrição, quantidade e valor corretamente.'); return; }
         const subtotal = qtd * valor;
-
-        for (let i = 0; i < caixas; i++) {
-            this.itens.push({
-                id: Date.now() + Math.random(),
-                formato: formato,
-                desc: desc,
-                qtd: qtd,
-                valor: valor,
-                subtotal: subtotal
-            });
-        }
-
-        document.getElementById('emp-desc').value = '';
-        document.getElementById('emp-qtd').value = '';
-        document.getElementById('emp-desc').focus();
-        document.getElementById('emp-valor').value = '';
-        if (formato === 'producao') {
-            document.getElementById('emp-caixas').value = '1';
-        }
-
+        for (let i = 0; i < caixas; i++) { this.itens.push({ id: Date.now() + Math.random(), formato: formato, desc: desc, qtd: qtd, valor: valor, subtotal: subtotal }); }
+        document.getElementById('emp-desc').value = ''; document.getElementById('emp-qtd').value = ''; document.getElementById('emp-desc').focus(); document.getElementById('emp-valor').value = ''; if (formato === 'producao') { document.getElementById('emp-caixas').value = '1'; }
         this.renderTabela();
     },
-
-    removerItem: function (id) {
-        this.itens = this.itens.filter(i => i.id !== id);
-        this.renderTabela();
-    },
-
+    removerItem: function (id) { this.itens = this.itens.filter(i => i.id !== id); this.renderTabela(); },
     renderTabela: function () {
-        const tbody = document.getElementById('lista-itens-empreita');
-        if (!tbody) return;
-
-        let html = '';
-        let total = 0;
-
+        const tbody = document.getElementById('lista-itens-empreita'); if (!tbody) return;
+        let html = ''; let total = 0;
         this.itens.forEach(item => {
-            total += item.subtotal;
-            const formatoLabel = item.formato === 'hora' ? 'h' : 'un';
-            html += `
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td>${item.desc.toUpperCase()}</td>
-                    <td>${item.qtd} ${formatoLabel}</td>
-                    <td>R$ ${item.valor.toFixed(2).replace('.', ',')}</td>
-                    <td style="color: var(--success-color); font-weight: bold;">R$ ${item.subtotal.toFixed(2).replace('.', ',')}</td>
-                    <td>
-                        <button class="btn-danger" onclick="RH_Empreita.removerItem(${item.id})" style="padding:4px;" title="Remover"><i data-lucide="trash-2" style="width:14px;"></i></button>
-                    </td>
-                </tr>
-            `;
+            total += item.subtotal; const formatoLabel = item.formato === 'hora' ? 'h' : 'un';
+            html += `<tr style="border-bottom: 1px solid var(--border-color);"><td>${item.desc.toUpperCase()}</td><td>${item.qtd} ${formatoLabel}</td><td>R$ ${item.valor.toFixed(2).replace('.', ',')}</td><td style="color: var(--success-color); font-weight: bold;">R$ ${item.subtotal.toFixed(2).replace('.', ',')}</td><td><button class="btn-danger" onclick="RH_Empreita.removerItem(${item.id})" style="padding:4px;" title="Remover"><i data-lucide="trash-2" style="width:14px;"></i></button></td></tr>`;
         });
-
-        if (this.itens.length === 0) {
-            html = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 15px;">Nenhum serviço adicionado.</td></tr>`;
-        }
-
-        tbody.innerHTML = html;
-        document.getElementById('empreita-total-display').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
-        lucide.createIcons();
+        if (this.itens.length === 0) { html = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 15px;">Nenhum serviço adicionado.</td></tr>`; }
+        tbody.innerHTML = html; document.getElementById('empreita-total-display').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`; lucide.createIcons();
     },
-
     gerarRecibo: function () {
         const prestador = document.getElementById('emp-nome').value.trim();
-        if (!prestador || this.itens.length === 0) {
-            ModalRH.show('Erro', 'Preencha o nome do prestador e adicione ao menos um serviço na lista.');
-            return;
-        }
-
-        const totalGeral = this.itens.reduce((acc, item) => acc + item.subtotal, 0);
-        const dataHoje = new Date().toLocaleDateString('pt-BR');
-        const valorExtenso = this.valorPorExtenso(totalGeral);
-
-        const tituloOriginal = document.title;
-        document.title = `Recibo_Empreita_${prestador.replace(/\s+/g, '_')}_${dataHoje.replace(/\//g, '_')}`;
-
-        // Usa estritamente 1px solid #000 para não haver bordas grossas desiguais
+        if (!prestador || this.itens.length === 0) { ModalRH.show('Erro', 'Preencha o nome do prestador e adicione ao menos um serviço na lista.'); return; }
+        const totalGeral = this.itens.reduce((acc, item) => acc + item.subtotal, 0); const dataHoje = new Date().toLocaleDateString('pt-BR'); const valorExtenso = this.valorPorExtenso(totalGeral);
+        const tituloOriginal = document.title; document.title = `Recibo_Empreita_${prestador.replace(/\s+/g, '_')}_${dataHoje.replace(/\//g, '_')}`;
         let itensHTML = '';
-        this.itens.forEach(item => {
-            const formatoLabel = item.formato === 'hora' ? 'h' : 'un';
-            itensHTML += `
-                <tr>
-                    <td style="border: 1px solid #000; padding: 8px; color: #000; font-weight: bold;">${item.desc.toUpperCase()}</td>
-                    <td style="border: 1px solid #000; padding: 8px; text-align: center; color: #000; font-weight: bold;">${item.qtd} ${formatoLabel}</td>
-                    <td style="border: 1px solid #000; padding: 8px; text-align: right; color: #000; font-weight: bold;">R$ ${item.valor.toFixed(2).replace('.', ',')}</td>
-                    <td style="border: 1px solid #000; padding: 8px; text-align: right; color: #000; font-weight: bold;">R$ ${item.subtotal.toFixed(2).replace('.', ',')}</td>
-                </tr>
-            `;
-        });
+        this.itens.forEach(item => { const formatoLabel = item.formato === 'hora' ? 'h' : 'un'; itensHTML += `<tr><td style="border: 1px solid #000; padding: 8px; color: #000; font-weight: bold;">${item.desc.toUpperCase()}</td><td style="border: 1px solid #000; padding: 8px; text-align: center; color: #000; font-weight: bold;">${item.qtd} ${formatoLabel}</td><td style="border: 1px solid #000; padding: 8px; text-align: right; color: #000; font-weight: bold;">R$ ${item.valor.toFixed(2).replace('.', ',')}</td><td style="border: 1px solid #000; padding: 8px; text-align: right; color: #000; font-weight: bold;">R$ ${item.subtotal.toFixed(2).replace('.', ',')}</td></tr>`; });
 
-        // Box usa height: 100% e display flex para esticar até o fim. O margin-top: auto joga as assinaturas para o chão da via.
-        const generateVia = (viaName) => `
-            <div style="border: 2px solid #000; padding: 15px; background: #fff; width: 100%; box-sizing: border-box; height: 100%; display: flex; flex-direction: column;">
-                
-                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 15px;">
-                    <h1 style="margin: 0; text-transform: uppercase; color: #000; font-size: 18px; font-weight: bold;">KS AFINAÇÕES - RECIBO DE PRESTAÇÃO DE SERVIÇOS</h1>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #000; font-weight: bold;">Estância Triângulo - Estrada, Rodovia - Santa Isabel do Ivaí a Loanda - PR | CNPJ: 42.360.395/0001-83</p>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; font-weight: bold; color: #000; text-decoration: underline;">${viaName}</p>
-                </div>
-
-                <div style="margin-bottom: 15px; font-size: 14px; color: #000; display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 10px;">
-                    <p style="margin: 0; font-weight: bold; color: #000;">PRESTADOR: <span style="text-transform: uppercase;">${prestador}</span></p>
-                    <p style="margin: 0; font-weight: bold; color: #000;">DATA DE EMISSÃO: ${dataHoje}</p>
-                </div>
-
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; color: #000;">
-                    <thead>
-                        <tr>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">DESCRIÇÃO DO SERVIÇO / PEÇA</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">QTD</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">VALOR UNIT.</th>
-                            <th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">SUBTOTAL</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${itensHTML}
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3" style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; font-size: 14px; color: #000;">TOTAL A PAGAR:</td>
-                            <td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; font-size: 14px; color: #000;">R$ ${totalGeral.toFixed(2).replace('.', ',')}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-
-                <div style="margin-top: auto; color: #000; padding-top: 15px;">
-                    <p style="font-size: 14px; line-height: 1.6; text-align: justify; margin-bottom: 35px; color: #000; font-weight: bold;">
-                        Recebi de KS Afinações a quantia de R$ ${totalGeral.toFixed(2).replace('.', ',')} (${valorExtenso}), 
-                        referente aos serviços prestados descritos acima. E, por ser verdade, firmo o presente recibo.
-                    </p>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                        <div style="width: 60%; border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 12px; color: #000; font-weight: bold;">
-                            <span style="text-transform: uppercase;">${prestador}</span><br>Assinatura do Prestador
-                        </div>
-                        <div style="width: 30%; border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 12px; color: #000; font-weight: bold;">
-                            DATA
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        const generateVia = (viaName) => `<div style="border: 2px solid #000; padding: 15px; background: #fff; width: 100%; box-sizing: border-box; height: 100%; display: flex; flex-direction: column;"><div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 15px;"><h1 style="margin: 0; text-transform: uppercase; color: #000; font-size: 18px; font-weight: bold;">KS AFINAÇÕES - RECIBO DE PRESTAÇÃO DE SERVIÇOS</h1><p style="margin: 4px 0 0 0; font-size: 12px; color: #000; font-weight: bold;">Estância Triângulo - Estrada, Rodovia - Santa Isabel do Ivaí a Loanda - PR | CNPJ: 42.360.395/0001-83</p><p style="margin: 4px 0 0 0; font-size: 12px; font-weight: bold; color: #000; text-decoration: underline;">${viaName}</p></div><div style="margin-bottom: 15px; font-size: 14px; color: #000; display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 10px;"><p style="margin: 0; font-weight: bold; color: #000;">PRESTADOR: <span style="text-transform: uppercase;">${prestador}</span></p><p style="margin: 0; font-weight: bold; color: #000;">DATA DE EMISSÃO: ${dataHoje}</p></div><table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; color: #000;"><thead><tr><th style="border: 1px solid #000; padding: 8px; text-align: left; font-weight: bold; color: #000;">DESCRIÇÃO DO SERVIÇO / PEÇA</th><th style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: #000;">QTD</th><th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">VALOR UNIT.</th><th style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; color: #000;">SUBTOTAL</th></tr></thead><tbody>${itensHTML}</tbody><tfoot><tr><td colspan="3" style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; font-size: 14px; color: #000;">TOTAL A PAGAR:</td><td style="border: 1px solid #000; padding: 8px; text-align: right; font-weight: bold; font-size: 14px; color: #000;">R$ ${totalGeral.toFixed(2).replace('.', ',')}</td></tr></tfoot></table><div style="margin-top: auto; color: #000; padding-top: 15px;"><p style="font-size: 14px; line-height: 1.6; text-align: justify; margin-bottom: 35px; color: #000; font-weight: bold;">Recebi de KS Afinações a quantia de R$ ${totalGeral.toFixed(2).replace('.', ',')} (${valorExtenso}), referente aos serviços prestados descritos acima. E, por ser verdade, firmo o presente recibo.</p><div style="display: flex; justify-content: space-between; align-items: flex-end;"><div style="width: 60%; border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 12px; color: #000; font-weight: bold;"><span style="text-transform: uppercase;">${prestador}</span><br>Assinatura do Prestador</div><div style="width: 30%; border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 12px; color: #000; font-weight: bold;">DATA</div></div></div></div>`;
+        const htmlCompleto = `<div class="print-half-holerite">${generateVia('1ª VIA - EMPRESA')}</div><div class="print-separator-holerite" style="border-top: 1px dashed #000; margin: 15px 0;"></div><div class="print-half-holerite">${generateVia('2ª VIA - PRESTADOR')}</div>`;
 
         const executarImpressao = () => {
             const area = document.getElementById('print-area-holerite');
             if (area) {
-                area.innerHTML = relatorioHTML;
-                const style = document.createElement('style');
-                style.id = 'print-extrato-style';
-                style.innerHTML = `
-                    body.printing-extrato .app-container, body.printing-extrato .modal-overlay { display: none !important; }
-                    body.printing-extrato #print-area-holerite { display: block !important; position: static !important; width: 100% !important; height: auto !important; padding: 0 !important; box-sizing: border-box !important; }
-                    @media print { @page { size: A4 portrait; margin: 15mm; } body { background: #fff !important; } }
-                `;
-                document.head.appendChild(style);
-                document.body.className = 'printing-extrato';
-                area.style.display = 'block';
-
-                setTimeout(() => {
-                    window.print();
-                    document.title = tituloOriginal;
-                    document.body.className = '';
-                    area.style.display = 'none';
-                    const styleEl = document.getElementById('print-extrato-style');
-                    if (styleEl) styleEl.remove();
-                }, 500);
+                area.innerHTML = htmlCompleto; const style = document.createElement('style'); style.id = 'print-extrato-style';
+                style.innerHTML = `body.printing-extrato .app-container, body.printing-extrato .modal-overlay { display: none !important; } body.printing-extrato #print-area-holerite { display: flex !important; flex-direction: column !important; justify-content: space-between !important; width: 100% !important; height: 297mm !important; padding: 4mm 4mm 14mm 4mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 0mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }`;
+                document.head.appendChild(style); document.body.className = 'printing-extrato'; area.style.display = 'block';
+                setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); }, 500);
             }
         };
 
-        const salvarNoHistorico = (chave) => {
-            const dbParaSalvar = RHDb.get();
-            if (!dbParaSalvar.historico) dbParaSalvar.historico = [];
-
-            const historicoObj = {
-                id: Date.now().toString(),
-                idOriginal: chave,
-                timestamp: new Date().toISOString(),
-                tipo: 'Relatório', // Tipo específico para o Extrato/Espelho
-                mesRef: `${ano}-${mes}`,
-                nome: data.func.nome,
-                valorLiquido: data.valorLiquido,
-                htmlImpressao: relatorioHTML // Salva a tabela limpa
-            };
-
-            const idx = dbParaSalvar.historico.findIndex(h => h.idOriginal === chave);
-            if (idx > -1) dbParaSalvar.historico[idx] = historicoObj;
-            else dbParaSalvar.historico.push(historicoObj);
-
-            RHDb.save(dbParaSalvar);
-        };
-
-        // TRAVA DE SEGURANÇA E SALVAMENTO
-        const dbBusca = RHDb.get();
-        const chaveRelatorio = `relatorio_${data.func.id}_${ano}-${mes}`;
-        const existente = (dbBusca.historico || []).find(h => h.idOriginal === chaveRelatorio);
-
-        if (existente) {
-            ModalRH.show('Atualizar Relatório?', 'Já existe um relatório de conferência salvo para este funcionário neste mês.\n\n[OK] ATUALIZAR arquivo e imprimir.\n[Cancelar] Apenas IMPRIMIR cópia solta.', 'confirm',
-                () => { salvarNoHistorico(chaveRelatorio); executarImpressao(); },
-                () => { executarImpressao(); }
-            );
-        } else {
-            salvarNoHistorico(chaveRelatorio);
-            executarImpressao();
-        }
-
-        // PERGUNTA DE SALVAMENTO PARA EMPREITA E INTEGRAÇÃO FINANCEIRA
         ModalRH.show('Salvar Oficialmente?', 'Deseja salvar uma cópia deste Recibo no Arquivo Central e enviá-lo ao Financeiro?\n\n[OK] Sim, salvar e imprimir.\n[Cancelar] Não, apenas imprimir (Rascunho).', 'confirm',
             () => {
-                const dbParaSalvar = RHDb.get();
-                if (!dbParaSalvar.historico) dbParaSalvar.historico = [];
-                dbParaSalvar.historico.push({
-                    id: Date.now().toString(),
-                    idOriginal: `empreita_${Date.now()}`,
-                    timestamp: new Date().toISOString(),
-                    tipo: 'Empreita',
-                    mesRef: dataIso,
-                    nome: prestador,
-                    valorLiquido: totalGeral,
-                    htmlImpressao: htmlCompleto
-                });
+                const dbParaSalvar = RHDb.get(); if (!dbParaSalvar.historico) dbParaSalvar.historico = [];
+                dbParaSalvar.historico.push({ id: Date.now().toString(), idOriginal: `empreita_${Date.now()}`, timestamp: new Date().toISOString(), tipo: 'Empreita', mesRef: new Date().toISOString().substring(0, 7), nome: prestador, valorLiquido: totalGeral, htmlImpressao: htmlCompleto });
                 RHDb.save(dbParaSalvar);
 
-                // --- INTEGRAÇÃO FINANCEIRA (AUTOMÁTICA E PAGA) ---
-                const dbFinRaw = localStorage.getItem('ks_financeiro_dados');
-                let dbFin = { despesas: [] };
-                if (dbFinRaw) {
-                    dbFin = JSON.parse(dbFinRaw);
-                    if (!dbFin.despesas) dbFin.despesas = [];
-                }
-                dbFin.despesas.push({
-                    id: 'EMP_' + Date.now(),
-                    descricao: `Pagamento Empreita: ${prestador}`,
-                    categoria: 'RH',
-                    valor: totalGeral,
-                    vencimento: new Date().toISOString().split('T')[0],
-                    pago: true, // Já entra como PAGO no Fechamento
-                    cancelada: false
-                });
+                const dbFinRaw = localStorage.getItem('ks_financeiro_dados'); let dbFin = { despesas: [] };
+                if (dbFinRaw) { dbFin = JSON.parse(dbFinRaw); if (!dbFin.despesas) dbFin.despesas = []; }
+                dbFin.despesas.push({ id: 'EMP_' + Date.now(), descricao: `Pagamento Empreita: ${prestador}`, categoria: 'RH', valor: totalGeral, vencimento: new Date().toISOString().split('T')[0], pago: true, cancelada: false });
                 localStorage.setItem('ks_financeiro_dados', JSON.stringify(dbFin));
-
                 executarImpressao();
             },
             () => { executarImpressao(); }
@@ -2605,129 +1962,63 @@ const RH_Empreita = {
     }
 };
 
-// ==========================================
-// MÓDULO: ARQUIVO CENTRAL (HISTÓRICO)
-// ==========================================
 const RH_Historico = {
     documentoVisualizadoId: null,
-
     renderTabela: function () {
-        const db = RHDb.get();
-        if (!db.historico) db.historico = [];
-
-        const mes = document.getElementById('filtro-hist-mes').value;
-        const tipo = document.getElementById('filtro-hist-tipo').value;
-        const nomeBusca = document.getElementById('filtro-hist-nome').value.trim().toLowerCase();
-
-        const tbody = document.getElementById('lista-historico');
-        if (!tbody) return;
-
-        let html = '';
-        let historico = db.historico;
-
-        // Ordena do mais novo pro mais antigo
+        const db = RHDb.get(); if (!db.historico) db.historico = [];
+        const mes = document.getElementById('filtro-hist-mes').value; const tipo = document.getElementById('filtro-hist-tipo').value; const nomeBusca = document.getElementById('filtro-hist-nome').value.trim().toLowerCase();
+        const tbody = document.getElementById('lista-historico'); if (!tbody) return;
+        let html = ''; let historico = db.historico;
         historico.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
         historico.forEach(h => {
-            if (mes && h.mesRef !== mes) return;
-            if (tipo && h.tipo !== tipo) return;
-            if (nomeBusca && !h.nome.toLowerCase().includes(nomeBusca)) return;
-
-            let corTipo = '#94a3b8';
-            if (h.tipo === 'Holerite') corTipo = 'var(--primary-color)';
-            if (h.tipo === 'Empreita') corTipo = '#38bdf8';
-            if (h.tipo === 'Relatório') corTipo = '#a855f7';
-
-            html += `
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="font-size: 13px;">${new Date(h.timestamp).toLocaleDateString('pt-BR')} ${new Date(h.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td><span style="border: 1px solid ${corTipo}; color: ${corTipo}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase;">${h.tipo}</span></td>
-                    <td>${h.mesRef ? h.mesRef.split('-').reverse().join('/') : '-'}</td>
-                    <td><strong>${h.nome}</strong></td>
-                    <td style="color: var(--success-color); font-weight: bold; text-align: right;">R$ ${h.valorLiquido.toFixed(2).replace('.', ',')}</td>
-                    <td style="text-align: center;">
-                        <div style="display:flex; gap:8px; justify-content: center;">
-                            <button class="btn-outline" style="border-color: #10b981; color: #10b981; padding: 4px;" onclick="RH_Historico.visualizar('${h.id}')" title="Visualizar Documento">
-                                <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
-                            </button>
-                            <button class="btn-danger" style="padding: 4px;" onclick="RH_Historico.excluir('${h.id}')" title="Excluir Definitivamente">
-                                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+            if (mes && h.mesRef !== mes) return; if (tipo && h.tipo !== tipo) return; if (nomeBusca && !h.nome.toLowerCase().includes(nomeBusca)) return;
+            let corTipo = '#94a3b8'; if (h.tipo === 'Holerite') corTipo = 'var(--primary-color)'; if (h.tipo === 'Empreita') corTipo = '#38bdf8'; if (h.tipo === 'Relatório') corTipo = '#a855f7';
+            html += `<tr style="border-bottom: 1px solid var(--border-color);"><td style="font-size: 13px;">${new Date(h.timestamp).toLocaleDateString('pt-BR')} ${new Date(h.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td><td><span style="border: 1px solid ${corTipo}; color: ${corTipo}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase;">${h.tipo}</span></td><td>${h.mesRef ? h.mesRef.split('-').reverse().join('/') : '-'}</td><td><strong>${h.nome}</strong></td><td style="color: var(--success-color); font-weight: bold; text-align: right;">R$ ${h.valorLiquido.toFixed(2).replace('.', ',')}</td><td style="text-align: center;"><div style="display:flex; gap:8px; justify-content: center;"><button class="btn-outline" style="border-color: #10b981; color: #10b981; padding: 4px;" onclick="RH_Historico.visualizar('${h.id}')" title="Visualizar Documento"><i data-lucide="eye" style="width: 14px; height: 14px;"></i></button><button class="btn-danger" style="padding: 4px;" onclick="RH_Historico.excluir('${h.id}')" title="Excluir Definitivamente"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button></div></td></tr>`;
         });
-
-        if (html === '') {
-            html = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 15px;">Nenhum documento salvo encontrado com estes filtros.</td></tr>`;
-        }
-
-        tbody.innerHTML = html;
-        lucide.createIcons();
+        if (html === '') { html = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 15px;">Nenhum documento salvo encontrado com estes filtros.</td></tr>`; }
+        tbody.innerHTML = html; lucide.createIcons();
     },
-
-    excluir: function (id) {
-        ModalRH.show('Atenção', 'Tem certeza que deseja excluir permanentemente este documento do Arquivo Central?', 'confirm', () => {
-            const db = RHDb.get();
-            db.historico = db.historico.filter(h => h.id !== id);
-            RHDb.save(db);
-            this.renderTabela();
-        });
-    },
-
+    excluir: function (id) { ModalRH.show('Atenção', 'Tem certeza que deseja excluir permanentemente este documento do Arquivo Central?', 'confirm', () => { const db = RHDb.get(); db.historico = db.historico.filter(h => h.id !== id); RHDb.save(db); this.renderTabela(); }); },
     visualizar: function (id) {
-        const db = RHDb.get();
-        const doc = db.historico.find(h => h.id === id);
-        if (!doc) return;
-
-        this.documentoVisualizadoId = id; // Guarda o ID para a impressora usar
-
+        const db = RHDb.get(); const doc = db.historico.find(h => h.id === id); if (!doc) return;
+        this.documentoVisualizadoId = id;
         document.getElementById('preview-title').innerText = `Visualização: ${doc.tipo} - ${doc.nome.toUpperCase()}`;
-        document.getElementById('preview-content').innerHTML = doc.htmlImpressao;
-
-        document.getElementById('modal-preview-doc').style.display = 'flex';
+        document.getElementById('preview-content').innerHTML = doc.htmlImpressao; document.getElementById('modal-preview-doc').style.display = 'flex';
     },
-
     imprimirPreview: function () {
         if (!this.documentoVisualizadoId) return;
 
-        const db = RHDb.get();
-        const doc = db.historico.find(h => h.id === this.documentoVisualizadoId);
-        if (!doc) return;
+        let htmlImpressao = '';
+        let tipo = '';
+
+        if (this.documentoVisualizadoId === 'PERIODO') {
+            htmlImpressao = window.htmlPeriodoPendente;
+            tipo = 'Relatorio';
+        } else {
+            const db = RHDb.get(); const doc = db.historico.find(h => h.id === this.documentoVisualizadoId); if (!doc) return;
+            htmlImpressao = doc.htmlImpressao;
+            tipo = doc.tipo;
+        }
 
         const tituloOriginal = document.title;
-        document.title = `REIMPRESSAO_${doc.tipo}_${doc.nome.replace(/\s+/g, '_')}`;
+        document.title = tipo === 'Relatorio' && this.documentoVisualizadoId === 'PERIODO' ? 'Relatorio_Periodo' : `REIMPRESSAO_${tipo}`;
 
         const area = document.getElementById('print-area-holerite');
         if (area) {
-            area.innerHTML = doc.htmlImpressao;
-
+            area.innerHTML = htmlImpressao;
             const style = document.createElement('style');
             style.id = 'print-reprint-style';
 
-            // Ajusta o CSS da página física de acordo com o documento salvo
-            if (doc.tipo === 'Holerite') {
-                style.innerHTML = `
-                    body.printing-holerite .app-container, body.printing-holerite .modal-overlay { display: none !important; }
-                    body.printing-holerite #print-area-holerite { display: flex !important; flex-direction: column !important; justify-content: space-between !important; position: relative !important; width: 100% !important; height: 99% !important; padding: 2px !important; box-sizing: border-box !important; }
-                    @media print { @page { size: A4 portrait; margin: 0 !important; } body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; height: 100% !important; } }
-                `;
+            if (tipo === 'Holerite') {
+                style.innerHTML = `body.printing-holerite .app-container, body.printing-holerite .modal-overlay { display: none !important; } body.printing-holerite #print-area-holerite { display: flex !important; flex-direction: column !important; justify-content: space-between !important; width: 100% !important; height: 297mm !important; padding: 4mm 4mm 14mm 4mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 0mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }`;
                 document.body.className = 'printing-holerite';
-            } else if (doc.tipo === 'Empreita') {
-                style.innerHTML = `
-                    body.printing-empreita .app-container, body.printing-empreita .modal-overlay { display: none !important; }
-                    body.printing-empreita #print-area-holerite { display: flex !important; flex-direction: column !important; justify-content: space-between !important; width: 100% !important; height: 98vh !important; box-sizing: border-box !important; padding: 0 !important; margin: 0 !important; }
-                    @media print { @page { size: A4 portrait; margin: 10mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }
-                `;
+            }
+            else if (tipo === 'Empreita') {
+                style.innerHTML = `body.printing-empreita .app-container, body.printing-empreita .modal-overlay { display: none !important; } body.printing-empreita #print-area-holerite { display: flex !important; flex-direction: column !important; justify-content: space-between !important; width: 100% !important; height: 297mm !important; padding: 4mm 4mm 14mm 4mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 0mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }`;
                 document.body.className = 'printing-empreita';
-            } else {
-                // Relatório Normal
-                style.innerHTML = `
-                    body.printing-extrato .app-container, body.printing-extrato .modal-overlay { display: none !important; }
-                    body.printing-extrato #print-area-holerite { display: block !important; position: static !important; width: 100% !important; height: auto !important; padding: 0 !important; box-sizing: border-box !important; }
-                    @media print { @page { size: A4 portrait; margin: 15mm; } body { background: #fff !important; } }
-                `;
+            }
+            else {
+                style.innerHTML = `body.printing-extrato .app-container, body.printing-extrato .modal-overlay { display: none !important; } body.printing-extrato #print-area-holerite { display: block !important; position: static !important; width: 100% !important; min-height: 297mm !important; padding: 4mm 4mm 14mm 4mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 0mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }`;
                 document.body.className = 'printing-extrato';
             }
 
@@ -2740,12 +2031,10 @@ const RH_Historico = {
                 document.body.className = '';
                 area.style.display = 'none';
                 if (document.getElementById('print-reprint-style')) document.getElementById('print-reprint-style').remove();
-
-                // Opcional: Fecha o modal de preview após imprimir
                 document.getElementById('modal-preview-doc').style.display = 'none';
             }, 500);
         }
     }
 };
 
-window.onload = () => RH.init();
+window.onload = () => { RH.init(); RH_Historico.renderTabela(); };

@@ -37,22 +37,16 @@
                         data-lucide="layout-dashboard"></i> Painel da Afinação</button>
                 <button class="nav-btn" onclick="Estoque_UI.switchTab('itens')"><i data-lucide="boxes"></i> Cadastro
                     Insumos</button>
-
                 <hr style="border-color: #334155; margin: 10px 0;">
-
                 <button class="nav-btn" onclick="Estoque_UI.switchTab('entrada')"><i data-lucide="arrow-down-to-line"
                         style="color: #10b981;"></i> Nova Entrada</button>
                 <button class="nav-btn" onclick="Estoque_UI.switchTab('saida')"><i data-lucide="arrow-up-from-line"
                         style="color: #ef4444;"></i> Consumo Equipe</button>
-
                 <hr style="border-color: #334155; margin: 10px 0;">
-
                 <button class="nav-btn" onclick="Estoque_UI.switchTab('relatorio')"><i data-lucide="file-bar-chart"></i>
                     Relatório Mensal</button>
-
                 <button class="nav-btn" onclick="Estoque_UI.switchTab('historico')"><i data-lucide="history"></i>
                     Histórico Central</button>
-
                 <hr style="border-color: #334155; margin: 10px 0;">
                 <button class="nav-btn" onclick="window.location.href='index.html'"
                     style="color: var(--danger-color);"><i data-lucide="arrow-left"></i> Voltar ao ERP</button>
@@ -60,7 +54,6 @@
         </aside>
 
         <main class="main-content">
-
             <section id="tab-painel" class="tab-content active">
                 <h2>Visão Geral da Afinação (Peças e Insumos)</h2>
 
@@ -68,7 +61,6 @@
                     style="border-top: 3px solid #38bdf8; background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);">
                     <h3 style="color: #38bdf8; margin-bottom: 20px;"><i data-lucide="package-search"></i> Peças
                         Aguardando Afinação</h3>
-
                     <div style="margin-bottom: 20px;">
                         <div
                             style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid #334155; display: inline-block; min-width: 250px;">
@@ -78,7 +70,6 @@
                                 0,00</div>
                         </div>
                     </div>
-
                     <table id="tabela-painel-pecas">
                         <thead>
                             <tr>
@@ -125,15 +116,10 @@
                                     <option value="Roda">Roda</option>
                                 </select>
                             </div>
-                            <div>
-                                <label>Alerta de Estoque Mínimo</label>
-                                <input type="number" id="ins-minimo" placeholder="Ex: 5" required>
-                            </div>
-                            <div>
-                                <label>Valor de Repasse Padrão (R$)</label>
-                                <input type="number" step="0.01" id="ins-repasse" placeholder="Ex: 2.50"
-                                    title="Valor descontado da Produção">
-                            </div>
+                            <div><label>Alerta de Estoque Mínimo</label><input type="number" id="ins-minimo"
+                                    placeholder="Ex: 5" required></div>
+                            <div><label>Valor de Repasse Padrão (R$)</label><input type="number" step="0.01"
+                                    id="ins-repasse" placeholder="Ex: 2.50" title="Valor descontado da Produção"></div>
                         </div>
                         <button type="submit" class="btn-primary mt-4"
                             style="background:#38bdf8; color:#000; width: auto;"><i data-lucide="save"></i> Salvar
@@ -171,8 +157,7 @@
                         <label
                             style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main); font-size: 15px;">
                             <input type="radio" name="tipo-entrada" value="peca" onchange="Estoque.toggleTipoEntrada()"
-                                style="width: 18px; height: 18px; margin: 0;">
-                            Chegada de Peças (Cliente)
+                                style="width: 18px; height: 18px; margin: 0;"> Chegada de Peças (Cliente)
                         </label>
                     </div>
 
@@ -183,14 +168,19 @@
                             <div><label>Data</label><input type="date" id="ent-data" required
                                     onclick="this.showPicker()"></div>
 
-                            <div id="div-ent-select">
-                                <label id="label-ent-item">Selecione o Item</label>
-                                <select id="ent-item" required></select>
+                            <div id="div-ent-cliente" style="display: none;">
+                                <label>1. Filtro de Empresa (Para Peças)</label>
+                                <select id="ent-cliente"
+                                    onchange="document.getElementById('ent-item-busca').value=''; document.getElementById('ent-item').value=''; document.getElementById('ent-item-busca').focus();"></select>
                             </div>
 
-                            <div id="div-ent-cliente" style="display: none;">
-                                <label>Cliente (Origem da Peça)</label>
-                                <select id="ent-cliente"></select>
+                            <div id="div-ent-select" style="position: relative;">
+                                <label id="label-ent-item">2. Buscar Insumo / Peça</label>
+                                <input type="text" id="ent-item-busca" onkeyup="Estoque.filtrarItem(event, 'ent')"
+                                    onkeydown="Estoque.navegarSugestoes(event, 'ent')" autocomplete="off"
+                                    placeholder="Digite para buscar..." style="margin-bottom:0;">
+                                <input type="hidden" id="ent-item" required>
+                                <ul id="lista-sugestoes-ent" class="sugestao-lista" style="display: none;"></ul>
                             </div>
 
                             <div><label>Quantidade Recebida</label><input type="number" id="ent-qtd" step="0.01"
@@ -232,8 +222,14 @@
                         <div class="grid-2">
                             <div><label>Data da Retirada</label><input type="date" id="sai-data" required
                                     onclick="this.showPicker()"></div>
-                            <div><label>Insumo Retirado</label><select id="sai-item" required
-                                    onchange="Estoque.autoPreencherRepasse()"></select></div>
+                            <div style="position: relative;">
+                                <label>Insumo Retirado</label>
+                                <input type="text" id="sai-item-busca" onkeyup="Estoque.filtrarItem(event, 'sai')"
+                                    onkeydown="Estoque.navegarSugestoes(event, 'sai')" autocomplete="off"
+                                    placeholder="Digite para buscar..." style="margin-bottom:0;">
+                                <input type="hidden" id="sai-item" required>
+                                <ul id="lista-sugestoes-sai" class="sugestao-lista" style="display: none;"></ul>
+                            </div>
 
                             <div>
                                 <label>Destino / Funcionário</label>
@@ -334,10 +330,8 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="card" id="print-area-relatorio"
-                    style="background: white; color: black; padding: 30px; display: none;">
-                </div>
+                    style="background: white; color: black; padding: 30px; display: none;"></div>
             </section>
         </main>
     </div>

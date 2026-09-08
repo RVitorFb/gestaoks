@@ -34,14 +34,12 @@
             style="background-color: #171c26; border-radius: 8px; padding: 30px; width: 380px; text-align: center; border: 1px solid #1e293b;">
             <h3 style="color: #eab308; margin-top: 0; margin-bottom: 20px; font-size: 20px;">Editar Horário</h3>
             <div style="display: flex; gap: 15px; text-align: left; margin-bottom: 25px;">
-                <div style="flex: 1;">
-                    <label style="color: #94a3b8; font-size: 13px;">Nova Entrada</label>
-                    <input type="time" id="edit-hora-entrada"
+                <div style="flex: 1;"><label style="color: #94a3b8; font-size: 13px;">Nova Entrada</label><input
+                        type="time" id="edit-hora-entrada"
                         style="width: 100%; padding: 10px; background: #0b1017; border: 1px solid #334155; color: #fff; border-radius: 6px; margin-top: 5px;">
                 </div>
-                <div style="flex: 1;">
-                    <label style="color: #94a3b8; font-size: 13px;">Nova Saída</label>
-                    <input type="time" id="edit-hora-saida"
+                <div style="flex: 1;"><label style="color: #94a3b8; font-size: 13px;">Nova Saída</label><input
+                        type="time" id="edit-hora-saida"
                         style="width: 100%; padding: 10px; background: #0b1017; border: 1px solid #334155; color: #fff; border-radius: 6px; margin-top: 5px;">
                 </div>
             </div>
@@ -58,33 +56,25 @@
         <div class="modal-content"
             style="background-color: #0f172a; border-radius: 12px; padding: 35px; width: 95%; max-width: 1400px; height: 92vh; display: flex; flex-direction: column; position: relative; border: 1px solid #1e293b;">
             <button onclick="document.getElementById('modal-relatorio').style.display='none'"
-                style="position: absolute; top: 25px; right: 25px; background: #1e293b; border: none; color: #94a3b8; cursor: pointer; padding: 8px; border-radius: 50%;">
-                <i data-lucide="x"></i>
-            </button>
+                style="position: absolute; top: 25px; right: 25px; background: #1e293b; border: none; color: #94a3b8; cursor: pointer; padding: 8px; border-radius: 50%;"><i
+                    data-lucide="x"></i></button>
             <h2
                 style="color: #facc15; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; font-size: 26px;">
-                <i data-lucide="layout-dashboard"></i> Painel de Conferência Mensal
-            </h2>
+                <i data-lucide="layout-dashboard"></i> Painel de Conferência Mensal</h2>
             <div id="relatorio-conteudo" style="flex: 1; overflow-y: hidden; display: flex; flex-direction: column;">
             </div>
             <div
                 style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #1e293b; padding-top: 20px;">
                 <button class="btn-outline-secondary"
                     onclick="document.getElementById('modal-relatorio').style.display='none'">Ajustar Dados</button>
-
                 <button id="btn-imprimir-extrato" class="btn-outline" onclick="RH.imprimirExtrato()"
-                    style="border-color: #38bdf8; color: #38bdf8;">
-                    <i data-lucide="file-text" style="width: 20px; vertical-align: middle; margin-right: 8px;"></i>
-                    Imprimir Relatório
-                </button>
-
-                <button class="btn-primary-yellow" onclick="RH.gerarPDFHolerite()">
-                    <i data-lucide="printer" style="width: 20px; vertical-align: middle; margin-right: 8px;"></i> Emitir
-                    Holerite Oficial
-                </button>
+                    style="border-color: #38bdf8; color: #38bdf8;"><i data-lucide="file-text"
+                        style="width: 20px; vertical-align: middle; margin-right: 8px;"></i> Imprimir Relatório</button>
+                <button class="btn-primary-yellow" onclick="RH.gerarPDFHolerite()"><i data-lucide="printer"
+                        style="width: 20px; vertical-align: middle; margin-right: 8px;"></i> Emitir Holerite
+                    Oficial</button>
             </div>
         </div>
-    </div>
     </div>
 
     <div class="app-container" id="app-ui">
@@ -98,19 +88,18 @@
                 <button class="nav-btn" onclick="RH_UI.switchTab('producao')"><i data-lucide="hammer"></i> Lançar
                     Produção</button>
                 <button class="nav-btn active" onclick="RH_UI.switchTab('fechamento')"><i
-                        data-lucide="file-check-2"></i>
-                    Fechamento Mensal</button>
-
-                <hr style="border-color: #334155; margin: 10px 0;"> <button class="nav-btn"
-                    onclick="RH_UI.switchTab('empreita')"><i data-lucide="hard-hat"></i> Pagamento Empreita</button>
-
-                <hr style="border-color: #334155; margin: 10px 0;"> <button class="nav-btn"
-                    onclick="RH_UI.switchTab('turnos')"><i data-lucide="clock"></i> Turnos</button>
+                        data-lucide="file-check-2"></i> Fechamento Mensal</button>
+                <button class="nav-btn" onclick="RH_UI.switchTab('periodo')"><i data-lucide="calendar"></i> Relatório de
+                    Período</button>
+                <hr style="border-color: #334155; margin: 10px 0;">
+                <button class="nav-btn" onclick="RH_UI.switchTab('empreita')"><i data-lucide="hard-hat"></i> Pagamento
+                    Empreita</button>
+                <hr style="border-color: #334155; margin: 10px 0;">
+                <button class="nav-btn" onclick="RH_UI.switchTab('turnos')"><i data-lucide="clock"></i> Turnos</button>
                 <button class="nav-btn" onclick="RH_UI.switchTab('cargos')"><i data-lucide="briefcase"></i> Cargos /
                     Escalas</button>
                 <button class="nav-btn" onclick="RH_UI.switchTab('arquivo')"><i data-lucide="folder-open"></i> Arquivo
                     Central</button>
-
                 <hr style="border-color: #334155; margin: 10px 0;">
                 <button class="nav-btn" onclick="window.location.href='index.html'"
                     style="color: var(--danger-color);"><i data-lucide="arrow-left"></i> Voltar ao ERP</button>
@@ -126,7 +115,6 @@
                             <input type="hidden" id="func-id">
                             <div><label>Nome Completo</label><input type="text" id="func-nome" required></div>
                             <div><label>Data de Admissão</label><input type="date" id="func-admissao" required></div>
-
                             <div>
                                 <label>Tipo de Contrato</label>
                                 <select id="func-tipo" required onchange="RH.toggleCamposFuncionario()">
@@ -134,18 +122,14 @@
                                     <option value="Produção">Por Produção (Sem Turno Fixo)</option>
                                 </select>
                             </div>
-
                             <div id="div-func-cargo">
                                 <label>Cargo Associado (Define a Escala)</label>
                                 <select id="func-cargo" required>
                                     <option value="">-- Cadastre os Cargos Primeiro --</option>
                                 </select>
                             </div>
-
-                            <div id="div-func-salario">
-                                <label>Salário Base Mensal (R$)</label>
-                                <input type="number" step="0.01" id="func-salario" required>
-                            </div>
+                            <div id="div-func-salario"><label>Salário Base Mensal (R$)</label><input type="number"
+                                    step="0.01" id="func-salario" required></div>
                         </div>
                         <button type="submit" class="btn-primary mt-4" style="width: auto;"><i data-lucide="save"></i>
                             Salvar Funcionário</button>
@@ -177,21 +161,16 @@
                                 onchange="RH.calcularFechamento()"></select></div>
                         <div class="card mt-4"
                             style="border: 1px dashed var(--primary-color); background: rgba(234, 179, 8, 0.05);">
-                            <h3 style="color: var(--primary-color); margin-bottom: 10px;">
-                                <i data-lucide="upload-cloud" style="width: 18px; height: 18px;"></i> Importar Dados do
-                                Relógio
-                            </h3>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
-                                Selecione o arquivo <b>.xls</b> gerado pelo relógio de ponto para carregar os horários
-                                automaticamente.
-                            </p>
+                            <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i data-lucide="upload-cloud"
+                                    style="width: 18px; height: 18px;"></i> Importar Dados do Relógio</h3>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Selecione o
+                                arquivo <b>.xls</b> gerado pelo relógio de ponto para carregar os horários
+                                automaticamente.</p>
                             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                                 <input type="file" id="import-relogio-file" accept=".xls,.xlsx"
                                     style="flex: 1; min-width: 200px; margin: 0; background: var(--surface-color);">
                                 <button class="btn-primary-yellow" onclick="RH.importarDadosRelogio()"
-                                    style="margin: 0; height: 42px;">
-                                    Ler Arquivo
-                                </button>
+                                    style="margin: 0; height: 42px;">Ler Arquivo</button>
                             </div>
                         </div>
                     </div>
@@ -209,12 +188,20 @@
                             <tbody></tbody>
                         </table>
                         <div class="mt-4" style="border-top: 1px solid var(--border-color); padding-top: 15px;">
-                            <h4 style="color: var(--text-main); font-size: 15px;">Lançamento de Descontos</h4>
+                            <h4 style="color: var(--text-main); font-size: 15px;">Lançamento Extra na Folha</h4>
                             <div class="flex" style="gap: 10px; margin-top: 10px;">
-                                <input type="text" id="desc-nome" placeholder="Descrição" style="flex:2;">
-                                <input type="text" id="desc-ref" placeholder="Ref" style="flex:1;">
-                                <input type="number" id="desc-valor" step="0.01" placeholder="R$" style="flex:1;">
-                                <button class="btn-outline" onclick="RH.adicionarDescontoManual()">Adicionar</button>
+                                <select id="desc-tipo" style="flex:0.8; margin-bottom:0;">
+                                    <option value="-">Desconto (-)</option>
+                                    <option value="+">Acréscimo (+)</option>
+                                </select>
+                                <input type="text" id="desc-nome" placeholder="Descrição"
+                                    style="flex:2; margin-bottom:0;">
+                                <input type="text" id="desc-ref" placeholder="Ref" style="flex:1; margin-bottom:0;">
+                                <input type="number" id="desc-valor" step="0.01" placeholder="R$"
+                                    style="flex:1; margin-bottom:0;"
+                                    onkeydown="if(event.key==='Enter'){RH.adicionarDescontoManual();}">
+                                <button class="btn-outline" onclick="RH.adicionarDescontoManual()"
+                                    style="margin-bottom:0;">Adicionar</button>
                             </div>
                             <table id="tabela-descontos-manuais" class="mt-4">
                                 <thead>
@@ -243,20 +230,28 @@
                 </div>
             </section>
 
+            <section id="tab-periodo" class="tab-content">
+                <h2>Relatório de Período (Líquidos a Receber)</h2>
+                <div class="card">
+                    <div class="grid-2">
+                        <div><label>Data Início</label><input type="date" id="rel-periodo-inicio"></div>
+                        <div><label>Data Fim</label><input type="date" id="rel-periodo-fim"></div>
+                    </div>
+                    <button class="btn-primary mt-4" onclick="RH.gerarRelatorioPeriodo()"><i data-lucide="printer"></i>
+                        Gerar e Imprimir Relatório</button>
+                </div>
+                <div id="print-area-periodo" style="display:none; padding:20px; background:white; color:black;"></div>
+            </section>
+
             <section id="tab-producao" class="tab-content">
                 <h2>Lançamentos de Produção</h2>
                 <div class="card" style="overflow: visible;">
                     <form id="form-producao" onsubmit="event.preventDefault(); RH.salvarLancamentoProducao();">
                         <div class="flex" style="align-items: flex-end; gap: 10px;">
-                            <div style="flex: 1.5; min-width: 150px;">
-                                <label>Funcionário</label>
-                                <select id="prod-id-func" required style="margin-bottom: 0;"></select>
-                            </div>
-                            <div style="flex: 1; min-width: 120px;">
-                                <label>Data</label>
-                                <input type="date" id="prod-data" required onclick="this.showPicker()"
-                                    style="margin-bottom: 0;">
-                            </div>
+                            <div style="flex: 1.5; min-width: 150px;"><label>Funcionário</label><select
+                                    id="prod-id-func" required style="margin-bottom: 0;"></select></div>
+                            <div style="flex: 1; min-width: 120px;"><label>Data</label><input type="date" id="prod-data"
+                                    required onclick="this.showPicker()" style="margin-bottom: 0;"></div>
                             <div style="flex: 1; min-width: 100px; position: relative;">
                                 <label>Cód. Peça</label>
                                 <input type="text" id="prod-peca-codigo" onkeyup="RH.filtrarPecasProducao(event)"
@@ -265,17 +260,11 @@
                                 <ul id="sugestoes-pecas-rh" class="sugestao-lista"
                                     style="display: none; top: calc(100% + 2px);"></ul>
                             </div>
-                            <div style="flex: 0.8; min-width: 80px;">
-                                <label>Qtd.</label>
-                                <input type="number" id="prod-qtd" min="1" required style="margin-bottom: 0;">
-                            </div>
-
-                            <div style="flex: 0.8; min-width: 70px;">
-                                <label>Caixas</label>
-                                <input type="number" id="prod-caixas" min="1" value="1" required
-                                    style="margin-bottom: 0;" title="Adicionar múltiplas caixas iguais">
-                            </div>
-
+                            <div style="flex: 0.8; min-width: 80px;"><label>Qtd.</label><input type="number"
+                                    id="prod-qtd" min="1" required style="margin-bottom: 0;"></div>
+                            <div style="flex: 0.8; min-width: 70px;"><label>Caixas</label><input type="number"
+                                    id="prod-caixas" min="1" value="1" required style="margin-bottom: 0;"
+                                    title="Adicionar múltiplas caixas iguais"></div>
                             <button type="submit" class="btn-primary-yellow"
                                 style="height: 42px; padding: 0 25px; margin-bottom: 0;">Registrar</button>
                         </div>
@@ -284,7 +273,6 @@
 
                 <div class="card">
                     <h3>Histórico / Revisão de Produção</h3>
-
                     <div
                         style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px; margin-bottom: 15px; background: #0b1017; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border-color);">
                         <h3 style="margin: 0; font-size: 16px; color: var(--text-main);">Lançamentos Registrados</h3>
@@ -356,10 +344,8 @@
                 <div class="card">
                     <form id="form-cargo" onsubmit="event.preventDefault(); RH_Cargos.salvarCargo();">
                         <input type="hidden" id="cargo-id">
-                        <div style="margin-bottom: 15px;">
-                            <label>Nome do Cargo</label>
-                            <input type="text" id="cargo-nome" placeholder="Ex: Afinador" required style="width: 50%;">
-                        </div>
+                        <div style="margin-bottom: 15px;"><label>Nome do Cargo</label><input type="text" id="cargo-nome"
+                                placeholder="Ex: Afinador" required style="width: 50%;"></div>
                         <h4 style="margin-bottom: 10px; color: var(--primary-color);">Vincular Turnos na Semana:</h4>
                         <div class="grid-2" style="gap: 10px; background: #0b1017; padding: 15px; border-radius: 8px;">
                             <div><label>Segunda-feira</label><select id="cargo-seg">
@@ -406,10 +392,9 @@
             <section id="tab-empreita" class="tab-content">
                 <h2>Pagamento de Empreita (Terceirizados)</h2>
                 <div class="card" style="overflow: visible;">
-                    <div style="margin-bottom: 20px;">
-                        <label>Nome do Prestador (Sem necessidade de cadastro prévio)</label>
-                        <input type="text" id="emp-nome" placeholder="Ex: João da Silva" style="width: 50%;" required>
-                    </div>
+                    <div style="margin-bottom: 20px;"><label>Nome do Prestador (Sem necessidade de cadastro
+                            prévio)</label><input type="text" id="emp-nome" placeholder="Ex: João da Silva"
+                            style="width: 50%;" required></div>
                     <hr style="border-color: var(--border-color); margin-bottom: 20px;">
                     <div class="flex" style="align-items: flex-end; gap: 10px; flex-wrap: nowrap;">
                         <div style="width: 150px;">
@@ -420,7 +405,6 @@
                             </select>
                         </div>
                         <div id="emp-campos-dinamicos" class="flex" style="gap: 10px; flex: 1;"></div>
-
                         <button id="btn-add-empreita" class="btn-outline" onclick="RH_Empreita.adicionarItem()"
                             style="height: 42px; min-width: 100px; margin-bottom: 0;">Adicionar</button>
                     </div>
@@ -439,7 +423,6 @@
                             <tbody id="lista-itens-empreita"></tbody>
                         </table>
                     </div>
-
                     <div class="text-right mt-4" style="padding-top: 15px; border-top: 1px solid var(--border-color);">
                         <h3 style="font-size: 18px;">Total a Pagar: <span id="empreita-total-display"
                                 style="color: var(--success-color);">R$ 0,00</span></h3>
@@ -452,33 +435,22 @@
             <section id="tab-arquivo" class="tab-content">
                 <h2>Arquivo Central (Histórico)</h2>
                 <div class="card">
-                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Consulte e reimprima
-                        todos os Holerites e Recibos gerados oficialmente no sistema.</p>
-
                     <div class="grid-3"
                         style="gap: 15px; margin-bottom: 20px; background: #0b1017; padding: 15px; border-radius: 8px;">
-                        <div>
-                            <label>Mês / Ano</label>
-                            <input type="month" id="filtro-hist-mes" onchange="RH_Historico.renderTabela()"
-                                onclick="this.showPicker()" style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label>Tipo de Documento</label>
-                            <select id="filtro-hist-tipo" onchange="RH_Historico.renderTabela()"
-                                style="margin-bottom: 0;">
+                        <div><label>Mês / Ano</label><input type="month" id="filtro-hist-mes"
+                                onchange="RH_Historico.renderTabela()" onclick="this.showPicker()"
+                                style="margin-bottom: 0;"></div>
+                        <div><label>Tipo de Documento</label><select id="filtro-hist-tipo"
+                                onchange="RH_Historico.renderTabela()" style="margin-bottom: 0;">
                                 <option value="">Todos os Documentos</option>
                                 <option value="Holerite">Holerites (Funcionários)</option>
                                 <option value="Empreita">Recibos (Empreita)</option>
                                 <option value="Relatório">Relatórios (Conferência)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>Busca por Nome</label>
-                            <input type="text" id="filtro-hist-nome" placeholder="Digite o nome..."
-                                onkeyup="RH_Historico.renderTabela()" style="margin-bottom: 0;">
-                        </div>
+                            </select></div>
+                        <div><label>Busca por Nome</label><input type="text" id="filtro-hist-nome"
+                                placeholder="Digite o nome..." onkeyup="RH_Historico.renderTabela()"
+                                style="margin-bottom: 0;"></div>
                     </div>
-
                     <div style="overflow-x: auto;">
                         <table id="tabela-historico">
                             <thead>

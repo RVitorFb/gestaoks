@@ -1,5 +1,8 @@
 lucide.createIcons();
 
+let sugestaoIndexEnt = -1;
+let sugestaoIndexSai = -1;
+
 const ModalEstoque = {
     keydownListener: null,
     show: function (title, message, type = 'alert', onConfirm = null) {
@@ -11,10 +14,7 @@ const ModalEstoque = {
 
         btnCancel.style.display = type === 'confirm' ? 'inline-block' : 'none';
 
-        btnConfirm.onclick = () => {
-            this.hide();
-            if (onConfirm) onConfirm();
-        };
+        btnConfirm.onclick = () => { this.hide(); if (onConfirm) onConfirm(); };
         btnCancel.onclick = () => this.hide();
         modal.style.display = 'flex';
         btnConfirm.focus();
@@ -22,29 +22,20 @@ const ModalEstoque = {
         if (this.keydownListener) document.removeEventListener('keydown', this.keydownListener);
         this.keydownListener = (e) => {
             if (modal.style.display === 'flex') {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (document.activeElement === btnCancel) btnCancel.click();
-                    else btnConfirm.click();
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    btnCancel.click();
-                } else if (type === 'confirm' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-                    e.preventDefault();
-                    if (document.activeElement === btnConfirm) btnCancel.focus();
-                    else btnConfirm.focus();
+                if (e.key === 'Enter') { e.preventDefault(); if (document.activeElement === btnCancel) btnCancel.click(); else btnConfirm.click(); }
+                else if (e.key === 'Escape') { e.preventDefault(); btnCancel.click(); }
+                else if (type === 'confirm' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                    e.preventDefault(); if (document.activeElement === btnConfirm) btnCancel.focus(); else btnConfirm.focus();
                 }
             }
         };
         document.addEventListener('keydown', this.keydownListener);
     },
 
-    // NOVO: Função para substituir o prompt feio do Windows!
     prompt: function (title, messageHtml, defaultValue, onConfirm) {
         const modal = document.getElementById('custom-modal');
         document.getElementById('modal-title').innerText = title;
 
-        // Injeta o HTML com o input bonitão dentro do modal
         document.getElementById('modal-message').innerHTML = `
             <div style="margin-bottom: 15px; font-size: 14px; color: var(--text-main);">${messageHtml}</div>
             <input type="number" id="modal-input-prompt" value="${defaultValue}" style="width: 100%; padding: 12px; background: #0b1017; border: 1px solid #334155; color: #10b981; border-radius: 6px; outline: none; font-size: 20px; font-weight: bold; text-align: center;">
@@ -52,39 +43,24 @@ const ModalEstoque = {
 
         const btnCancel = document.getElementById('modal-btn-cancel');
         const btnConfirm = document.getElementById('modal-btn-confirm');
-
         btnCancel.style.display = 'inline-block';
 
         btnConfirm.onclick = () => {
             const val = document.getElementById('modal-input-prompt').value;
-            this.hide();
-            document.getElementById('modal-message').innerHTML = ''; // Limpa pra não vazar HTML nos outros alertas
+            this.hide(); document.getElementById('modal-message').innerHTML = '';
             if (onConfirm) onConfirm(val);
         };
 
-        btnCancel.onclick = () => {
-            this.hide();
-            document.getElementById('modal-message').innerHTML = '';
-        };
-
+        btnCancel.onclick = () => { this.hide(); document.getElementById('modal-message').innerHTML = ''; };
         modal.style.display = 'flex';
 
-        // Dá o foco automático no input e já seleciona o número para facilitar a digitação
-        setTimeout(() => {
-            const inp = document.getElementById('modal-input-prompt');
-            if (inp) { inp.focus(); inp.select(); }
-        }, 50);
+        setTimeout(() => { const inp = document.getElementById('modal-input-prompt'); if (inp) { inp.focus(); inp.select(); } }, 50);
 
         if (this.keydownListener) document.removeEventListener('keydown', this.keydownListener);
         this.keydownListener = (e) => {
             if (modal.style.display === 'flex') {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    btnConfirm.click();
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    btnCancel.click();
-                }
+                if (e.key === 'Enter') { e.preventDefault(); btnConfirm.click(); }
+                else if (e.key === 'Escape') { e.preventDefault(); btnCancel.click(); }
             }
         };
         document.addEventListener('keydown', this.keydownListener);
@@ -96,49 +72,33 @@ const ModalEstoque = {
     }
 };
 
-// Motores de Banco de Dados
 const DB_ESTOQUE = {
     KEY: 'ks_estoque_dados',
     get: function () {
         const data = localStorage.getItem(this.KEY);
         const parsed = data ? JSON.parse(data) : { insumos: [], logsInsumos: [], logsPecas: [] };
-        if (!parsed.insumos) parsed.insumos = [];
-        if (!parsed.logsInsumos) parsed.logsInsumos = [];
-        if (!parsed.logsPecas) parsed.logsPecas = [];
+        if (!parsed.insumos) parsed.insumos = []; if (!parsed.logsInsumos) parsed.logsInsumos = []; if (!parsed.logsPecas) parsed.logsPecas = [];
         return parsed;
     },
     save: function (data) {
         localStorage.setItem(this.KEY, JSON.stringify(data));
-        // Dispara o AutoSave do ERP
         if (typeof DB !== 'undefined' && DB.save) DB.save(DB.get());
     }
 };
 
-const LerERP = () => {
-    const data = localStorage.getItem('ks_afinacoes_dados');
-    return data ? JSON.parse(data) : { produtos: [], clientes: [] };
-};
-
-const LerRH = () => {
-    const data = localStorage.getItem('ks_rh_dados');
-    return data ? JSON.parse(data) : { funcionarios: [] };
-};
+const LerERP = () => { const data = localStorage.getItem('ks_afinacoes_dados'); return data ? JSON.parse(data) : { produtos: [], clientes: [] }; };
+const LerRH = () => { const data = localStorage.getItem('ks_rh_dados'); return data ? JSON.parse(data) : { funcionarios: [] }; };
 
 const Estoque_UI = {
     switchTab: function (tabId) {
-        // 1. Esconde tudo e tira a cor de todos os botões
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-        // 2. Acha o botão exato que foi clicado (ou chamado pelo carregamento) e pinta ele
         const targetBtn = document.querySelector(`button[onclick*="Estoque_UI.switchTab('${tabId}')"]`);
         if (targetBtn) targetBtn.classList.add('active');
 
-        // 3. Mostra a tela correta
         const tabElement = document.getElementById(`tab-${tabId}`);
         if (tabElement) tabElement.classList.add('active');
 
-        // 4. Carrega os dados da tela correspondente
         if (tabId === 'painel') Estoque.renderPainel();
         if (tabId === 'itens') Estoque.renderInsumos();
         if (tabId === 'entrada' || tabId === 'saida') {
@@ -148,7 +108,6 @@ const Estoque_UI = {
             if (document.getElementById('sai-data')) document.getElementById('sai-data').value = dataLocal;
         }
         if (tabId === 'historico') Estoque.renderHistorico();
-
         if (tabId === 'relatorio') {
             const dataMes = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().substring(0, 7);
             document.getElementById('relatorio-mes').value = dataMes;
@@ -158,6 +117,90 @@ const Estoque_UI = {
 };
 
 const Estoque = {
+
+    filtrarItem: function (event, prefixo) {
+        if (['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+        if (prefixo === 'ent') sugestaoIndexEnt = -1; else sugestaoIndexSai = -1;
+
+        const termo = document.getElementById(`${prefixo}-item-busca`).value.trim().toLowerCase();
+        const lista = document.getElementById(`lista-sugestoes-${prefixo}`);
+        const db = DB_ESTOQUE.get();
+
+        if (!termo) { lista.style.display = 'none'; return; }
+
+        let itensBusca = [];
+        if (prefixo === 'sai' || (document.querySelector('input[name="tipo-entrada"]:checked') && document.querySelector('input[name="tipo-entrada"]:checked').value === 'insumo')) {
+            itensBusca = db.insumos.map(i => ({ id: i.id, nome: `${i.nome} (Estoque: ${this.calcularEstoqueInsumo(i.id)})` }));
+        } else {
+            const erp = LerERP();
+            const clienteSelecionado = document.getElementById('ent-cliente').value;
+            let produtosDaEmpresa = erp.produtos;
+            if (clienteSelecionado && clienteSelecionado !== '') {
+                produtosDaEmpresa = erp.produtos.filter(p => p.fornecedor === clienteSelecionado);
+            }
+            itensBusca = produtosDaEmpresa.map(p => ({ id: p.codigo, nome: `${p.codigo} - ${p.nome.toUpperCase()}` }));
+        }
+
+        const filtrados = itensBusca.filter(i => i.nome.toLowerCase().includes(termo));
+
+        if (filtrados.length > 0) {
+            lista.innerHTML = filtrados.map((i, index) => {
+                const regex = new RegExp(`(${termo})`, "gi");
+                const nomeDestacado = i.nome.replace(regex, "<strong style='color:var(--primary-color);'>$1</strong>");
+                return `<li class="sugestao-item" onmouseenter="${prefixo === 'ent' ? 'sugestaoIndexEnt' : 'sugestaoIndexSai'}=${index}; Estoque.atualizarSelecaoVisual(document.getElementById('lista-sugestoes-${prefixo}').getElementsByTagName('li'), ${index})" onclick="Estoque.selecionarItemBusca('${prefixo}', '${i.id}', '${i.nome.split(' (')[0]}')">${nomeDestacado}</li>`;
+            }).join('');
+            lista.style.display = 'block';
+            this.atualizarSelecaoVisual(lista.getElementsByTagName('li'), 0);
+            if (prefixo === 'ent') sugestaoIndexEnt = 0; else sugestaoIndexSai = 0;
+        } else {
+            lista.style.display = 'none';
+        }
+    },
+
+    navegarSugestoes: function (event, prefixo) {
+        if (!['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+        const lista = document.getElementById(`lista-sugestoes-${prefixo}`);
+        if (!lista || lista.style.display === 'none') {
+            if (event.key === 'Tab' || event.key === 'Enter') {
+                event.preventDefault();
+                if (lista && lista.firstChild) lista.firstChild.click();
+            }
+            return;
+        }
+
+        const items = lista.getElementsByTagName('li');
+        let indexAtual = prefixo === 'ent' ? sugestaoIndexEnt : sugestaoIndexSai;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault(); indexAtual++; if (indexAtual >= items.length) indexAtual = 0;
+            this.atualizarSelecaoVisual(items, indexAtual);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault(); indexAtual--; if (indexAtual < 0) indexAtual = items.length - 1;
+            this.atualizarSelecaoVisual(items, indexAtual);
+        } else if (event.key === 'Enter' || event.key === 'Tab') {
+            event.preventDefault();
+            if (indexAtual >= 0 && indexAtual < items.length) items[indexAtual].click();
+            else if (items.length > 0) items[0].click();
+        }
+        if (prefixo === 'ent') sugestaoIndexEnt = indexAtual; else sugestaoIndexSai = indexAtual;
+    },
+
+    atualizarSelecaoVisual: function (items, indexAtual) {
+        for (let i = 0; i < items.length; i++) items[i].classList.remove('selecionado');
+        if (indexAtual >= 0 && indexAtual < items.length) {
+            items[indexAtual].classList.add('selecionado');
+            items[indexAtual].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    },
+
+    selecionarItemBusca: function (prefixo, id, nomeVisivel) {
+        document.getElementById(`${prefixo}-item`).value = id;
+        document.getElementById(`${prefixo}-item-busca`).value = nomeVisivel;
+        document.getElementById(`lista-sugestoes-${prefixo}`).style.display = 'none';
+        document.getElementById(`${prefixo}-qtd`).focus();
+        if (prefixo === 'sai') this.autoPreencherRepasse();
+    },
+
     calcularEstoqueInsumo: function (idInsumo) {
         const db = DB_ESTOQUE.get();
         let saldo = 0;
@@ -255,6 +298,30 @@ const Estoque = {
         lucide.createIcons();
     },
 
+    ajustarEstoqueInsumo: function (idInsumo) {
+        const db = DB_ESTOQUE.get();
+        const ins = db.insumos.find(i => i.id === idInsumo);
+        const saldoAtual = this.calcularEstoqueInsumo(idInsumo);
+
+        ModalEstoque.prompt('Ajuste Manual Físico', `Material: <strong>${ins.nome}</strong><br>Saldo Atual: ${saldoAtual}<br>Digite a qtd REAL na prateleira:`, saldoAtual, (novoSaldoStr) => {
+            const novoSaldo = parseFloat(novoSaldoStr);
+            if (isNaN(novoSaldo) || novoSaldo < 0) return;
+            const diff = novoSaldo - saldoAtual;
+            if (diff === 0) return;
+
+            db.logsInsumos.push({
+                id: 'LOGI_' + Date.now(),
+                tipo: diff > 0 ? 'Entrada' : 'Saída',
+                data: new Date().toISOString().split('T')[0],
+                idInsumo: idInsumo, qtd: Math.abs(diff), total: 0, valorCobrado: 0, totalCobrado: 0,
+                idFunc: 'AFINACAO_GERAL'
+            });
+            DB_ESTOQUE.save(db);
+            this.renderPainel();
+            ModalEstoque.show('Sucesso', 'Estoque ajustado!');
+        });
+    },
+
     toggleTipoEntrada: function () {
         const tipo = document.querySelector('input[name="tipo-entrada"]:checked').value;
         const divTotal = document.getElementById('div-ent-total');
@@ -265,16 +332,14 @@ const Estoque = {
         if (tipo === 'insumo') {
             divTotal.style.display = 'block';
             inputTotal.required = true;
-            labelItem.innerText = 'Selecione o Insumo';
+            labelItem.innerText = '2. Buscar Insumo';
             divCliente.style.display = 'none';
-            document.getElementById('ent-cliente').required = false;
         } else {
             divTotal.style.display = 'none';
             inputTotal.required = false;
             inputTotal.value = '';
-            labelItem.innerText = 'Selecione o Produto (Peça)';
+            labelItem.innerText = '2. Buscar Peça';
             divCliente.style.display = 'block';
-            document.getElementById('ent-cliente').required = true;
         }
         this.renderSelects();
     },
@@ -284,25 +349,11 @@ const Estoque = {
         const erp = LerERP();
         const rh = LerRH();
 
-        // Selects da Entrada
-        const tipoEntradaRadio = document.querySelector('input[name="tipo-entrada"]:checked');
-        if (tipoEntradaRadio && document.getElementById('ent-item')) {
-            const tipo = tipoEntradaRadio.value;
-            if (tipo === 'insumo') {
-                document.getElementById('ent-item').innerHTML = '<option value="">-- Escolha o Insumo --</option>' +
-                    db.insumos.map(i => `<option value="${i.id}">${i.nome} (Atual: ${this.calcularEstoqueInsumo(i.id)} ${i.unidade})</option>`).join('');
-            } else {
-                document.getElementById('ent-item').innerHTML = '<option value="">-- Escolha a Peça --</option>' +
-                    erp.produtos.map(p => `<option value="${p.codigo}">${p.codigo} - ${p.nome}</option>`).join('');
-                document.getElementById('ent-cliente').innerHTML = '<option value="">-- Cliente Origem --</option>' +
-                    erp.clientes.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
-            }
-        }
-
-        // Selects da Saída (Apenas Insumos)
-        if (document.getElementById('sai-item')) {
-            document.getElementById('sai-item').innerHTML = '<option value="">-- Selecione o Insumo --</option>' +
-                db.insumos.map(i => `<option value="${i.id}">${i.nome} (Atual: ${this.calcularEstoqueInsumo(i.id)} ${i.unidade})</option>`).join('');
+        // O autocomplete resolve os itens, mas o filtro de cliente de entrada deve ser renderizado:
+        const selectFiltroCliente = document.getElementById('ent-cliente');
+        if (selectFiltroCliente) {
+            selectFiltroCliente.innerHTML = '<option value="">-- Todas as Empresas --</option>' +
+                erp.clientes.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
         }
 
         if (document.getElementById('sai-func')) {
@@ -315,24 +366,21 @@ const Estoque = {
     registrarEntrada: function () {
         const tipo = document.querySelector('input[name="tipo-entrada"]:checked').value;
         const data = document.getElementById('ent-data').value;
-        const item = document.getElementById('ent-item').value;
+        const item = document.getElementById('ent-item').value; // Aqui vem o ID ou CÓDIGO gerado pelo autocomplete
         const qtd = parseFloat(document.getElementById('ent-qtd').value);
         const db = DB_ESTOQUE.get();
 
         if (tipo === 'insumo') {
             const total = parseFloat(document.getElementById('ent-total').value);
             const statusPagamento = document.getElementById('ent-pagamento').value;
-            let dataVencimento = data; // Se for pago à vista, o vencimento é o dia da compra
+            let dataVencimento = data;
 
             if (statusPagamento === 'PRAZO') {
                 dataVencimento = document.getElementById('ent-vencimento').value;
-                if (!dataVencimento) {
-                    ModalEstoque.show('Aviso', 'Para compras a prazo, é obrigatório informar a Data de Vencimento.');
-                    return;
-                }
+                if (!dataVencimento) { ModalEstoque.show('Aviso', 'Para compras a prazo, é obrigatório informar a Data de Vencimento.'); return; }
             }
 
-            if (!data || !item || isNaN(qtd) || isNaN(total)) return;
+            if (!data || !item || isNaN(qtd) || isNaN(total)) { ModalEstoque.show('Erro', 'Preencha todos os campos do insumo.'); return; }
 
             db.logsInsumos.push({
                 id: 'LOGI_' + Date.now(),
@@ -343,48 +391,44 @@ const Estoque = {
             // --- INTEGRAÇÃO COM AGENDA FINANCEIRA ---
             const insumoNome = db.insumos.find(i => i.id === item)?.nome || 'Insumo';
             const dbFinRaw = localStorage.getItem('ks_financeiro_dados');
-
             let dbFin = { despesas: [] };
-            if (dbFinRaw) {
-                dbFin = JSON.parse(dbFinRaw);
-                if (!dbFin.despesas) dbFin.despesas = [];
-            }
+            if (dbFinRaw) { dbFin = JSON.parse(dbFinRaw); if (!dbFin.despesas) dbFin.despesas = []; }
 
             dbFin.despesas.push({
                 id: 'MAT_' + Date.now(),
                 descricao: `Compra Material: ${insumoNome} (x${qtd})`,
-                categoria: 'MATERIAL',
-                valor: total,
-                vencimento: dataVencimento,
-                pago: statusPagamento === 'PAGO', // Se for PRAZO, entra como Pendente na agenda
-                cancelada: false
+                categoria: 'MATERIAL', valor: total, vencimento: dataVencimento,
+                pago: statusPagamento === 'PAGO', cancelada: false
             });
             localStorage.setItem('ks_financeiro_dados', JSON.stringify(dbFin));
-            // --- FIM DA INTEGRAÇÃO ---
 
-            // Limpa os campos após salvar
             const selectPag = document.getElementById('ent-pagamento');
             const divVenc = document.getElementById('div-ent-vencimento');
             const inputVenc = document.getElementById('ent-vencimento');
             if (selectPag) selectPag.value = 'PAGO';
             if (inputVenc) inputVenc.value = '';
             if (divVenc) divVenc.style.display = 'none';
+            if (document.getElementById('ent-total')) document.getElementById('ent-total').value = '';
 
         } else {
-            const cliente = document.getElementById('ent-cliente').value;
-            if (!data || !item || isNaN(qtd) || !cliente) return;
+            // Se for entrada de peça, a empresa não é obrigatória caso a peça não tenha empresa atrelada
+            if (!data || !item || isNaN(qtd)) { ModalEstoque.show('Erro', 'Preencha todos os campos da peça.'); return; }
+            const erp = LerERP();
+            const prodRef = erp.produtos.find(p => p.codigo === item);
+            const nomeCli = prodRef && prodRef.fornecedor ? prodRef.fornecedor : 'Cliente Avulso/Sem Empresa';
 
             db.logsPecas.push({
                 id: 'LOGP_' + Date.now(),
                 tipo: 'Entrada',
-                data, codigoPeca: item, qtd, origemDestino: `Cliente: ${cliente}`
+                data, codigoPeca: item, qtd, origemDestino: `Cliente: ${nomeCli}`
             });
         }
 
         DB_ESTOQUE.save(db);
+        document.getElementById('ent-item').value = '';
+        document.getElementById('ent-item-busca').value = '';
         document.getElementById('ent-qtd').value = '';
-        if (document.getElementById('ent-total')) document.getElementById('ent-total').value = '';
-        this.renderSelects();
+        document.getElementById('ent-item-busca').focus();
         ModalEstoque.show('Sucesso', 'Entrada registrada com sucesso!');
     },
 
@@ -451,8 +495,11 @@ const Estoque = {
         });
 
         DB_ESTOQUE.save(db);
+        document.getElementById('sai-item').value = '';
+        document.getElementById('sai-item-busca').value = '';
         document.getElementById('sai-qtd').value = '';
-        this.renderSelects();
+        if (document.getElementById('sai-valor')) document.getElementById('sai-valor').value = '';
+        document.getElementById('sai-item-busca').focus();
     },
 
     renderHistorico: function () {
@@ -504,6 +551,8 @@ const Estoque = {
                 } else {
                     if (l.idFunc === 'AFINACAO_GERAL') {
                         origemDestino = 'Uso da Afinação';
+                    } else if (l.idFunc === 'AJUSTE_SISTEMA') {
+                        origemDestino = 'Ajuste Manual';
                     } else {
                         const f = rh.funcionarios.find(func => func.id === l.idFunc);
                         origemDestino = f ? f.nome : 'Funcionário';
@@ -516,7 +565,6 @@ const Estoque = {
                     }
                 }
             } else {
-                // Classe Peças
                 const p = erp.produtos.find(prod => String(prod.codigo) === String(l.codigoPeca));
                 nomeItem = p ? `${p.codigo} - ${p.nome}` : `Cód: ${l.codigoPeca} (Excluída)`;
                 unidade = 'un';
@@ -524,7 +572,6 @@ const Estoque = {
                 financeiro = l.tipo === 'Entrada' ? '<span style="color:#38bdf8;">Chegada Afinação</span>' : '<span style="color:#eab308;">Baixa / Ajuste</span>';
             }
 
-            // LÓGICA DE EXIBIÇÃO DE PERCAS (EM VERMELHO ENTRE PARÊNTESES)
             let formatQtd = `<strong>${l.qtd}</strong>`;
             if (l.classe === 'Peças' && l.perca && l.perca > 0) {
                 formatQtd = `<strong>${l.qtd}</strong> <span style="color: #ef4444; font-weight: bold; font-size: 12px; margin-left: 4px;">(${l.perca})</span>`;
@@ -565,29 +612,21 @@ const Estoque = {
             saldoAtual,
             (novoSaldoStr) => {
                 if (novoSaldoStr === null || novoSaldoStr.trim() === '') return;
-
                 const novoSaldo = parseFloat(novoSaldoStr);
-                if (isNaN(novoSaldo) || novoSaldo < 0) {
-                    ModalEstoque.show('Erro', 'Quantidade inválida. Digite um número maior ou igual a zero.');
-                    return;
-                }
+                if (isNaN(novoSaldo) || novoSaldo < 0) { ModalEstoque.show('Erro', 'Quantidade inválida.'); return; }
 
                 const diff = novoSaldo - saldoAtual;
-                if (diff === 0) return; // Nenhuma alteração
+                if (diff === 0) return;
 
                 const db = DB_ESTOQUE.get();
                 const tipoLog = diff > 0 ? 'Entrada' : 'Saída';
                 const qtdAjuste = Math.abs(diff);
-
                 const dataLocal = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
                 db.logsPecas.push({
                     id: 'LOGP_' + Date.now(),
-                    tipo: tipoLog,
-                    data: dataLocal,
-                    codigoPeca: codigoPeca,
-                    qtd: qtdAjuste,
-                    origemDestino: 'Ajuste Manual de Estoque'
+                    tipo: tipoLog, data: dataLocal, codigoPeca: codigoPeca,
+                    qtd: qtdAjuste, origemDestino: 'Ajuste Manual de Estoque'
                 });
 
                 DB_ESTOQUE.save(db);
@@ -601,30 +640,28 @@ const Estoque = {
         const db = DB_ESTOQUE.get();
         const erp = LerERP();
 
-        // 1. Painel de Alertas de Insumos
         const saudavelDiv = document.getElementById('lista-estoque-saudavel');
         const alertaDiv = document.getElementById('lista-estoque-alerta');
-
-        let saudaveis = [];
-        let alertas = [];
+        let saudaveis = []; let alertas = [];
 
         db.insumos.forEach(i => {
             const saldo = this.calcularEstoqueInsumo(i.id);
-            const info = `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #1e293b;">
+            // Lápis na tela do Painel
+            const info = `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #1e293b;">
                 <span>${i.nome}</span>
-                <strong>${saldo} ${i.unidade}</strong>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <strong>${saldo} ${i.unidade}</strong>
+                    <button onclick="Estoque.ajustarEstoqueInsumo('${i.id}')" style="background:transparent; border:none; color:#eab308; cursor:pointer; padding:0;" title="Ajuste Físico"><i data-lucide="pencil" style="width:14px;"></i></button>
+                </div>
             </div>`;
-            if (saldo <= i.minimo) alertas.push(info);
-            else saudaveis.push(info);
+            if (saldo <= i.minimo) alertas.push(info); else saudaveis.push(info);
         });
 
         if (saudavelDiv) saudavelDiv.innerHTML = saudaveis.length ? saudaveis.join('') : '<span style="color:#94a3b8;">Nenhum item em nível saudável.</span>';
         if (alertaDiv) alertaDiv.innerHTML = alertas.length ? alertas.join('') : '<span style="color:#94a3b8;">Estoque tranquilo! Nenhum alerta.</span>';
 
-        // 2. Painel de Faturamento de Peças
         const tbodyPecas = document.querySelector('#tabela-painel-pecas tbody');
-        let faturamentoTotal = 0;
-        let pecasHtml = '';
+        let faturamentoTotal = 0; let pecasHtml = '';
 
         const codigosMovimentados = [...new Set(db.logsPecas.map(l => l.codigoPeca))];
 
@@ -632,33 +669,21 @@ const Estoque = {
             const saldo = this.calcularEstoquePeca(cod);
             if (saldo > 0) {
                 const prod = erp.produtos.find(p => String(p.codigo) === String(cod));
-                const nome = prod ? prod.nome : 'Produto não encontrado';
+                const nome = prod ? prod.nome.toUpperCase() : 'Produto não encontrado';
                 const valVenda = prod ? (prod.valVenda || 0) : 0;
+                faturamentoTotal += (saldo * valVenda);
 
-                const fatBruto = saldo * valVenda;
-                faturamentoTotal += fatBruto;
-
-                pecasHtml += `
-                <tr style="border-bottom: 1px solid #1e293b;">
-                    <td style="color:#94a3b8;">${cod}</td>
-                    <td style="font-weight:bold;">${nome}</td>
+                pecasHtml += `<tr style="border-bottom: 1px solid #1e293b;">
+                    <td style="color:#94a3b8;">${cod}</td><td style="font-weight:bold;">${nome}</td>
                     <td style="text-align:center; color:#38bdf8; font-weight:bold; font-size:16px;">${saldo}</td>
-                    <td style="text-align:right; color:#10b981; font-weight:bold;">R$ ${fatBruto.toFixed(2).replace('.', ',')}</td>
-                    <td style="text-align:center;">
-                        <button onclick="Estoque.ajustarEstoquePeca('${cod}', ${saldo})" style="background:transparent; border:none; color:#38bdf8; cursor:pointer; padding: 6px; margin: 0 auto; display: inline-flex;" title="Ajustar Estoque"><i data-lucide="pencil" style="width:16px;"></i></button>
-                    </td>
+                    <td style="text-align:right; color:#10b981; font-weight:bold;">R$ ${(saldo * valVenda).toFixed(2).replace('.', ',')}</td>
+                    <td style="text-align:center;"><button onclick="Estoque.ajustarEstoquePeca('${cod}', ${saldo})" style="background:transparent; border:none; color:#eab308; cursor:pointer;"><i data-lucide="pencil" style="width:16px;"></i></button></td>
                 </tr>`;
             }
         });
 
-        if (tbodyPecas) {
-            tbodyPecas.innerHTML = pecasHtml === '' ? '<tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;">Estoque vazio. Nenhuma peça aguardando afinação.</td></tr>' : pecasHtml;
-        }
-
-        if (document.getElementById('painel-faturamento')) {
-            document.getElementById('painel-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2).replace('.', ',')}`;
-        }
-
+        if (tbodyPecas) tbodyPecas.innerHTML = pecasHtml === '' ? '<tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;">Estoque vazio. Nenhuma peça aguardando afinação.</td></tr>' : pecasHtml;
+        if (document.getElementById('painel-faturamento')) document.getElementById('painel-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2).replace('.', ',')}`;
         lucide.createIcons();
     },
 
@@ -672,17 +697,13 @@ const Estoque = {
         let logsInsumos = db.logsInsumos.filter(l => l.data.startsWith(mesFiltro));
         let logsPecas = db.logsPecas.filter(l => l.data.startsWith(mesFiltro));
 
-        // Contabilidade de Insumos
-        let totalCustoEntrada = 0;
-        let totalCobradoSaida = 0;
+        let totalCustoEntrada = 0; let totalCobradoSaida = 0;
         logsInsumos.forEach(l => {
             if (l.tipo === 'Entrada') totalCustoEntrada += (l.total || 0);
             if (l.tipo === 'Saída') totalCobradoSaida += (l.totalCobrado || 0);
         });
 
-        // Contabilidade de Peças
-        let pecasEntradas = 0;
-        let pecasSaidas = 0;
+        let pecasEntradas = 0; let pecasSaidas = 0;
         logsPecas.forEach(l => {
             if (l.tipo === 'Entrada') pecasEntradas += l.qtd;
             if (l.tipo === 'Saída') pecasSaidas += l.qtd;
@@ -692,20 +713,18 @@ const Estoque = {
         const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
         const nomeMes = meses[parseInt(mesStr) - 1];
 
-        // Desenha a "Folha de Papel" Oficial
+        // ITEM 3: SEPARAÇÃO DA MATEMÁTICA DO ESTOQUE
         let html = `
             <div style="text-align: center; margin-bottom: 20px;">
                 <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: #000;">KS Afinações</h1>
                 <h2 style="font-size: 16px; margin: 5px 0; color: #333;">Relatório Financeiro do Estoque</h2>
                 <p style="font-size: 14px; margin: 0; color: #555;">Período fechado: <strong>${nomeMes} / ${ano}</strong></p>
             </div>
-
             <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 20px;">
                 <div style="flex: 1; border: 1px solid #000; padding: 15px; border-radius: 4px;">
-                    <h3 style="font-size: 14px; margin-top:0; border-bottom: 1px solid #000; padding-bottom: 5px; color: #000;">Resumo de Caixa (Insumos)</h3>
-                    <p style="margin: 5px 0; font-size: 13px; color: #000;">Gasto em Compras: <strong style="color: #b91c1c;">R$ ${totalCustoEntrada.toFixed(2).replace('.', ',')}</strong></p>
-                    <p style="margin: 5px 0; font-size: 13px; color: #000;">Valor Descontado no RH: <strong style="color: #15803d;">R$ ${totalCobradoSaida.toFixed(2).replace('.', ',')}</strong></p>
-                    <p style="margin: 8px 0 0 0; font-size: 13px; color: #000; border-top: 1px dashed #000; padding-top: 8px;">Custo Real da Empresa: <strong>R$ ${(totalCustoEntrada - totalCobradoSaida).toFixed(2).replace('.', ',')}</strong></p>
+                    <h3 style="font-size: 14px; margin-top:0; border-bottom: 1px solid #000; padding-bottom: 5px; color: #000;">Balanço do Mês (Insumos)</h3>
+                    <p style="margin: 5px 0; font-size: 13px; color: #000;">Gastos em Compras: <strong style="color: #b91c1c;">R$ ${totalCustoEntrada.toFixed(2).replace('.', ',')}</strong></p>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; color: #000; border-top: 1px dashed #000; padding-top: 8px;">Consumo / Descontos RH (Indicador): <strong style="color: #15803d;">R$ ${totalCobradoSaida.toFixed(2).replace('.', ',')}</strong></p>
                 </div>
                 <div style="flex: 1; border: 1px solid #000; padding: 15px; border-radius: 4px;">
                     <h3 style="font-size: 14px; margin-top:0; border-bottom: 1px solid #000; padding-bottom: 5px; color: #000;">Resumo de Produtividade (Peças)</h3>
@@ -714,18 +733,9 @@ const Estoque = {
                     <p style="margin: 8px 0 0 0; font-size: 13px; color: #000; border-top: 1px dashed #000; padding-top: 8px;">Balanço do Mês: <strong>${pecasEntradas - pecasSaidas} un.</strong></p>
                 </div>
             </div>
-            
             <h3 style="font-size: 14px; margin-bottom: 10px; color: #000;">Detalhamento: Consumo da Equipe de Afinação</h3>
             <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 20px; color: #000;">
-                <thead>
-                    <tr>
-                        <th style="border: 1px solid #000; padding: 4px; text-align: left; color: #000; background: #f8fafc;">Data</th>
-                        <th style="border: 1px solid #000; padding: 4px; text-align: left; color: #000; background: #f8fafc;">Funcionário / Destino</th>
-                        <th style="border: 1px solid #000; padding: 4px; text-align: left; color: #000; background: #f8fafc;">Insumo Retirado</th>
-                        <th style="border: 1px solid #000; padding: 4px; text-align: center; color: #000; background: #f8fafc;">Qtd</th>
-                        <th style="border: 1px solid #000; padding: 4px; text-align: right; color: #000; background: #f8fafc;">Val. Descontado (RH)</th>
-                    </tr>
-                </thead>
+                <thead><tr><th style="border: 1px solid #000; padding: 4px; text-align: left; color: #000; background: #f8fafc;">Data</th><th style="border: 1px solid #000; padding: 4px; text-align: left; color: #000; background: #f8fafc;">Funcionário / Destino</th><th style="border: 1px solid #000; padding: 4px; text-align: left; color: #000; background: #f8fafc;">Insumo Retirado</th><th style="border: 1px solid #000; padding: 4px; text-align: center; color: #000; background: #f8fafc;">Qtd</th><th style="border: 1px solid #000; padding: 4px; text-align: right; color: #000; background: #f8fafc;">Val. Descontado (RH)</th></tr></thead>
                 <tbody>
         `;
 
@@ -737,19 +747,14 @@ const Estoque = {
                 const item = db.insumos.find(i => i.id === l.idInsumo);
                 const nomeItem = item ? item.nome : 'Material Excluído';
                 let nomeFunc = 'Uso da Afinação';
-                if (l.idFunc !== 'AFINACAO_GERAL') {
+                if (l.idFunc !== 'AFINACAO_GERAL' && l.idFunc !== 'AJUSTE_SISTEMA') {
                     const f = rh.funcionarios.find(func => func.id === l.idFunc);
                     if (f) nomeFunc = f.nome;
+                } else if (l.idFunc === 'AJUSTE_SISTEMA') {
+                    nomeFunc = 'Ajuste Físico (Lápis)';
                 }
 
-                html += `
-                <tr>
-                    <td style="border: 1px solid #000; padding: 4px; color: #000;">${l.data.split('-').reverse().join('/')}</td>
-                    <td style="border: 1px solid #000; padding: 4px; color: #000;">${nomeFunc}</td>
-                    <td style="border: 1px solid #000; padding: 4px; color: #000;">${nomeItem}</td>
-                    <td style="border: 1px solid #000; padding: 4px; text-align: center; color: #000;">${l.qtd}</td>
-                    <td style="border: 1px solid #000; padding: 4px; text-align: right; color: #000;">R$ ${(l.totalCobrado || 0).toFixed(2).replace('.', ',')}</td>
-                </tr>`;
+                html += `<tr><td style="border: 1px solid #000; padding: 4px; color: #000;">${l.data.split('-').reverse().join('/')}</td><td style="border: 1px solid #000; padding: 4px; color: #000;">${nomeFunc}</td><td style="border: 1px solid #000; padding: 4px; color: #000;">${nomeItem}</td><td style="border: 1px solid #000; padding: 4px; text-align: center; color: #000;">${l.qtd}</td><td style="border: 1px solid #000; padding: 4px; text-align: right; color: #000;">R$ ${(l.totalCobrado || 0).toFixed(2).replace('.', ',')}</td></tr>`;
             });
         }
 
@@ -760,58 +765,26 @@ const Estoque = {
 
     imprimirRelatorio: function () {
         const conteudo = document.getElementById('print-area-relatorio').innerHTML;
-        if (conteudo.trim() === '') {
-            ModalEstoque.show('Erro', 'O relatório está vazio. Escolha um mês válido.');
-            return;
-        }
+        if (conteudo.trim() === '') { ModalEstoque.show('Erro', 'O relatório está vazio. Escolha um mês válido.'); return; }
 
         const tituloOriginal = document.title;
         document.title = 'Relatorio_Estoque';
 
-        // Cria uma área de impressão FORA do menu principal para a impressora enxergar
         let printDiv = document.getElementById('print-area-externa');
-        if (!printDiv) {
-            printDiv = document.createElement('div');
-            printDiv.id = 'print-area-externa';
-            document.body.appendChild(printDiv);
-        }
+        if (!printDiv) { printDiv = document.createElement('div'); printDiv.id = 'print-area-externa'; document.body.appendChild(printDiv); }
         printDiv.innerHTML = conteudo;
 
         let style = document.getElementById('print-style-relatorio');
         if (!style) {
-            style = document.createElement('style');
-            style.id = 'print-style-relatorio';
-            style.innerHTML = `
-                #print-area-externa { display: none; }
-                body.printing-relatorio .app-container { display: none !important; }
-                body.printing-relatorio .modal-overlay { display: none !important; }
-                body.printing-relatorio #print-area-externa { 
-                    display: block !important; 
-                    background: white !important; 
-                    color: black !important; 
-                    position: absolute;
-                    top: 0; left: 0; width: 100%;
-                    padding: 3mm !important;
-                    box-sizing: border-box !important;
-                }
-                @media print { 
-                    @page { size: A4 portrait; margin: 5mm; } 
-                    body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; } 
-                }
-            `;
+            style = document.createElement('style'); style.id = 'print-style-relatorio';
+            style.innerHTML = `#print-area-externa { display: none; } body.printing-relatorio .app-container { display: none !important; } body.printing-relatorio .modal-overlay { display: none !important; } body.printing-relatorio #print-area-externa { display: block !important; background: white !important; color: black !important; position: absolute; top: 0; left: 0; width: 100%; padding: 3mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 5mm; } body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; } }`;
             document.head.appendChild(style);
         }
 
         document.body.className = 'printing-relatorio';
-
-        setTimeout(() => {
-            window.print();
-            document.title = tituloOriginal;
-            document.body.className = '';
-        }, 500);
+        setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; }, 500);
     }
 };
-
 
 window.onload = () => {
     const dataMes = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().substring(0, 7);

@@ -12,6 +12,8 @@
     --border-color: #1e293b;
     --radius: 6px;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    --print-color: #000000;
+    /* Variável Global de Impressão */
 }
 
 /* =========================================
@@ -19,42 +21,30 @@
    ========================================= */
 .btn-switch-module {
     background: #1e293b !important;
-    /* Cor de fundo de um card levemente mais claro que o menu */
     color: #f8fafc !important;
-    /* Texto branco */
     border-left: none !important;
-    /* Remove a borda grossa e esquisita */
     border: 1px solid #334155 !important;
-    /* Borda fina e elegante em toda a volta */
     border-radius: 8px !important;
-    /* Bordas arredondadas modernas */
     margin: 8px 15px !important;
-    /* Descola das laterais do menu */
     padding: 12px 15px !important;
     font-weight: 600 !important;
     text-transform: none !important;
-    /* Tira o TUDO MAIÚSCULO agressivo */
     letter-spacing: normal !important;
     font-size: 13px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
     gap: 10px !important;
-    /* Espaço perfeito entre ícone e texto */
     transition: all 0.2s ease !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
-    /* Leve sombra de profundidade */
 }
 
 .btn-switch-module:hover {
     background: #334155 !important;
-    /* Clareia ao passar o mouse */
     border-color: #475569 !important;
     transform: translateY(-1px) !important;
-    /* Dá um "pulinho" sutil ao focar */
 }
 
-/* Deixa o ícone de cada módulo com a sua cor de identidade para facilitar o clique */
 .btn-switch-module[href="funcionarios.html"] svg {
     color: #eab308 !important;
 }
@@ -131,14 +121,12 @@ label {
     font-weight: 500;
 }
 
-/* Tabelas UI (Clean e Monocromática) */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
     font-size: 14px;
     white-space: nowrap;
-    /* Evita que o texto quebre e deforme a tabela no mobile */
 }
 
 th,
@@ -162,7 +150,6 @@ tbody tr:hover {
     background-color: rgba(255, 255, 255, 0.02);
 }
 
-/* Layout Principal */
 .app-container {
     display: flex;
     flex-direction: column;
@@ -187,7 +174,6 @@ tbody tr:hover {
         display: flex;
         flex-direction: column;
         height: 100vh;
-        /* Fixa a sidebar no desktop */
         position: sticky;
         top: 0;
     }
@@ -263,10 +249,8 @@ tbody tr:hover {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    /* Rolagem suave no iOS */
 }
 
-/* Estilização da barra de rolagem nas tabelas/cards */
 .card::-webkit-scrollbar {
     height: 6px;
 }
@@ -338,7 +322,6 @@ tbody tr:hover {
     color: #fff;
 }
 
-
 .flex {
     display: flex;
     gap: 15px;
@@ -365,7 +348,6 @@ tbody tr:hover {
     text-align: right;
 }
 
-/* LISTA DE SUGESTÕES DO AUTO-COMPLETE */
 .sugestao-lista {
     list-style: none;
     margin: 0;
@@ -378,11 +360,8 @@ tbody tr:hover {
     overflow-y: auto;
     width: 100%;
     z-index: 10000;
-    /* Aumentado para garantir que fique por cima de tudo */
     top: calc(100% + 2px);
-    /* Descola levemente do input para não sobrepor a borda */
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    /* Sombra mais forte para destacar a elevação */
 }
 
 .sugestao-item {
@@ -411,8 +390,6 @@ tbody tr:hover {
     color: var(--primary-color);
 }
 
-
-/* BARRA FIXA DOS BOTÕES DE IMPRESSÃO */
 .fixed-bottom-bar {
     position: fixed;
     bottom: 0;
@@ -431,7 +408,6 @@ tbody tr:hover {
     }
 }
 
-/* MODAL */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -450,7 +426,6 @@ tbody tr:hover {
     padding: 30px;
     border-radius: var(--radius);
     width: 95%;
-    /* Adaptado para mobile */
     max-width: 400px;
     text-align: center;
     border: 1px solid var(--border-color);
@@ -468,7 +443,6 @@ tbody tr:hover {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    /* Evita quebra de botões no modal */
     gap: 12px;
     margin-top: 24px;
 }
@@ -485,9 +459,6 @@ tbody tr:hover {
     }
 }
 
-/* =========================================
-    NOVO LAYOUT: TABELA DE PREÇOS (PREVIEW)
-    ========================================= */
 .preview-tabela-wrapper {
     background: white;
     color: black;
@@ -504,7 +475,6 @@ tbody tr:hover {
     gap: 20px;
     margin-bottom: 20px;
     flex-wrap: wrap;
-    /* Mobile friendly */
 }
 
 .tabela-precos-header h1 {
@@ -559,7 +529,6 @@ tbody tr:hover {
     color: black;
     font-weight: bold;
     white-space: normal;
-    /* Permite quebra na impressão/preview */
 }
 
 .tabela-precos-table .produto-col {
@@ -575,25 +544,17 @@ tbody tr:hover {
     padding-right: 15px;
 }
 
-/* Destaque para navegação por teclado nos botões do modal */
 #custom-modal button:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
     box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
-    /* Um brilho amarelado suave */
 }
 
-/* Tira o outline feio padrão do navegador */
 #custom-modal button:focus-visible {
     outline: 2px solid var(--primary-color);
 }
 
-/* =========================================
-   MASTER RESPONSIVIDADE MOBILE (MENOR QUE 768px)
-   ========================================= */
 @media (max-width: 767px) {
-
-    /* 1. Menu Lateral vira Menu Superior Rolável (Estilo App) */
     .sidebar {
         position: sticky;
         top: 0;
@@ -607,7 +568,6 @@ tbody tr:hover {
     .logo-area {
         padding: 15px 15px 5px 15px;
         text-align: left;
-        /* Alinhado à esquerda para não bater no botão */
     }
 
     .logo-area h1 {
@@ -624,7 +584,6 @@ tbody tr:hover {
         align-items: center;
     }
 
-    /* Barra de rolagem sutil para indicar o carrossel de botões */
     .nav-menu::-webkit-scrollbar {
         height: 4px;
         display: block;
@@ -666,21 +625,17 @@ tbody tr:hover {
         background-color: var(--border-color);
     }
 
-    /* Oculta o divisor logo após o botão de trocar módulo para não deixar espaço em branco */
     .nav-menu .nav-divider:nth-child(2) {
         display: none !important;
     }
 
-    /* FIXA O BOTÃO DE TROCA DE MÓDULO NO TOPO DIREITO */
     nav.nav-menu .btn-switch-module {
         position: absolute !important;
         top: 12px !important;
         right: 15px !important;
         width: auto !important;
         padding: 6px 12px !important;
-        /* Deixa o botão menor */
         font-size: 11px !important;
-        /* Fonte menor */
         border-left: none !important;
         border: 1px solid #eab308 !important;
         background: transparent !important;
@@ -689,7 +644,6 @@ tbody tr:hover {
         z-index: 1000;
     }
 
-    /* Reduz os ícones de seta/user dentro desse botão para ficarem proporcionais */
     nav.nav-menu .btn-switch-module i,
     nav.nav-menu .btn-switch-module svg {
         width: 14px !important;
@@ -697,7 +651,6 @@ tbody tr:hover {
         margin-right: 4px !important;
     }
 
-    /* 2. Ajustes de Espaçamento Principal */
     .main-content {
         padding: 15px;
     }
@@ -706,7 +659,6 @@ tbody tr:hover {
         padding: 15px;
     }
 
-    /* 3. Ajuste nos formulários em linha (Busca e Emissão de Nota) */
     #tab-nota .flex,
     #tab-busca .flex {
         flex-direction: column;
@@ -732,12 +684,10 @@ tbody tr:hover {
         margin-bottom: 10px;
     }
 
-    /* 4. Barra Fixa Inferior (Emissão de Nota) */
     .fixed-bottom-bar {
         padding: 15px;
         flex-direction: column;
         border-radius: 16px 16px 0 0;
-        /* Curva suave estilo app */
     }
 
     .fixed-bottom-bar button {
@@ -749,48 +699,93 @@ tbody tr:hover {
         margin-bottom: 0;
     }
 
-    /* Espaço extra no fim da página para a barra não cobrir conteúdo */
     #tab-nota {
         padding-bottom: 180px;
     }
 }
 
 /* =========================================
-    LAYOUT DE IMPRESSÃO (NÃO ALTERADO)
-    ========================================= */
+   Oculta as áreas de impressão na tela do ERP 
+   ========================================= */
 .print-area {
     display: none;
 }
 
+/* =========================================
+   PRINT PREVIEW E CORES (ITENS 10, 11 E MARGENS)
+   ========================================= */
+.print-preview-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 100000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.print-preview-toolbar {
+    width: 100%;
+    background: #1e293b;
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    z-index: 100001;
+}
+
+.print-preview-paper {
+    background: white;
+    color: black;
+    margin-top: 20px;
+    width: 297mm;
+    height: 210mm;
+    transform: scale(0.8);
+    transform-origin: top center;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Oculta a 2ª via e a linha tracejada APENAS NA TELA para o Preview da Nota */
+body.preview-mode #print-bottom {
+    display: none !important;
+}
+
+body.preview-mode .print-separator {
+    display: none !important;
+}
+
+body.preview-mode .print-half {
+    width: 100% !important;
+    border-right: none !important;
+}
+
 @media print {
-
-:root {
-        --text-main: #00008B !important;
-        --text-muted: #00008B !important;
-        --border-color: #00008B !important;
-        --success-color: #00008B !important;
-    }
-
-    .app-container,
-    .modal-overlay {
-        display: none !important;
-    }
-
     @page {
-        size: portrait;
+        size: A4 portrait;
         margin: 0mm !important;
     }
 
     body {
-        background-color: white !important;
-        color: #00008B !important; 
         margin: 0 !important;
         padding: 0 !important;
-        font-family: 'Arial', sans-serif;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        background: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
+    .app-container,
+    .modal-overlay,
+    .print-preview-overlay {
+        display: none !important;
+    }
+
+    /* === IMPRESSÃO DA NOTA EXATAMENTE COMO A ORIGINAL === */
     body.printing-nota #print-area-nota {
         display: flex !important;
         flex-direction: row;
@@ -803,13 +798,21 @@ tbody tr:hover {
         -webkit-transform: rotate(90deg);
         transform: rotate(90deg);
         transform-origin: top left;
-
         padding: 4mm 15mm 4mm 4mm !important;
         box-sizing: border-box !important;
     }
 
-    body.printing-nota #print-area-nota * {
-        visibility: visible;
+    /* Cores Dinâmicas (Tudo que não for retrabalho muda de cor) */
+    body.printing-nota #print-area-nota *:not(.selo-retrabalho):not(.selo-retrabalho *) {
+        color: var(--print-color) !important;
+        border-color: var(--print-color) !important;
+    }
+
+    body.printing-nota #print-area-nota .selo-retrabalho,
+    body.printing-nota #print-area-nota .selo-retrabalho * {
+        color: #ef4444 !important;
+        border-color: var(--print-color) !important;
+        background: transparent !important;
     }
 
     .print-half {
@@ -821,15 +824,39 @@ tbody tr:hover {
         box-sizing: border-box;
     }
 
-            .print-separator {
+    .print-separator {
         width: 0px;
-        border-left: 1px dashed #00008B !important;
-        border-left-color: #00008B !important;
+        border-left: 1px dashed var(--print-color) !important;
         margin: 0;
         height: 100%;
     }
 
+    /* === IMPRESSÃO DO HOLERITE E EMPREITA (CORRIGE AS MARGENS BUGADAS) === */
+    body.printing-holerite #print-area-holerite,
+    body.printing-empreita #print-area-holerite {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        height: 275mm !important;
+        /* Trava altura rigorosa da folha A4 */
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
 
+    .print-half-holerite {
+        width: 100% !important;
+        height: 48.5% !important;
+        display: block !important;
+        box-sizing: border-box !important;
+    }
+
+    .print-separator-holerite {
+        width: 100% !important;
+        border-top: 1px dashed #000 !important;
+        margin: 0 !important;
+        height: 0px !important;
+    }
 
     body.printing-tabela #print-area-tabela {
         display: block !important;
@@ -837,64 +864,4 @@ tbody tr:hover {
         padding: 10mm;
         box-sizing: border-box;
     }
-
-    body.printing-tabela #print-area-tabela * {
-        visibility: visible;
-    }
-
-    .excel-view {
-        padding: 0mm;
-    }
-
-    .tabela-precos-header {
-        margin-bottom: 10px;
-        gap: 10px;
-    }
-
-    .tabela-precos-header h1 {
-        font-size: 18px;
-    }
-
-    .tabela-precos-header h2 {
-        font-size: 16px;
-    }
-
-    .tabela-precos-subheader {
-        font-size: 11px;
-        margin-bottom: 2px;
-    }
-
-    .tabela-precos-table td {
-        font-size: 9px;
-        padding: 0.5px 0;
-        border-bottom: 1px solid #333;
-    }
-
-    .tabela-precos-table th {
-        font-size: 10px;
-        padding: 1px 0;
-        border-bottom: 1px solid black;
-    }
-
-    .print-half>div:last-child>div:last-child {
-        min-height: 20px !important;
-    }
-    
-    /* FORÇA A NOTA INTEIRA A FICAR AZUL ESCURO (IGNORANDO O RETRABALHO) */
-    body.printing-nota #print-area-nota,
-    body.printing-nota #print-area-nota *:not([style*="red"]):not([style*="danger"]):not([style*="#ef4444"]) {
-        color: #00008B !important;
-        border-color: #00008B !important;
-    }
-
-    /* GARANTE QUE O RETRABALHO E TODOS OS TEXTOS DENTRO DELE CONTINUEM VERMELHOS */
-    body.printing-nota #print-area-nota [style*="red"],
-    body.printing-nota #print-area-nota [style*="red"] *,
-    body.printing-nota #print-area-nota [style*="danger"],
-    body.printing-nota #print-area-nota [style*="danger"] *,
-    body.printing-nota #print-area-nota [style*="#ef4444"],
-    body.printing-nota #print-area-nota [style*="#ef4444"] * {
-        color: #ef4444 !important;
-    }
-
 }
