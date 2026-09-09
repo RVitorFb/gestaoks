@@ -52,10 +52,21 @@ const DbReader = {
 
 const Financeiro = {
     init: function () {
-        const mesAtual = new Date().toISOString().substring(0, 7);
+        const hojeIso = new Date().toISOString();
+        const mesAtual = hojeIso.substring(0, 7);
+        const dataHoje = hojeIso.split('T')[0];
+
         document.getElementById('filtro-raiox-mes').value = mesAtual;
         document.getElementById('filtro-despesas-mes').value = mesAtual;
         document.getElementById('dre-mes').value = mesAtual;
+
+        const despVenc = document.getElementById('desp-venc');
+        if (despVenc) despVenc.value = dataHoje;
+
+        // Force opening date picker on all date inputs
+        document.querySelectorAll('input[type="date"], input[type="month"]').forEach(el => {
+            el.addEventListener('click', function () { this.showPicker(); });
+        });
 
         this.renderRaioX();
         this.renderDespesas();
@@ -422,7 +433,6 @@ const DRE = {
             });
         }
 
-        // LÓGICA MESTRE 9: FIM DA DUPLA DEDUÇÃO. REMOVIDO custoMaoObraNotas DA FÓRMULA DO LUCRO!
         const lucroLiquido = faturamento - despFixas - despVariaveis - despMaterial - despManutencao - despRH;
 
         const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = `R$ ${val.toFixed(2).replace('.', ',')}`; };
@@ -434,7 +444,6 @@ const DRE = {
         safeSet('dre-custo-manut', despManutencao);
         safeSet('dre-custo-rh', despRH);
 
-        // ESCONDE O CARD DA MÃO DE OBRA PARA NÃO CONFUNDIR
         const elMaoObra = document.getElementById('dre-custo-mao');
         if (elMaoObra && elMaoObra.parentElement) elMaoObra.parentElement.style.display = 'none';
 

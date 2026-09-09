@@ -60,7 +60,8 @@
                     data-lucide="x"></i></button>
             <h2
                 style="color: #facc15; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; font-size: 26px;">
-                <i data-lucide="layout-dashboard"></i> Painel de Conferência Mensal</h2>
+                <i data-lucide="layout-dashboard"></i> Painel de Conferência Mensal
+            </h2>
             <div id="relatorio-conteudo" style="flex: 1; overflow-y: hidden; display: flex; flex-direction: column;">
             </div>
             <div
@@ -83,21 +84,22 @@
                 <h1>KS RH</h1>
             </div>
             <nav class="nav-menu">
-                <button class="nav-btn" onclick="RH_UI.switchTab('equipe')"><i data-lucide="users"></i> Gestão de
-                    Equipe</button>
-                <button class="nav-btn" onclick="RH_UI.switchTab('producao')"><i data-lucide="hammer"></i> Lançar
-                    Produção</button>
                 <button class="nav-btn active" onclick="RH_UI.switchTab('fechamento')"><i
                         data-lucide="file-check-2"></i> Fechamento Mensal</button>
                 <button class="nav-btn" onclick="RH_UI.switchTab('periodo')"><i data-lucide="calendar"></i> Relatório de
                     Período</button>
-                <hr style="border-color: #334155; margin: 10px 0;">
                 <button class="nav-btn" onclick="RH_UI.switchTab('empreita')"><i data-lucide="hard-hat"></i> Pagamento
                     Empreita</button>
+                <hr style="border-color: #334155; margin: 10px 0;">
+                <button class="nav-btn" onclick="RH_UI.switchTab('producao')"><i data-lucide="hammer"></i> Lançar
+                    Produção</button>
+                <button class="nav-btn" onclick="RH_UI.switchTab('equipe')"><i data-lucide="users"></i> Gestão de
+                    Equipe</button>
                 <hr style="border-color: #334155; margin: 10px 0;">
                 <button class="nav-btn" onclick="RH_UI.switchTab('turnos')"><i data-lucide="clock"></i> Turnos</button>
                 <button class="nav-btn" onclick="RH_UI.switchTab('cargos')"><i data-lucide="briefcase"></i> Cargos /
                     Escalas</button>
+                <hr style="border-color: #334155; margin: 10px 0;">
                 <button class="nav-btn" onclick="RH_UI.switchTab('arquivo')"><i data-lucide="folder-open"></i> Arquivo
                     Central</button>
                 <hr style="border-color: #334155; margin: 10px 0;">

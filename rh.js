@@ -1,6 +1,15 @@
 // Inicializa ícones na carga inicial
 lucide.createIcons();
 
+// Escutador global para abrir calendários automaticamente ao clicar
+document.addEventListener('click', function (e) {
+    if (e.target && (e.target.type === 'date' || e.target.type === 'month' || e.target.type === 'time')) {
+        if (typeof e.target.showPicker === 'function') {
+            try { e.target.showPicker(); } catch (err) { }
+        }
+    }
+});
+
 let sugestaoIndexProdRH = -1;
 
 const RHDb = {
@@ -203,7 +212,7 @@ const RH = {
     renderSelectFuncProducao: function () {
         const db = RHDb.get();
         const funcs = db.funcionarios.filter(f => f.tipo === 'Produção');
-        document.getElementById('prod-id-func').innerHTML = funcs.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+        document.getElementById('prod-id-func').innerHTML = '<option value="">-- Selecione --</option>' + funcs.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
     },
 
     navegarSugestoesProducao: function (event) {
@@ -403,7 +412,7 @@ const RH = {
         if (!l) return;
 
         const funcs = db.funcionarios.filter(f => f.tipo === 'Produção');
-        let optionsFunc = '';
+        let optionsFunc = '<option value="">-- Selecione --</option>';
         funcs.forEach(f => {
             let selected = (f.id === l.idFunc) ? 'selected' : '';
             optionsFunc += `<option value="${f.id}" ${selected}>${f.nome}</option>`;
@@ -464,8 +473,8 @@ const RH = {
         const idFunc = document.getElementById(`edit-prod-func-${id}`).value;
         const qtd = parseInt(document.getElementById(`edit-prod-qtd-${id}`).value);
 
-        if (!data || isNaN(qtd) || qtd < 1) {
-            ModalRH.show('Aviso', 'Preencha a data e uma quantidade válida.');
+        if (!data || isNaN(qtd) || qtd < 1 || !idFunc) {
+            ModalRH.show('Aviso', 'Preencha a data, selecione o funcionário e indique uma quantidade válida.');
             return;
         }
 
@@ -487,27 +496,29 @@ const RH = {
         this.renderTabelaFuncionarios();
         this.renderSelectFechamento();
         this.renderSelectFuncProducao();
-        this.renderTabelaFuncionarios();
-        this.renderSelectFechamento();
-        this.renderSelectFuncProducao();
 
         RH_Empreita.toggleCampos();
         RH_Empreita.renderTabela();
 
+        // Arrumando o bug de timezone nas datas (evita a linha branca)
         const hoje = new Date();
-        document.getElementById('fechamento-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+        const yyyy = hoje.getFullYear();
+        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoje.getDate()).padStart(2, '0');
 
-        const campoFiltroProd = document.getElementById('filtro-mes-producao');
-        if (campoFiltroProd) campoFiltroProd.value = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+        const dataLocal = `${yyyy}-${mm}-${dd}`;
+        const mesLocal = `${yyyy}-${mm}`;
 
-        const campoFiltroMes = document.getElementById('filtro-hist-mes');
-        if (campoFiltroMes) campoFiltroMes.value = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
 
-        const campoDataProd = document.getElementById('prod-data');
-        if (campoDataProd) {
-            const dataLocal = new Date(hoje.getTime() - (hoje.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-            campoDataProd.value = dataLocal;
-        }
+        setVal('fechamento-mes', mesLocal);
+        setVal('filtro-mes-producao', mesLocal);
+        setVal('filtro-hist-mes', mesLocal);
+        setVal('prod-data', dataLocal);
+
+        // Relatório por período inicia já populado
+        setVal('rel-periodo-inicio', `${mesLocal}-01`);
+        setVal('rel-periodo-fim', dataLocal);
     },
 
     toggleCamposFuncionario: function () {
@@ -825,7 +836,11 @@ const RH = {
         let valorInp = parseFloat(document.getElementById('desc-valor').value);
         const idFunc = document.getElementById('fechamento-func').value;
         const mesAno = document.getElementById('fechamento-mes').value;
-        if (!desc || isNaN(valorInp)) return;
+
+        if (!desc || isNaN(valorInp)) {
+            ModalRH.show('Aviso', 'Preencha a descrição e o valor do lançamento.');
+            return;
+        }
 
         let valorFinal = tipo === '-' ? -Math.abs(valorInp) : Math.abs(valorInp);
 
@@ -1209,18 +1224,146 @@ const RH = {
             <thead style="background: white;"><tr><th style="padding: 12px; border-bottom: 2px solid black; color: black;">Funcionário</th><th style="padding: 12px; text-align: right; border-bottom: 2px solid black; color: black;">Total Líquido a Receber</th></tr></thead><tbody>`;
 
         let temGente = false;
-        db.funcionarios.forEach(f => {
-            const prod = db.lancamentosProducao.filter(l => l.idFunc === f.id && l.data >= inicio && l.data <= fim).reduce((a, b) => a + b.total, 0);
-            const mesInicio = inicio.substring(0, 7);
-            const mesFim = fim.substring(0, 7);
-            const desc = db.descontosFechamento.filter(d => d.idFunc === f.id && d.mesAno >= mesInicio && d.mesAno <= mesFim).reduce((a, b) => a + b.valor, 0);
 
-            const totalL = prod + desc;
-            if (totalL !== 0 || prod > 0) {
+        const dbEstoqueRaw = localStorage.getItem('ks_estoque_dados');
+        const dbEstoque = dbEstoqueRaw ? JSON.parse(dbEstoqueRaw) : { insumos: [], logsInsumos: [], logsPecas: [] };
+
+        let diasNoPeriodoPorMes = {};
+        let dIter = new Date(inicio + 'T12:00:00');
+        let dFim = new Date(fim + 'T12:00:00');
+        while (dIter <= dFim) {
+            const yyyy = dIter.getFullYear();
+            const mm = String(dIter.getMonth() + 1).padStart(2, '0');
+            const mesAno = `${yyyy}-${mm}`;
+            if (!diasNoPeriodoPorMes[mesAno]) diasNoPeriodoPorMes[mesAno] = 0;
+            diasNoPeriodoPorMes[mesAno]++;
+            dIter.setDate(dIter.getDate() + 1);
+        }
+
+        const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+
+        db.funcionarios.forEach(f => {
+            let totalL = 0;
+
+            const prod = db.lancamentosProducao
+                .filter(l => l.idFunc === f.id && l.data >= inicio && l.data <= fim)
+                .reduce((a, b) => a + b.total, 0);
+
+            let vencimentosMensalista = 0;
+            if (f.tipo === 'Mensalista') {
+                const salBase = parseFloat(f.salarioBase) || 0;
+                const cargo = db.cargos.find(c => c.id === f.cargoId);
+
+                for (const mesAno in diasNoPeriodoPorMes) {
+                    const [anoStr, mesStr] = mesAno.split('-');
+                    const numDiasMes = new Date(anoStr, mesStr, 0).getDate();
+
+                    // 1. Pega o valor exato do minuto no mês (a mesma matemática da tela de fechamento)
+                    let cargaTotalMesMinutos = 0;
+                    for (let dia = 1; dia <= numDiasMes; dia++) {
+                        const diaSemanaNome = mapaDias[new Date(anoStr, mesStr - 1, dia).getDay()];
+                        if (cargo && cargo.escala && cargo.escala[diaSemanaNome]) {
+                            const turnoRef = db.turnos.find(t => t.id === cargo.escala[diaSemanaNome]);
+                            if (turnoRef && turnoRef.carga && turnoRef.carga !== '00:00') {
+                                const [th, tm] = turnoRef.carga.split(':').map(Number);
+                                cargaTotalMesMinutos += (th * 60) + tm;
+                            }
+                        }
+                    }
+
+                    let valorMinuto = 0;
+                    if (cargaTotalMesMinutos > 0) {
+                        valorMinuto = salBase / cargaTotalMesMinutos;
+                    }
+
+                    // 2. Soma o que o cara TEM PRA RECEBER apenas dos dias filtrados no relatório
+                    let cargaEsperadaPeriodo = 0;
+                    let saldoMinutosPeriodo = 0;
+
+                    for (let dia = 1; dia <= numDiasMes; dia++) {
+                        const dataIsoPrefix = `${anoStr}-${mesStr}-${dia.toString().padStart(2, '0')}`;
+
+                        // APENAS processa o dia se ele estiver dentro das datas de Início e Fim
+                        if (dataIsoPrefix >= inicio && dataIsoPrefix <= fim) {
+                            const diaSemanaStr = mapaDias[new Date(anoStr, mesStr - 1, dia).getDay()];
+
+                            let cargaEsperadaMinutos = 0;
+                            if (cargo && cargo.escala && cargo.escala[diaSemanaStr]) {
+                                const turno = db.turnos.find(t => t.id === cargo.escala[diaSemanaStr]);
+                                if (turno && turno.carga && turno.carga !== "00:00") {
+                                    const [th, tm] = turno.carga.split(':').map(Number);
+                                    cargaEsperadaMinutos = (th * 60) + tm;
+                                }
+                            }
+                            cargaEsperadaPeriodo += cargaEsperadaMinutos;
+
+                            const pontosDia = db.pontos.filter(p => p.idFunc === f.id && p.entrada.startsWith(dataIsoPrefix));
+                            pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
+
+                            let cargaReal1 = 0, cargaReal2 = 0;
+                            if (pontosDia.length >= 2) cargaReal1 = (new Date(pontosDia[1].saida) - new Date(pontosDia[0].entrada)) / 60000;
+                            if (pontosDia.length >= 4) cargaReal2 = (new Date(pontosDia[3].saida) - new Date(pontosDia[2].entrada)) / 60000;
+
+                            let cargaExp1 = cargaEsperadaMinutos / 2;
+                            let cargaExp2 = cargaEsperadaMinutos / 2;
+
+                            let saldo1 = cargaReal1 > 0 ? (cargaReal1 - cargaExp1) : (cargaExp1 > 0 ? -cargaExp1 : 0);
+                            let saldo2 = cargaReal2 > 0 ? (cargaReal2 - cargaExp2) : (cargaExp2 > 0 ? -cargaExp2 : 0);
+
+                            if (Math.abs(saldo1) <= 5) saldo1 = 0;
+                            if (Math.abs(saldo2) <= 5) saldo2 = 0;
+
+                            saldoMinutosPeriodo += Math.round(saldo1 + saldo2);
+                        }
+                    }
+
+                    // 3. Aplica a conta final (A carga que era esperada pra esses dias + ou - o saldo que ele fez) X Valor da hora
+                    vencimentosMensalista += (cargaEsperadaPeriodo + saldoMinutosPeriodo) * valorMinuto;
+                }
+            }
+
+            let descontosManuais = 0;
+            db.descontosFechamento.forEach(d => {
+                if (d.idFunc === f.id) {
+                    let dataRef = '';
+                    if (d.ref) {
+                        const parts = d.ref.split('/');
+                        if (parts.length >= 2) {
+                            const dStr = parts[0].padStart(2, '0');
+                            const mStr = parts[1].padStart(2, '0');
+                            const yStr = parts.length === 3 ? parts[2] : d.mesAno.split('-')[0];
+                            dataRef = `${yStr}-${mStr}-${dStr}`;
+                        }
+                    } else {
+                        // Se não puseram data, trata como primeiro dia do mês de referência
+                        dataRef = `${d.mesAno}-01`;
+                    }
+
+                    // Só puxa o desconto ou acréscimo se ele estiver DENTRO do período filtrado
+                    if (dataRef >= inicio && dataRef <= fim) {
+                        descontosManuais += d.valor;
+                    }
+                }
+            });
+
+            let descontosEstoque = 0;
+            if (dbEstoque.logsInsumos) {
+                dbEstoque.logsInsumos.forEach(l => {
+                    // Só desconta estoque DENTRO do período filtrado
+                    if (l.tipo === 'Saída' && l.idFunc === f.id && l.data >= inicio && l.data <= fim && l.totalCobrado > 0) {
+                        descontosEstoque -= Math.abs(l.totalCobrado);
+                    }
+                });
+            }
+
+            totalL = prod + vencimentosMensalista + descontosManuais + descontosEstoque;
+
+            if (Math.abs(totalL) > 0.01 || prod > 0 || vencimentosMensalista > 0) {
                 htmlTabela += `<tr style="border-bottom: 1px solid black;"><td style="padding: 12px; color: black;">${f.nome.toUpperCase()}</td><td style="padding: 12px; font-weight:bold; color: black; text-align: right;">R$ ${totalL.toFixed(2).replace('.', ',')}</td></tr>`;
                 temGente = true;
             }
         });
+
         htmlTabela += `</tbody></table>`;
         if (!temGente) htmlTabela = `<div style="padding: 20px; text-align: center; color: black;">Nenhum valor encontrado neste período.</div>`;
 
@@ -1609,7 +1752,7 @@ const RH = {
                     const style = document.createElement('style'); style.id = 'print-extrato-style';
                     style.innerHTML = `body.printing-holerite .app-container, body.printing-holerite .modal-overlay { display: none !important; } body.printing-holerite #print-area-holerite { display: flex !important; flex-direction: column !important; justify-content: space-between !important; width: 100% !important; height: 297mm !important; padding: 4mm 4mm 14mm 4mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 0mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }`;
                     document.head.appendChild(style); document.body.className = 'printing-holerite'; area.style.display = 'block';
-                    setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); ArquivoNotas.renderLista(); }, 500);
+                    setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); RH_Historico.renderTabela(); }, 500);
                 }
             };
 
@@ -1630,10 +1773,13 @@ const RH = {
                 const idFin = 'RH_' + data.func.id + '_' + ano + '_' + mes;
                 const idxFin = dbFin.despesas.findIndex(t => t.id === idFin);
 
-                const dataFechamento = new Date(ano, mes, 0).toISOString().split('T')[0];
+                // Corrige fuso horário do encerramento forçando o vencimento pro último dia daquele mês exato
+                const numDiasMesReferencia = new Date(ano, mes, 0).getDate();
+                const dataFechamentoFin = `${ano}-${mes}-${numDiasMesReferencia.toString().padStart(2, '0')}`;
+
                 const despesaRH = {
                     id: idFin, descricao: `Folha RH: ${data.func.nome.toUpperCase()} (${mes}/${ano})`,
-                    categoria: 'RH', valor: data.valorLiquido, vencimento: dataFechamento, pago: true, cancelada: false
+                    categoria: 'RH', valor: data.valorLiquido, vencimento: dataFechamentoFin, pago: true, cancelada: false
                 };
 
                 if (idxFin > -1) dbFin.despesas[idxFin] = despesaRH; else dbFin.despesas.push(despesaRH);
@@ -1747,7 +1893,7 @@ const RH = {
                 document.body.className = 'printing-extrato';
                 area.style.display = 'block';
 
-                setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); ArquivoNotas.renderLista(); }, 500);
+                setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); RH_Historico.renderTabela(); }, 500);
             }
         };
 
@@ -1941,7 +2087,7 @@ const RH_Empreita = {
                 area.innerHTML = htmlCompleto; const style = document.createElement('style'); style.id = 'print-extrato-style';
                 style.innerHTML = `body.printing-extrato .app-container, body.printing-extrato .modal-overlay { display: none !important; } body.printing-extrato #print-area-holerite { display: flex !important; flex-direction: column !important; justify-content: space-between !important; width: 100% !important; height: 297mm !important; padding: 4mm 4mm 14mm 4mm !important; box-sizing: border-box !important; } @media print { @page { size: A4 portrait; margin: 0mm !important; } body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; } }`;
                 document.head.appendChild(style); document.body.className = 'printing-extrato'; area.style.display = 'block';
-                setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); }, 500);
+                setTimeout(() => { window.print(); document.title = tituloOriginal; document.body.className = ''; area.style.display = 'none'; const styleEl = document.getElementById('print-extrato-style'); if (styleEl) styleEl.remove(); RH_Historico.renderTabela(); }, 500);
             }
         };
 

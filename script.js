@@ -169,7 +169,6 @@ const DriveAPI = {
     }
 };
 
-// Variáveis Globais do Sistema
 let itensNotaAtual = [];
 let itemNotaEmEdicaoIndex = null;
 let idNotaAtual = null;
@@ -179,9 +178,25 @@ let notaAbatida = false;
 let notaPendenteParaSalvar = null;
 
 const LogicaNegocio = {
+    atualizarLockCamposAvulso: function (isAvulso) {
+        document.getElementById('div-cliente-avulso').style.display = isAvulso ? 'block' : 'none';
+        const nomeInput = document.getElementById('nota-item-nome');
+        const valorInput = document.getElementById('nota-item-valor');
+        if (nomeInput) {
+            if (isAvulso) nomeInput.removeAttribute('readonly');
+            else nomeInput.setAttribute('readonly', 'true');
+        }
+        if (valorInput) {
+            if (isAvulso) valorInput.removeAttribute('readonly');
+            else valorInput.setAttribute('readonly', 'true');
+        }
+    },
+
     toggleClienteAvulso: function () {
         const val = document.getElementById('nota-cliente').value;
-        document.getElementById('div-cliente-avulso').style.display = (val === 'AVULSO') ? 'block' : 'none';
+        const isAvulso = (val === 'AVULSO');
+        this.atualizarLockCamposAvulso(isAvulso);
+
         if (itensNotaAtual.length > 0) {
             CustomModal.show('Cliente alterado. A nota foi limpa para evitar mistura de empresas.');
             this.limparNotaSemConfirmacao();
@@ -196,7 +211,6 @@ const LogicaNegocio = {
     focarProximoCampo: function (event, proximoId, anteriorId) {
         if (event.key === 'Enter') {
             event.preventDefault();
-            // ITEM 2: ENTER PARA ADICIONAR DIRETO NA NOTA
             if (event.target.id === 'nota-item-qtd' || event.target.id === 'nota-item-perca') {
                 this.adicionarItemNota();
                 return;
@@ -220,7 +234,7 @@ const LogicaNegocio = {
         const nomeBase = document.getElementById('prod-nome').value.trim();
         const fornecedor = document.getElementById('prod-fornecedor').value.trim();
         const valVenda = parseFloat(document.getElementById('prod-val-venda').value);
-        const valProducao = parseFloat(document.getElementById('prod-val-producao').value) || 0; // Opcional sem erro
+        const valProducao = parseFloat(document.getElementById('prod-val-producao').value) || 0;
 
         const elPolido = document.getElementById('prod-val-venda-polido');
         const valVendaPolido = elPolido ? parseFloat(elPolido.value) || valVenda : valVenda;
@@ -462,26 +476,35 @@ const LogicaNegocio = {
         const listaSugestoes = document.getElementById('lista-sugestoes-produtos');
         const db = DB.get();
 
-        if (!termoBusca) { listaSugestoes.style.display = 'none'; this.limparFormularioItemNota(); return; }
-
         const selClienteIdx = document.getElementById('nota-cliente').value;
+        const isAvulso = (selClienteIdx === 'AVULSO');
+
+        if (!termoBusca) {
+            listaSugestoes.style.display = 'none';
+            if (!isAvulso) this.limparFormularioItemNota();
+            return;
+        }
+
         let empresaFiltro = '';
-        if (selClienteIdx !== '' && selClienteIdx !== 'AVULSO') empresaFiltro = db.clientes[selClienteIdx].nome;
+        if (selClienteIdx !== '' && !isAvulso) empresaFiltro = db.clientes[selClienteIdx].nome;
 
         const produtosFiltrados = db.produtos
             .map((p, i) => ({ ...p, originalIndex: i }))
             .filter(p => {
-                if (!String(p.codigo).trim().toLowerCase().startsWith(termoBusca)) return false;
-                // FILTRA OS PRODUTOS PELA EMPRESA SELECIONADA
+                const matchBusca = String(p.codigo).toLowerCase().includes(termoBusca) || String(p.nome).toLowerCase().includes(termoBusca);
+                if (!matchBusca) return false;
+
+                if (isAvulso) return (!p.fornecedor || p.fornecedor.trim() === '');
                 if (empresaFiltro !== '') return (p.fornecedor === empresaFiltro || !p.fornecedor);
                 return true;
             });
 
         if (produtosFiltrados.length > 0) {
             listaSugestoes.innerHTML = produtosFiltrados.map((prod, index) => {
-                const regex = new RegExp(`^(${termoBusca})`, "i");
-                const nomeDestacado = `${prod.codigo} - ${prod.nome.toUpperCase()}`.replace(regex, "<strong style='color:var(--primary-color);'>$1</strong>");
-                // ENVIA O INDEX ORIGINAL DA MATRIZ PARA NÃO PEGAR O PRODUTO DA EMPRESA ERRADA (BUG CORRIGIDO)
+                const regex = new RegExp(`(${termoBusca})`, "gi");
+                const textoExibicao = `${prod.codigo} - ${prod.nome.toUpperCase()}`;
+                const nomeDestacado = textoExibicao.replace(regex, "<strong style='color:var(--primary-color);'>$1</strong>");
+
                 return `<li class="sugestao-item" onmouseenter="sugestaoIndexNota=${index}; LogicaNegocio.atualizarSelecaoVisual(document.getElementById('lista-sugestoes-produtos').getElementsByTagName('li'), ${index})" onclick="document.getElementById('nota-item-codigo').value='${prod.codigo}'; document.getElementById('lista-sugestoes-produtos').style.display='none'; LogicaNegocio.autoPreencherItemNota(${prod.originalIndex})">${nomeDestacado}</li>`;
             }).join('');
             listaSugestoes.style.display = 'block';
@@ -489,7 +512,16 @@ const LogicaNegocio = {
             sugestaoIndexNota = 0;
         } else {
             listaSugestoes.style.display = 'none';
-            this.limparFormularioItemNota();
+            if (!isAvulso) {
+                this.limparFormularioItemNota();
+            } else {
+                document.getElementById('nota-item-variacao').innerHTML = `
+                    <option value="Cromado">Cromado</option>
+                    <option value="Pintura">Pintura</option>
+                    <option value="Polido">Polido</option>
+                    <option value="Afinado">Afinado</option>
+                `;
+            }
         }
     },
 
@@ -519,7 +551,7 @@ const LogicaNegocio = {
         } else if (event.key === 'Enter' || event.key === 'Tab') {
             event.preventDefault();
             if (indexAtual >= 0 && indexAtual < items.length) items[indexAtual].click();
-            else if (items.length > 0) items[0].click(); // Se não navegou e deu Tab, clica no primeiro!
+            else if (items.length > 0) items[0].click();
         }
         if (tipo === 'nota') sugestaoIndexNota = indexAtual; else sugestaoIndexBusca = indexAtual;
     },
@@ -536,7 +568,7 @@ const LogicaNegocio = {
         const lista = document.getElementById('lista-sugestoes-produtos');
         if (lista.style.display === 'block' && lista.firstChild) {
             const itemSelecionado = lista.querySelector('.selecionado') || lista.firstChild;
-            itemSelecionado.click(); // BUG DO TAB CORRIGIDO! Ele clica no item puxando o index certo (originalIndex)
+            itemSelecionado.click();
         }
     },
 
@@ -551,24 +583,32 @@ const LogicaNegocio = {
     limparFormularioItemNota: function () {
         document.getElementById('nota-item-nome').value = '';
         document.getElementById('nota-item-valor').value = '';
-        document.getElementById('nota-item-variacao').innerHTML = '<option value="">--</option>';
+        document.getElementById('nota-item-variacao').innerHTML = `
+            <option value="Cromado">Cromado</option>
+            <option value="Pintura">Pintura</option>
+            <option value="Polido">Polido</option>
+            <option value="Afinado">Afinado</option>
+        `;
     },
 
     autoPreencherItemNota: function (index = null) {
         const db = DB.get();
         let prod = null;
+        const selClienteIdx = document.getElementById('nota-cliente').value;
+        const isAvulso = (selClienteIdx === 'AVULSO');
 
         if (index !== null && !isNaN(index)) {
             prod = db.produtos[index];
         } else {
-            // Se ele não passou o index (digitou na mão e pulou de campo), 
-            // tenta achar o produto batendo o código E a empresa selecionada
             const codigoInput = document.getElementById('nota-item-codigo').value.trim();
-            const selClienteIdx = document.getElementById('nota-cliente').value;
-            let empresaFiltro = selClienteIdx !== '' && selClienteIdx !== 'AVULSO' ? db.clientes[selClienteIdx].nome : '';
+            let empresaFiltro = selClienteIdx !== '' && !isAvulso ? db.clientes[selClienteIdx].nome : '';
 
-            prod = db.produtos.find(p => String(p.codigo) === String(codigoInput) && (empresaFiltro === '' || p.fornecedor === empresaFiltro || !p.fornecedor));
-            if (!prod) prod = db.produtos.find(p => String(p.codigo) === String(codigoInput)); // Fallback genérico
+            if (isAvulso) {
+                prod = db.produtos.find(p => String(p.codigo) === String(codigoInput) && (!p.fornecedor || p.fornecedor.trim() === ''));
+            } else {
+                prod = db.produtos.find(p => String(p.codigo) === String(codigoInput) && (empresaFiltro === '' || p.fornecedor === empresaFiltro || !p.fornecedor));
+                if (!prod) prod = db.produtos.find(p => String(p.codigo) === String(codigoInput));
+            }
         }
 
         const selectVariacao = document.getElementById('nota-item-variacao');
@@ -586,6 +626,14 @@ const LogicaNegocio = {
             document.getElementById('nota-item-variacao').focus();
             document.getElementById('lista-sugestoes-produtos').style.display = 'none';
             this.verificarVariacao();
+        } else if (isAvulso) {
+            selectVariacao.innerHTML = `
+                <option value="Cromado">Cromado</option>
+                <option value="Pintura">Pintura</option>
+                <option value="Polido">Polido</option>
+                <option value="Afinado">Afinado</option>
+            `;
+            document.getElementById('lista-sugestoes-produtos').style.display = 'none';
         }
     },
 
@@ -613,7 +661,8 @@ const LogicaNegocio = {
     },
 
     carregarFuncionariosProducao: function () {
-        const rh = LerRH();
+        const rhRaw = localStorage.getItem('ks_rh_dados');
+        const rh = rhRaw ? JSON.parse(rhRaw) : { funcionarios: [] };
         const sel = document.getElementById('nota-item-func-producao');
         if (!sel) return;
         const prods = rh.funcionarios.filter(f => f.tipo === 'Produção');
@@ -660,7 +709,6 @@ const LogicaNegocio = {
 
         if (tipoNota === 'RETRABALHO') { valor = 0; custoProducao = 0; }
 
-        // MAIÚSCULO E MASCULINO
         const nomeFinalNaNota = `${nomeBase.toUpperCase()} - ${variacaoSelecionada.toUpperCase()}`;
         const subtotal = valor * qtd;
         const custoProducaoTotal = custoProducao * qtd;
@@ -689,7 +737,12 @@ const LogicaNegocio = {
         document.getElementById('nota-item-qtd').value = '';
         document.getElementById('nota-item-perca').value = '0';
         document.getElementById('nota-item-repeticoes').value = '1';
-        document.getElementById('nota-item-variacao').innerHTML = '<option value="">--</option>';
+        document.getElementById('nota-item-variacao').innerHTML = `
+            <option value="Cromado">Cromado</option>
+            <option value="Pintura">Pintura</option>
+            <option value="Polido">Polido</option>
+            <option value="Afinado">Afinado</option>
+        `;
         document.getElementById('lista-sugestoes-produtos').style.display = 'none';
 
         document.getElementById('nota-item-valor-producao-base').value = '';
@@ -706,23 +759,27 @@ const LogicaNegocio = {
         if (!item) return;
 
         document.getElementById('nota-item-codigo').value = item.codigo;
-        const db = DB.get();
-        const prodIndex = db.produtos.findIndex(p => String(p.codigo) === String(item.codigo) && item.nome.toUpperCase().startsWith(p.nome.toUpperCase()));
-        this.autoPreencherItemNota(prodIndex > -1 ? prodIndex : null);
+        // Joga o nome bruto (antes do traço da variação) e o valor para não ficar em branco
+        document.getElementById('nota-item-nome').value = item.nome.split(' - ')[0];
+        document.getElementById('nota-item-valor').value = item.valor;
 
-        setTimeout(() => {
-            const selectVariacao = document.getElementById('nota-item-variacao');
-            if (item.variacaoBruta) selectVariacao.value = item.variacaoBruta;
+        const selectVariacao = document.getElementById('nota-item-variacao');
+        selectVariacao.innerHTML = `
+            <option value="Cromado">Cromado</option>
+            <option value="Pintura">Pintura</option>
+            <option value="Polido">Polido</option>
+            <option value="Afinado">Afinado</option>
+        `;
+        if (item.variacaoBruta) selectVariacao.value = item.variacaoBruta;
 
-            document.getElementById('nota-item-tipo-mao').value = item.maoObraTipo || 'KS';
-            LogicaNegocio.toggleMaoObra();
-            if (item.maoObraTipo === 'PRODUCAO') {
-                document.getElementById('nota-item-func-producao').value = item.maoObraNome;
-            } else if (item.maoObraTipo === 'EMPREITA') {
-                document.getElementById('nota-item-nome-empreita').value = item.maoObraNome;
-                document.getElementById('nota-item-valor-empreita').value = item.custoProducao;
-            }
-        }, 50);
+        document.getElementById('nota-item-tipo-mao').value = item.maoObraTipo || 'KS';
+        LogicaNegocio.toggleMaoObra();
+        if (item.maoObraTipo === 'PRODUCAO') {
+            document.getElementById('nota-item-func-producao').value = item.maoObraNome;
+        } else if (item.maoObraTipo === 'EMPREITA') {
+            document.getElementById('nota-item-nome-empreita').value = item.maoObraNome;
+            document.getElementById('nota-item-valor-empreita').value = item.custoProducao;
+        }
 
         document.getElementById('nota-item-qtd').value = item.qtd;
         document.getElementById('nota-item-perca').value = item.perca;
@@ -794,7 +851,6 @@ const LogicaNegocio = {
         let dataImpressao = new Date().toLocaleDateString('pt-BR');
         if (dataInputRaw) { const partes = dataInputRaw.split('-'); dataImpressao = `${partes[2]}/${partes[1]}/${partes[0]}`; }
 
-        // SALVA APENAS NA MEMÓRIA DA TELA PARA ESPERAR O "CONFIRMAR" (ITEM 10)
         window.notaPendenteParaSalvar = {
             id: idNota, data: dataInputRaw || new Date().toISOString().split('T')[0],
             cliente: objCliente.nome.toUpperCase(), clienteObj: clIndex === 'AVULSO' ? objCliente : null,
@@ -835,19 +891,19 @@ const LogicaNegocio = {
                 </div>
                 <div style="flex: 1; border-bottom: 2px solid black;">
                     ${tipoNota === 'RETRABALHO' ? `<div class="selo-retrabalho" style="text-align: center; padding: 5px; font-weight: bold; font-size: 14px; letter-spacing: 2px; border-bottom: 2px solid black;">RETRABALHO - SEM CUSTO ADICIONAL</div>` : ''}
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: black;">
                         <thead>
-                            <tr>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 12%;">CÓDIGO</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 40%;">PRODUTO</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 8%;">QTD</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 10%;">PERCA</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%;">VAL. UNIT.</th>
-                                <th style="border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%;">VAL. TOTAL</th>
+                            <tr style="color: black;">
+                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 12%; color: black;">CÓDIGO</th>
+                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 40%; color: black;">PRODUTO</th>
+                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 8%; color: black;">QTD</th>
+                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 10%; color: black;">PERCA</th>
+                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%; color: black;">VAL. UNIT.</th>
+                                <th style="border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%; color: black;">VAL. TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${itensNotaAtual.map(i => `<tr><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center;">${i.codigo}</td><td style="border-right: 1px solid black; padding: 3px 4px; font-weight:bold;">${i.nome.toUpperCase()}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center;">${i.qtd}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; font-weight: ${i.perca > 0 ? 'bold' : 'normal'};">${i.perca > 0 ? i.perca : ''}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: right;">R$ ${i.valor.toFixed(2).replace('.', ',')}</td><td style="padding: 3px 4px; text-align: right;">R$ ${i.subtotal.toFixed(2).replace('.', ',')}</td></tr>`).join('')}
+                            ${itensNotaAtual.map(i => `<tr><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; color: black;">${i.codigo}</td><td style="border-right: 1px solid black; padding: 3px 4px; color: black;">${i.nome.toUpperCase()}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; color: black;">${i.qtd}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; font-weight: ${i.perca > 0 ? 'bold' : 'normal'}; color: black;">${i.perca > 0 ? i.perca : ''}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: right; color: black;">R$ ${i.valor.toFixed(2).replace('.', ',')}</td><td style="padding: 3px 4px; text-align: right; color: black;">R$ ${i.subtotal.toFixed(2).replace('.', ',')}</td></tr>`).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -886,16 +942,22 @@ const LogicaNegocio = {
             else db.notasSalvas.push(window.notaPendenteParaSalvar);
             DB.save(db);
 
-            // INTEGRAÇÃO COM RH DA PRODUÇÃO LENDO LINHA A LINHA (ITEM 7)
             const dbRHRaw = localStorage.getItem('ks_rh_dados');
             const dbRH = dbRHRaw ? JSON.parse(dbRHRaw) : { lancamentosProducao: [], funcionarios: [] };
             let enviouRH = false;
+
+            // PREVINE DUPLICAÇÃO: Remove os lançamentos anteriores vinculados a esta nota antes de inserir os novos
+            const originalLength = dbRH.lancamentosProducao.length;
+            dbRH.lancamentosProducao = dbRH.lancamentosProducao.filter(l => l.idNota !== window.notaPendenteParaSalvar.id);
+            if (dbRH.lancamentosProducao.length !== originalLength) enviouRH = true;
+
             window.notaPendenteParaSalvar.itens.forEach(item => {
                 if (item.maoObraTipo === 'PRODUCAO' && item.maoObraNome) {
                     const funcRH = dbRH.funcionarios.find(f => f.nome === item.maoObraNome);
                     if (funcRH) {
                         dbRH.lancamentosProducao.push({
                             id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+                            idNota: window.notaPendenteParaSalvar.id, // <-- Chave de identificação da nota vinculada
                             idFunc: funcRH.id, data: window.notaPendenteParaSalvar.data,
                             pecaNome: item.nome, pecaCodigo: item.codigo, valorUnit: item.custoProducao,
                             qtd: item.qtd, total: item.custoProducao * item.qtd
@@ -1073,6 +1135,7 @@ const UI = {
         if (inputData) inputData.value = new Date().toISOString().split('T')[0];
 
         LogicaNegocio.carregarFuncionariosProducao();
+        LogicaNegocio.atualizarLockCamposAvulso(false); // Trava os campos na inicialização
     },
 
     switchTab: function (tabId) {
@@ -1265,7 +1328,6 @@ const ArquivoNotas = {
                 <td style="text-align:right; color:#10b981; font-weight:bold;">R$ ${nota.total.toFixed(2).replace('.', ',')}</td>
                 <td style="text-align:center;">
                     <div style="display: flex; justify-content: center; gap: 8px;">
-                        <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#a855f7; color:#a855f7; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.abrirPreview('${nota.id}')" title="Ver Detalhes"><i data-lucide="eye" style="width: 14px;"></i> Ver</button>
                         <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#38bdf8; color:#38bdf8; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.visualizar('${nota.id}')" title="Imprimir"><i data-lucide="printer" style="width: 14px;"></i> Imp</button>
                         <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#eab308; color:#eab308; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.editar('${nota.id}')" title="Editar"><i data-lucide="pencil" style="width: 14px;"></i> Edit</button>
                         <button class="btn-danger" style="padding: 6px 10px; font-size:12px; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.excluir('${nota.id}')" title="Excluir"><i data-lucide="trash-2" style="width: 14px;"></i></button>
@@ -1314,15 +1376,18 @@ const ArquivoNotas = {
             document.getElementById('nota-data').value = nota.data;
             document.getElementById('nota-cliente').value = nota.clienteIndex;
 
-            if (nota.clienteIndex === 'AVULSO') {
-                document.getElementById('div-cliente-avulso').style.display = 'block';
+            const isAvulso = (nota.clienteIndex === 'AVULSO');
+            LogicaNegocio.atualizarLockCamposAvulso(isAvulso);
+
+            if (isAvulso) {
                 document.getElementById('avulso-nome').value = nota.clienteObj ? nota.clienteObj.nome : nota.cliente;
                 document.getElementById('avulso-cnpj').value = nota.clienteObj ? nota.clienteObj.cnpj : '';
                 document.getElementById('avulso-endereco').value = nota.clienteObj ? nota.clienteObj.endereco : '';
                 document.getElementById('avulso-telefone').value = nota.clienteObj ? nota.clienteObj.telefone : '';
-            } else {
-                document.getElementById('div-cliente-avulso').style.display = 'none';
             }
+
+            const radiosTipo = document.querySelectorAll('input[name="nota-tipo"]');
+            radiosTipo.forEach(r => { if (r.value === (nota.tipo || 'VENDA')) r.checked = true; });
 
             UI.switchTab('nota');
             UI.renderItensNota();
@@ -1334,59 +1399,24 @@ const ArquivoNotas = {
             const db = DB.get();
             db.notasSalvas = db.notasSalvas.filter(n => n.id !== id);
             DB.save(db);
+
+            // Tira o lançamento do funcionário do RH também
+            const dbRHRaw = localStorage.getItem('ks_rh_dados');
+            if (dbRHRaw) {
+                const dbRH = JSON.parse(dbRHRaw);
+                if (dbRH.lancamentosProducao) {
+                    const originalLen = dbRH.lancamentosProducao.length;
+                    dbRH.lancamentosProducao = dbRH.lancamentosProducao.filter(l => l.idNota !== id);
+                    if (dbRH.lancamentosProducao.length !== originalLen) {
+                        localStorage.setItem('ks_rh_dados', JSON.stringify(dbRH));
+                    }
+                }
+            }
+
             ArquivoNotas.renderLista();
             CustomModal.show(`Nota ${id} excluída com sucesso!`);
         });
     },
-
-    abrirPreview: function (id) {
-        const nota = DB.get().notasSalvas.find(n => n.id === id);
-        if (!nota) return;
-        const dataFormatada = nota.data.split('-').reverse().join('/');
-        const isRetrabalho = nota.tipo === 'RETRABALHO';
-
-        let html = `
-            <div style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
-                <p><strong>Tipo:</strong> <span style="color: ${isRetrabalho ? '#ef4444' : '#10b981'}; font-weight:bold;">${isRetrabalho ? 'RETRABALHO' : 'VENDA'}</span></p>
-                <p><strong>Cliente:</strong> ${nota.cliente.toUpperCase()}</p>
-                <p><strong>Data:</strong> ${dataFormatada}</p>
-                <p style="font-size: 18px;"><strong>Total:</strong> <span style="color: var(--success-color);">R$ ${nota.total.toFixed(2).replace('.', ',')}</span></p>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                <thead>
-                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted);">
-                        <th style="padding: 8px 4px; text-align: left;">Cód</th>
-                        <th style="padding: 8px 4px; text-align: left;">Produto / Resp.</th>
-                        <th style="padding: 8px 4px; text-align: center;">Qtd</th>
-                        <th style="padding: 8px 4px; text-align: right;">Val. Un.</th>
-                        <th style="padding: 8px 4px; text-align: right;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        nota.itens.forEach(item => {
-            html += `
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 8px 4px;">${item.codigo}</td>
-                    <td style="padding: 8px 4px;">
-                        ${item.nome}
-                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Resp: ${item.maoObraNome || 'KS'}</div>
-                    </td>
-                    <td style="padding: 8px 4px; text-align: center;">${item.qtd}</td>
-                    <td style="padding: 8px 4px; text-align: right;">R$ ${item.valor.toFixed(2)}</td>
-                    <td style="padding: 8px 4px; text-align: right; color: var(--success-color);">R$ ${item.subtotal.toFixed(2)}</td>
-                </tr>
-            `;
-        });
-
-        html += `</tbody></table>`;
-
-        document.getElementById('preview-nota-titulo').innerText = `Nota Nº ${nota.id}`;
-        document.getElementById('preview-nota-conteudo').innerHTML = html;
-        document.getElementById('modal-preview-nota').style.display = 'flex';
-        lucide.createIcons();
-    }
 };
 
 document.addEventListener("DOMContentLoaded", function () {
