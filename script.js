@@ -1,6 +1,16 @@
 // Inicializa os ícones Lucide
 lucide.createIcons();
 
+// Escutador global para abrir calendários automaticamente ao clicar
+document.addEventListener('click', function (e) {
+    if (e.target && (e.target.type === 'date' || e.target.type === 'month' || e.target.type === 'time')) {
+        if (typeof e.target.showPicker === 'function') {
+            try { e.target.showPicker(); } catch (err) { }
+        }
+    }
+});
+
+
 function setPrintOrientation(orientation) {
     let style = document.getElementById('dynamic-print-orientation');
     if (!style) {
@@ -1109,7 +1119,7 @@ const Tabelas = {
 };
 
 const UI = {
-    initData: function () {
+        initData: function () {
         const db = DB.get();
         let mudouAlgo = false;
         db.produtos.forEach(p => {
@@ -1133,6 +1143,15 @@ const UI = {
 
         const inputData = document.getElementById('nota-data');
         if (inputData) inputData.value = new Date().toISOString().split('T')[0];
+
+        // --- NOVO: Define o mês atual no filtro do Arquivo de Notas ---
+        const filtroMesNota = document.getElementById('filtro-mes-nota');
+        if (filtroMesNota) {
+            const hoje = new Date();
+            const yyyy = hoje.getFullYear();
+            const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+            filtroMesNota.value = `${yyyy}-${mm}`;
+        }
 
         LogicaNegocio.carregarFuncionariosProducao();
         LogicaNegocio.atualizarLockCamposAvulso(false); // Trava os campos na inicialização
@@ -1281,7 +1300,7 @@ const UI = {
 };
 
 const ArquivoNotas = {
-    renderLista: function () {
+        renderLista: function () {
         const db = DB.get();
         const tbody = document.querySelector('#tabela-arquivo-notas tbody');
         if (!tbody) return;
@@ -1304,9 +1323,17 @@ const ArquivoNotas = {
             filtroEmpresa = selectFiltroEmpresa.value;
         }
 
+        // LÓGICA DO NOVO FILTRO DE MÊS
+        let filtroMes = '';
+        const inputFiltroMes = document.getElementById('filtro-mes-nota');
+        if (inputFiltroMes) filtroMes = inputFiltroMes.value;
+
         let notas = [...db.notasSalvas].reverse();
+        
+        // Aplica todos os filtros selecionados
         if (filtroTipo !== 'TODAS') notas = notas.filter(n => (n.tipo || 'VENDA') === filtroTipo);
         if (filtroEmpresa !== 'TODAS') notas = notas.filter(n => n.cliente === filtroEmpresa);
+        if (filtroMes) notas = notas.filter(n => n.data.startsWith(filtroMes)); // Corta as notas pelo ano/mês
 
         if (notas.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">Nenhuma nota encontrada com esses filtros.</td></tr>`;
@@ -1328,6 +1355,7 @@ const ArquivoNotas = {
                 <td style="text-align:right; color:#10b981; font-weight:bold;">R$ ${nota.total.toFixed(2).replace('.', ',')}</td>
                 <td style="text-align:center;">
                     <div style="display: flex; justify-content: center; gap: 8px;">
+                        <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#a855f7; color:#a855f7; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.abrirPreview('${nota.id}')" title="Ver Detalhes"><i data-lucide="eye" style="width: 14px;"></i> Ver</button>
                         <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#38bdf8; color:#38bdf8; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.visualizar('${nota.id}')" title="Imprimir"><i data-lucide="printer" style="width: 14px;"></i> Imp</button>
                         <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#eab308; color:#eab308; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.editar('${nota.id}')" title="Editar"><i data-lucide="pencil" style="width: 14px;"></i> Edit</button>
                         <button class="btn-danger" style="padding: 6px 10px; font-size:12px; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.excluir('${nota.id}')" title="Excluir"><i data-lucide="trash-2" style="width: 14px;"></i></button>
@@ -1338,6 +1366,7 @@ const ArquivoNotas = {
         tbody.innerHTML = html;
         lucide.createIcons();
     },
+
 
     visualizar: function (id) {
         const nota = DB.get().notasSalvas.find(n => n.id === id);

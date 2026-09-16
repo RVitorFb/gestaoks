@@ -432,6 +432,12 @@
 
                     <div
                         style="display: flex; gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; align-items: center; flex-wrap: wrap;">
+                      <div style="display: flex; gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; align-items: center; flex-wrap: wrap;">
+                        <!-- NOVO FILTRO DE MÊS AQUI -->
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="margin: 0; font-weight: bold;">Mês/Ano:</label>
+                            <input type="month" id="filtro-mes-nota" onchange="ArquivoNotas.renderLista()" style="margin: 0; width: 160px; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main);">
+                        </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label style="margin: 0; font-weight: bold;">Mostrar notas de:</label>
                             <select id="filtro-arquivo-tipo" onchange="ArquivoNotas.renderLista()"
