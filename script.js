@@ -10,7 +10,6 @@ document.addEventListener('click', function (e) {
     }
 });
 
-
 function setPrintOrientation(orientation) {
     let style = document.getElementById('dynamic-print-orientation');
     if (!style) {
@@ -19,8 +18,12 @@ function setPrintOrientation(orientation) {
         style.media = 'print';
         document.head.appendChild(style);
     }
-    if (orientation === 'landscape') { style.innerHTML = `@page { size: A4 landscape; margin: 4mm; }`; }
-    else { style.innerHTML = `@page { size: A4 portrait; margin: 4mm; }`; }
+
+    if (orientation === 'landscape') {
+        style.innerHTML = `@page { size: A4 landscape; margin: 4mm; }`;
+    } else {
+        style.innerHTML = `@page { size: A4 portrait; margin: 4mm; }`;
+    }
 }
 
 const CLIENT_ID = '697049729115-is5ih1sfs77cib7u3nqte5pktlqfgkbq.apps.googleusercontent.com';
@@ -28,153 +31,345 @@ const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 const CustomModal = {
     keydownListener: null,
+
     show: function (msg, isConfirm = false, onConfirm = null, onCancel = null) {
         document.getElementById('modal-message').innerText = msg;
+
         const modalEl = document.getElementById('custom-modal');
         modalEl.style.display = 'flex';
+
         const btnCancel = document.getElementById('modal-btn-cancel');
         const btnConfirm = document.getElementById('modal-btn-confirm');
+
         btnCancel.style.display = isConfirm ? 'inline-block' : 'none';
 
-        btnConfirm.onclick = () => { this.hide(); if (onConfirm) onConfirm(); };
-        btnCancel.onclick = () => { this.hide(); if (onCancel) onCancel(); };
+        btnConfirm.onclick = () => {
+            this.hide();
+            if (onConfirm) onConfirm();
+        };
+
+        btnCancel.onclick = () => {
+            this.hide();
+            if (onCancel) onCancel();
+        };
+
         btnConfirm.focus();
 
-        if (this.keydownListener) document.removeEventListener('keydown', this.keydownListener);
+        if (this.keydownListener) {
+            document.removeEventListener('keydown', this.keydownListener);
+        }
+
         this.keydownListener = (e) => {
             if (modalEl.style.display === 'flex') {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (document.activeElement === btnCancel) btnCancel.click(); else btnConfirm.click();
+
+                    if (document.activeElement === btnCancel) {
+                        btnCancel.click();
+                    } else {
+                        btnConfirm.click();
+                    }
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
-                    if (isConfirm) btnCancel.click(); else btnConfirm.click();
+
+                    if (isConfirm) {
+                        btnCancel.click();
+                    } else {
+                        btnConfirm.click();
+                    }
                 } else if (isConfirm && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
                     e.preventDefault();
-                    if (document.activeElement === btnConfirm) btnCancel.focus(); else btnConfirm.focus();
+
+                    if (document.activeElement === btnConfirm) {
+                        btnCancel.focus();
+                    } else {
+                        btnConfirm.focus();
+                    }
                 }
             }
         };
+
         document.addEventListener('keydown', this.keydownListener);
     },
+
     hide: function () {
         document.getElementById('custom-modal').style.display = 'none';
-        if (this.keydownListener) { document.removeEventListener('keydown', this.keydownListener); this.keydownListener = null; }
+
+        if (this.keydownListener) {
+            document.removeEventListener('keydown', this.keydownListener);
+            this.keydownListener = null;
+        }
     }
 };
 
 const DB = {
-    KEY: 'ks_afinacoes_dados', KEY_RH: 'ks_rh_dados', KEY_ESTOQUE: 'ks_estoque_dados',
+    KEY: 'ks_afinacoes_dados',
+    KEY_RH: 'ks_rh_dados',
+    KEY_ESTOQUE: 'ks_estoque_dados',
+
     get: function () {
         const data = localStorage.getItem(this.KEY);
-        const parsed = data ? JSON.parse(data) : { produtos: [], clientes: [], notasSalvas: [] };
-        if (!parsed.notasSalvas) parsed.notasSalvas = [];
+
+        const parsed = data
+            ? JSON.parse(data)
+            : { produtos: [], clientes: [], notasSalvas: [] };
+
+        if (!parsed.notasSalvas) {
+            parsed.notasSalvas = [];
+        }
+
         return parsed;
     },
+
     save: function (data) {
         localStorage.setItem(this.KEY, JSON.stringify(data));
+
         const dadosRHRaw = localStorage.getItem(this.KEY_RH);
         const dadosEstoqueRaw = localStorage.getItem(this.KEY_ESTOQUE);
+
         const backupUnificado = {
             notas: data,
-            rh: dadosRHRaw ? JSON.parse(dadosRHRaw) : { funcionarios: [], pontos: [], descontosFechamento: [] },
-            estoque: dadosEstoqueRaw ? JSON.parse(dadosEstoqueRaw) : { insumos: [], logsInsumos: [], logsPecas: [] }
+            rh: dadosRHRaw
+                ? JSON.parse(dadosRHRaw)
+                : {
+                    funcionarios: [],
+                    pontos: [],
+                    descontosFechamento: []
+                },
+            estoque: dadosEstoqueRaw
+                ? JSON.parse(dadosEstoqueRaw)
+                : {
+                    insumos: [],
+                    logsInsumos: [],
+                    logsPecas: []
+                }
         };
-        if (document.getElementById('dash-prod-count')) UI.updateDashCards();
-        if (document.getElementById('tabela-fornecedor')) UI.renderSelectsFornecedoresTabelas();
+
+        if (document.getElementById('dash-prod-count')) {
+            UI.updateDashCards();
+        }
+
+        if (document.getElementById('tabela-fornecedor')) {
+            UI.renderSelectsFornecedoresTabelas();
+        }
+
         DriveAPI.autoSaveBackup(JSON.stringify(backupUnificado));
     },
+
     importBackup: function () {
         const fileInput = document.getElementById('file-import');
-        if (!fileInput.files.length) { CustomModal.show('Selecione um arquivo .json do seu celular/PC primeiro.'); return; }
+
+        if (!fileInput.files.length) {
+            CustomModal.show('Selecione um arquivo .json do seu celular/PC primeiro.');
+            return;
+        }
+
         const reader = new FileReader();
+
         reader.onload = function (e) {
             try {
                 const parsed = JSON.parse(e.target.result);
+
                 if (parsed.notas && parsed.rh) {
                     localStorage.setItem(DB.KEY, JSON.stringify(parsed.notas));
                     localStorage.setItem(DB.KEY_RH, JSON.stringify(parsed.rh));
-                    if (parsed.estoque) localStorage.setItem(DB.KEY_ESTOQUE, JSON.stringify(parsed.estoque));
+
+                    if (parsed.estoque) {
+                        localStorage.setItem(DB.KEY_ESTOQUE, JSON.stringify(parsed.estoque));
+                    }
+
                     CustomModal.show('Backup Unificado restaurado com sucesso!');
                     UI.initData();
+
                 } else if (parsed.produtos && parsed.clientes) {
                     localStorage.setItem(DB.KEY, JSON.stringify(parsed));
+
                     CustomModal.show('Backup antigo restaurado com sucesso!');
                     UI.initData();
                 }
-            } catch (err) { CustomModal.show('Erro ao ler arquivo JSON.'); }
+            } catch (err) {
+                CustomModal.show('Erro ao ler arquivo JSON.');
+            }
         };
+
         reader.readAsText(fileInput.files[0]);
     },
+
     downloadManualBackup: function () {
         const dadosNotas = this.get();
         const dadosRHRaw = localStorage.getItem(this.KEY_RH);
         const dadosEstoqueRaw = localStorage.getItem(this.KEY_ESTOQUE);
+
         const backupUnificado = {
             notas: dadosNotas,
-            rh: dadosRHRaw ? JSON.parse(dadosRHRaw) : { funcionarios: [], pontos: [], descontosFechamento: [] },
-            estoque: dadosEstoqueRaw ? JSON.parse(dadosEstoqueRaw) : { insumos: [], logsInsumos: [], logsPecas: [] }
+            rh: dadosRHRaw
+                ? JSON.parse(dadosRHRaw)
+                : {
+                    funcionarios: [],
+                    pontos: [],
+                    descontosFechamento: []
+                },
+            estoque: dadosEstoqueRaw
+                ? JSON.parse(dadosEstoqueRaw)
+                : {
+                    insumos: [],
+                    logsInsumos: [],
+                    logsPecas: []
+                }
         };
-        const blob = new Blob([JSON.stringify(backupUnificado)], { type: 'application/json' });
+
+        const blob = new Blob(
+            [JSON.stringify(backupUnificado)],
+            { type: 'application/json' }
+        );
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'backup_ks_afinacoes.json'; a.click();
+
+        a.href = url;
+        a.download = 'backup_ks_afinacoes.json';
+        a.click();
     }
 };
 
 const DriveAPI = {
-    tokenClient: null, accessToken: null, backupFileId: null,
+    tokenClient: null,
+    accessToken: null,
+    backupFileId: null,
+
     init: function () {
-        if (CLIENT_ID === 'COLE_AQUI_SEU_CLIENT_ID') return;
+        if (CLIENT_ID === 'COLE_AQUI_SEU_CLIENT_ID') {
+            return;
+        }
+
         const savedToken = localStorage.getItem('ks_gdrive_token');
+
         if (savedToken) {
             const tokenData = JSON.parse(savedToken);
+
             if (Date.now() < tokenData.expiresAt) {
-                this.accessToken = tokenData.token; this.updateStatusUI(true); this.findBackupFileId();
-            } else { localStorage.removeItem('ks_gdrive_token'); }
+                this.accessToken = tokenData.token;
+                this.updateStatusUI(true);
+                this.findBackupFileId();
+            } else {
+                localStorage.removeItem('ks_gdrive_token');
+            }
         }
+
         this.tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID, scope: SCOPES,
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+
             callback: (r) => {
                 if (r && r.access_token) {
                     this.accessToken = r.access_token;
+
                     const expiresAt = Date.now() + (r.expires_in * 1000);
-                    localStorage.setItem('ks_gdrive_token', JSON.stringify({ token: r.access_token, expiresAt: expiresAt }));
-                    this.updateStatusUI(true); this.findBackupFileId();
+
+                    localStorage.setItem(
+                        'ks_gdrive_token',
+                        JSON.stringify({
+                            token: r.access_token,
+                            expiresAt: expiresAt
+                        })
+                    );
+
+                    this.updateStatusUI(true);
+                    this.findBackupFileId();
                 }
-            },
+            }
         });
     },
+
     handleAuthClick: function () {
-        if (!this.tokenClient) { CustomModal.show('O Desenvolvedor precisa configurar o Google Cloud Client ID.'); return; }
-        if (this.accessToken === null) this.tokenClient.requestAccessToken({ prompt: 'consent' });
+        if (!this.tokenClient) {
+            CustomModal.show(
+                'O Desenvolvedor precisa configurar o Google Cloud Client ID.'
+            );
+            return;
+        }
+
+        if (this.accessToken === null) {
+            this.tokenClient.requestAccessToken({
+                prompt: 'consent'
+            });
+        }
     },
+
     updateStatusUI: function (isConnected) {
         if (isConnected) {
             const statusEl = document.getElementById('gdrive-status-text');
-            if (statusEl) { statusEl.innerText = "Status: Sincronizado"; statusEl.style.color = "var(--success-color)"; }
+
+            if (statusEl) {
+                statusEl.innerText = 'Status: Sincronizado';
+                statusEl.style.color = 'var(--success-color)';
+            }
         }
     },
+
     findBackupFileId: async function () {
-        if (!this.accessToken) return;
+        if (!this.accessToken) {
+            return;
+        }
+
         try {
-            const res = await fetch('https://www.googleapis.com/drive/v3/files?q=name="backup_ks_afinacoes.json" and trashed=false', { headers: { 'Authorization': `Bearer ${this.accessToken}` } });
+            const res = await fetch(
+                'https://www.googleapis.com/drive/v3/files?q=name="backup_ks_afinacoes.json" and trashed=false',
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`
+                    }
+                }
+            );
+
             const data = await res.json();
-            if (data.files && data.files.length > 0) this.backupFileId = data.files[0].id;
+
+            if (data.files && data.files.length > 0) {
+                this.backupFileId = data.files[0].id;
+            }
         } catch (e) { }
     },
+
     autoSaveBackup: async function (jsonString) {
-        if (!this.accessToken) return;
+        if (!this.accessToken) {
+            return;
+        }
+
         const boundary = '-------314159265358979323846';
-        const body = `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({ name: 'backup_ks_afinacoes.json', mimeType: 'application/json' })}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${jsonString}\r\n--${boundary}--`;
+
+        const body =
+            `\r\n--${boundary}\r\n` +
+            `Content-Type: application/json\r\n\r\n` +
+            `${JSON.stringify({
+                name: 'backup_ks_afinacoes.json',
+                mimeType: 'application/json'
+            })}\r\n` +
+            `--${boundary}\r\n` +
+            `Content-Type: application/json\r\n\r\n` +
+            `${jsonString}\r\n` +
+            `--${boundary}--`;
+
         try {
-            const res = await fetch(`https://www.googleapis.com${this.backupFileId ? `/upload/drive/v3/files/${this.backupFileId}` : `/upload/drive/v3/files`}?uploadType=multipart`, {
-                method: this.backupFileId ? 'PATCH' : 'POST',
-                headers: { 'Authorization': `Bearer ${this.accessToken}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
-                body: body
-            });
+            const res = await fetch(
+                `https://www.googleapis.com${this.backupFileId
+                    ? `/upload/drive/v3/files/${this.backupFileId}`
+                    : `/upload/drive/v3/files`
+                }?uploadType=multipart`,
+                {
+                    method: this.backupFileId ? 'PATCH' : 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': `multipart/related; boundary=${boundary}`
+                    },
+                    body: body
+                }
+            );
+
             const data = await res.json();
-            if (!this.backupFileId && data.id) this.backupFileId = data.id;
+
+            if (!this.backupFileId && data.id) {
+                this.backupFileId = data.id;
+            }
         } catch (e) { }
     }
 };
@@ -187,345 +382,879 @@ let sugestaoIndexBusca = -1;
 let notaAbatida = false;
 let notaPendenteParaSalvar = null;
 
+// Guarda o índice EXATO do produto selecionado na lista.
+let produtoSelecionadoIndex = null;
+
 const LogicaNegocio = {
+
     atualizarLockCamposAvulso: function (isAvulso) {
-        document.getElementById('div-cliente-avulso').style.display = isAvulso ? 'block' : 'none';
+        document.getElementById('div-cliente-avulso').style.display =
+            isAvulso ? 'block' : 'none';
+
         const nomeInput = document.getElementById('nota-item-nome');
         const valorInput = document.getElementById('nota-item-valor');
+
         if (nomeInput) {
-            if (isAvulso) nomeInput.removeAttribute('readonly');
-            else nomeInput.setAttribute('readonly', 'true');
+            if (isAvulso) {
+                nomeInput.removeAttribute('readonly');
+            } else {
+                nomeInput.setAttribute('readonly', 'true');
+            }
         }
+
         if (valorInput) {
-            if (isAvulso) valorInput.removeAttribute('readonly');
-            else valorInput.setAttribute('readonly', 'true');
+            if (isAvulso) {
+                valorInput.removeAttribute('readonly');
+            } else {
+                valorInput.setAttribute('readonly', 'true');
+            }
         }
     },
 
     toggleClienteAvulso: function () {
         const val = document.getElementById('nota-cliente').value;
         const isAvulso = (val === 'AVULSO');
+
         this.atualizarLockCamposAvulso(isAvulso);
 
         if (itensNotaAtual.length > 0) {
-            CustomModal.show('Cliente alterado. A nota foi limpa para evitar mistura de empresas.');
+            CustomModal.show(
+                'Cliente alterado. A nota foi limpa para evitar mistura de empresas.'
+            );
+
             this.limparNotaSemConfirmacao();
         }
     },
 
     limparNotaSemConfirmacao: function () {
-        itensNotaAtual = []; itemNotaEmEdicaoIndex = null; idNotaAtual = null; notaAbatida = false;
+        itensNotaAtual = [];
+        itemNotaEmEdicaoIndex = null;
+        idNotaAtual = null;
+        notaAbatida = false;
+        produtoSelecionadoIndex = null;
+
         UI.renderItensNota();
     },
 
     focarProximoCampo: function (event, proximoId, anteriorId) {
         if (event.key === 'Enter') {
             event.preventDefault();
-            if (event.target.id === 'nota-item-qtd' || event.target.id === 'nota-item-perca') {
+
+            if (
+                event.target.id === 'nota-item-qtd' ||
+                event.target.id === 'nota-item-perca'
+            ) {
                 this.adicionarItemNota();
                 return;
             }
+
             const proximoCampo = document.getElementById(proximoId);
+
             if (proximoCampo) {
-                if (proximoId === 'btn-add-item-nota') proximoCampo.click();
-                else { proximoCampo.focus(); if (proximoCampo.tagName === 'INPUT') proximoCampo.select(); }
+                if (proximoId === 'btn-add-item-nota') {
+                    proximoCampo.click();
+                } else {
+                    proximoCampo.focus();
+
+                    if (proximoCampo.tagName === 'INPUT') {
+                        proximoCampo.select();
+                    }
+                }
             }
-        }
-        else if (event.key === 'Escape' && anteriorId) {
+
+        } else if (event.key === 'Escape' && anteriorId) {
             event.preventDefault();
+
             const campoAnterior = document.getElementById(anteriorId);
-            if (campoAnterior) { campoAnterior.focus(); if (campoAnterior.tagName === 'INPUT') campoAnterior.select(); }
+
+            if (campoAnterior) {
+                campoAnterior.focus();
+
+                if (campoAnterior.tagName === 'INPUT') {
+                    campoAnterior.select();
+                }
+            }
         }
     },
 
     salvarProduto: function () {
         const db = DB.get();
-        const codigoBase = document.getElementById('prod-codigo').value.trim();
-        const nomeBase = document.getElementById('prod-nome').value.trim();
-        const fornecedor = document.getElementById('prod-fornecedor').value.trim();
-        const valVenda = parseFloat(document.getElementById('prod-val-venda').value);
-        const valProducao = parseFloat(document.getElementById('prod-val-producao').value) || 0;
 
-        const elPolido = document.getElementById('prod-val-venda-polido');
-        const valVendaPolido = elPolido ? parseFloat(elPolido.value) || valVenda : valVenda;
+        const codigoBase =
+            document.getElementById('prod-codigo').value.trim();
 
-        const varPintura = document.getElementById('var-pintura') ? document.getElementById('var-pintura').checked : false;
-        const varPolido = document.getElementById('var-polido') ? document.getElementById('var-polido').checked : false;
-        const varAfinado = document.getElementById('var-afinado') ? document.getElementById('var-afinado').checked : false;
+        const nomeBase =
+            document.getElementById('prod-nome').value.trim();
 
-        let variacoesArray = ["Cromado"];
-        if (varPintura) variacoesArray.push("Pintura");
-        if (varPolido) variacoesArray.push("Polido");
-        if (varAfinado) variacoesArray.push("Afinado");
+        const fornecedor =
+            document.getElementById('prod-fornecedor').value.trim();
+
+        const valVenda =
+            parseFloat(document.getElementById('prod-val-venda').value);
+
+        const valProducao =
+            parseFloat(document.getElementById('prod-val-producao').value) || 0;
+
+        const elPolido =
+            document.getElementById('prod-val-venda-polido');
+
+        const valVendaPolido =
+            elPolido
+                ? parseFloat(elPolido.value) || valVenda
+                : valVenda;
+
+        const varPintura =
+            document.getElementById('var-pintura')
+                ? document.getElementById('var-pintura').checked
+                : false;
+
+        const varPolido =
+            document.getElementById('var-polido')
+                ? document.getElementById('var-polido').checked
+                : false;
+
+        const varAfinado =
+            document.getElementById('var-afinado')
+                ? document.getElementById('var-afinado').checked
+                : false;
+
+        let variacoesArray = ['Cromado'];
+
+        if (varPintura) variacoesArray.push('Pintura');
+        if (varPolido) variacoesArray.push('Polido');
+        if (varAfinado) variacoesArray.push('Afinado');
 
         db.produtos.push({
-            codigo: codigoBase, nome: nomeBase, fornecedor: fornecedor,
-            valVenda: valVenda, valVendaPolido: valVendaPolido, valProducao: valProducao, variacoes: variacoesArray
+            codigo: codigoBase,
+            nome: nomeBase,
+            fornecedor: fornecedor,
+            valVenda: valVenda,
+            valVendaPolido: valVendaPolido,
+            valProducao: valProducao,
+            variacoes: variacoesArray
         });
+
         DB.save(db);
+
         document.getElementById('form-produto').reset();
         document.getElementById('prod-codigo').focus();
-        if (document.getElementById('div-venda-polido')) document.getElementById('div-venda-polido').style.display = 'none';
+
+        if (document.getElementById('div-venda-polido')) {
+            document.getElementById('div-venda-polido').style.display = 'none';
+        }
+
         UI.renderTabelaProdutos();
-        CustomModal.show(`Produto salvo com sucesso!`);
+        CustomModal.show('Produto salvo com sucesso!');
     },
 
     toggleCampoPolido: function () {
-        const checkPolido = document.getElementById('var-polido');
-        const divPolido = document.getElementById('div-venda-polido');
-        if (checkPolido && divPolido) divPolido.style.display = checkPolido.checked ? 'block' : 'none';
+        const checkPolido =
+            document.getElementById('var-polido');
+
+        const divPolido =
+            document.getElementById('div-venda-polido');
+
+        if (checkPolido && divPolido) {
+            divPolido.style.display =
+                checkPolido.checked ? 'block' : 'none';
+        }
     },
 
     excluirProduto: function (index) {
-        CustomModal.show('Tem certeza que deseja excluir este produto?', true, () => {
-            const db = DB.get();
-            db.produtos.splice(index, 1);
-            DB.save(db);
-            UI.renderTabelaProdutos();
-        });
+        CustomModal.show(
+            'Tem certeza que deseja excluir este produto?',
+            true,
+            () => {
+                const db = DB.get();
+
+                db.produtos.splice(index, 1);
+                DB.save(db);
+                UI.renderTabelaProdutos();
+            }
+        );
     },
 
     iniciarEdicaoProduto: function (index) {
         const db = DB.get();
         const prod = db.produtos[index];
+
         if (!prod) return;
 
         let optionsForn = '<option value="">--</option>';
+
         db.clientes.forEach(c => {
-            let selected = (c.nome === prod.fornecedor) ? 'selected' : '';
-            optionsForn += `<option value="${c.nome}" ${selected}>${c.nome}</option>`;
+            let selected =
+                (c.nome === prod.fornecedor)
+                    ? 'selected'
+                    : '';
+
+            optionsForn += `
+                <option value="${c.nome}" ${selected}>
+                    ${c.nome}
+                </option>
+            `;
         });
 
-        const hasPintura = prod.variacoes && prod.variacoes.includes("Pintura") ? 'checked' : '';
-        const hasPolido = prod.variacoes && prod.variacoes.includes("Polido") ? 'checked' : '';
-        const hasAfinado = prod.variacoes && prod.variacoes.includes("Afinado") ? 'checked' : '';
-        const valVendaPolidoAtual = prod.valVendaPolido || prod.valVendaPolida || prod.valVenda;
-        const valProducaoAtual = prod.valProducao || 0;
+        const hasPintura =
+            prod.variacoes && prod.variacoes.includes('Pintura')
+                ? 'checked'
+                : '';
 
-        const tr = document.getElementById(`tr-produto-${index}`);
+        const hasPolido =
+            prod.variacoes && prod.variacoes.includes('Polido')
+                ? 'checked'
+                : '';
+
+        const hasAfinado =
+            prod.variacoes && prod.variacoes.includes('Afinado')
+                ? 'checked'
+                : '';
+
+        const valVendaPolidoAtual =
+            prod.valVendaPolido ||
+            prod.valVendaPolida ||
+            prod.valVenda;
+
+        const valProducaoAtual =
+            prod.valProducao || 0;
+
+        const tr =
+            document.getElementById(`tr-produto-${index}`);
+
         tr.innerHTML = `
-            <td><input type="text" id="edit-prod-cod-${index}" value="${prod.codigo}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
             <td>
-                <input type="text" id="edit-prod-nome-${index}" value="${prod.nome}" style="width: 100%; margin: 0 0 4px 0; padding: 4px; font-size: 12px;">
-                <div style="display: flex; gap: 10px; font-size: 10px; color: var(--text-main); align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" checked disabled style="width: 12px; height: 12px; margin: 0;"> Cr.</label>
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-pintura-${index}" ${hasPintura} style="width: 12px; height: 12px; margin: 0;"> Pint.</label>
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-polido-${index}" ${hasPolido} onchange="LogicaNegocio.toggleEditPolido(${index})" style="width: 12px; height: 12px; margin: 0;"> Pol.</label>
-                    <label style="display: flex; align-items: center; gap: 4px; margin: 0;"><input type="checkbox" id="edit-prod-var-afinado-${index}" ${hasAfinado} style="width: 12px; height: 12px; margin: 0;"> Afi.</label>
+                <input
+                    type="text"
+                    id="edit-prod-cod-${index}"
+                    value="${prod.codigo}"
+                    style="width:100%; margin:0; padding:4px; font-size:12px;"
+                >
+            </td>
+
+            <td>
+                <input
+                    type="text"
+                    id="edit-prod-nome-${index}"
+                    value="${prod.nome}"
+                    style="width:100%; margin:0 0 4px 0; padding:4px; font-size:12px;"
+                >
+
+                <div style="display:flex; gap:10px; font-size:10px; color:var(--text-main); align-items:center;">
+                    <label style="display:flex; align-items:center; gap:4px; margin:0;">
+                        <input type="checkbox" checked disabled style="width:12px; height:12px; margin:0;">
+                        Cr.
+                    </label>
+
+                    <label style="display:flex; align-items:center; gap:4px; margin:0;">
+                        <input
+                            type="checkbox"
+                            id="edit-prod-var-pintura-${index}"
+                            ${hasPintura}
+                            style="width:12px; height:12px; margin:0;"
+                        >
+                        Pint.
+                    </label>
+
+                    <label style="display:flex; align-items:center; gap:4px; margin:0;">
+                        <input
+                            type="checkbox"
+                            id="edit-prod-var-polido-${index}"
+                            ${hasPolido}
+                            onchange="LogicaNegocio.toggleEditPolido(${index})"
+                            style="width:12px; height:12px; margin:0;"
+                        >
+                        Pol.
+                    </label>
+
+                    <label style="display:flex; align-items:center; gap:4px; margin:0;">
+                        <input
+                            type="checkbox"
+                            id="edit-prod-var-afinado-${index}"
+                            ${hasAfinado}
+                            style="width:12px; height:12px; margin:0;"
+                        >
+                        Afi.
+                    </label>
                 </div>
             </td>
-            <td><select id="edit-prod-forn-${index}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;">${optionsForn}</select></td>
+
             <td>
-                <input type="number" id="edit-prod-val-${index}" value="${prod.valVenda}" step="0.01" style="width: 70px; margin: 0 0 4px 0; padding: 4px; font-size: 12px;" title="Venda Normal">
-                <div id="div-edit-polido-${index}" style="${prod.variacoes && prod.variacoes.includes('Polido') ? 'display: block;' : 'display: none;'}">
-                    <input type="number" id="edit-prod-val-polido-${index}" value="${valVendaPolidoAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px; border: 1px solid #a855f7;" title="Venda Polido">
+                <select
+                    id="edit-prod-forn-${index}"
+                    style="width:100%; margin:0; padding:4px; font-size:12px;"
+                >
+                    ${optionsForn}
+                </select>
+            </td>
+
+            <td>
+                <input
+                    type="number"
+                    id="edit-prod-val-${index}"
+                    value="${prod.valVenda}"
+                    step="0.01"
+                    style="width:70px; margin:0 0 4px 0; padding:4px; font-size:12px;"
+                    title="Venda Normal"
+                >
+
+                <div
+                    id="div-edit-polido-${index}"
+                    style="${prod.variacoes && prod.variacoes.includes('Polido')
+                ? 'display:block;'
+                : 'display:none;'}"
+                >
+                    <input
+                        type="number"
+                        id="edit-prod-val-polido-${index}"
+                        value="${valVendaPolidoAtual}"
+                        step="0.01"
+                        style="width:70px; margin:0; padding:4px; font-size:12px; border:1px solid #a855f7;"
+                        title="Venda Polido"
+                    >
                 </div>
             </td>
-            <td><input type="number" id="edit-prod-producao-${index}" value="${valProducaoAtual}" step="0.01" style="width: 70px; margin: 0; padding: 4px; font-size: 12px;"></td>
+
             <td>
-                <div style="display: flex; gap: 4px;">
-                    <button onclick="LogicaNegocio.salvarEdicaoProduto(${index})" style="background: var(--success-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
-                    <button onclick="UI.renderTabelaProdutos()" style="background: var(--danger-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+                <input
+                    type="number"
+                    id="edit-prod-producao-${index}"
+                    value="${valProducaoAtual}"
+                    step="0.01"
+                    style="width:70px; margin:0; padding:4px; font-size:12px;"
+                >
+            </td>
+
+            <td>
+                <div style="display:flex; gap:4px;">
+                    <button
+                        onclick="LogicaNegocio.salvarEdicaoProduto(${index})"
+                        style="background:var(--success-color); border:none; color:white; border-radius:4px; padding:6px; cursor:pointer;"
+                    >
+                        <i data-lucide="check" style="width:14px; height:14px;"></i>
+                    </button>
+
+                    <button
+                        onclick="UI.renderTabelaProdutos()"
+                        style="background:var(--danger-color); border:none; color:white; border-radius:4px; padding:6px; cursor:pointer;"
+                    >
+                        <i data-lucide="x" style="width:14px; height:14px;"></i>
+                    </button>
                 </div>
             </td>
         `;
+
         lucide.createIcons();
     },
 
     salvarEdicaoProduto: function (index) {
-        const novoCod = document.getElementById(`edit-prod-cod-${index}`).value.trim();
-        const novoNome = document.getElementById(`edit-prod-nome-${index}`).value.trim();
-        const novoForn = document.getElementById(`edit-prod-forn-${index}`).value.trim();
-        const novoVal = parseFloat(document.getElementById(`edit-prod-val-${index}`).value);
-        const novoValProducao = parseFloat(document.getElementById(`edit-prod-producao-${index}`).value) || 0;
-        const novoValPolido = parseFloat(document.getElementById(`edit-prod-val-polido-${index}`).value) || novoVal;
-        const varPolido = document.getElementById(`edit-prod-var-polido-${index}`).checked;
-        const varPintura = document.getElementById(`edit-prod-var-pintura-${index}`).checked;
-        const varAfinado = document.getElementById(`edit-prod-var-afinado-${index}`).checked;
+        const novoCod =
+            document.getElementById(`edit-prod-cod-${index}`).value.trim();
 
-        if (!novoCod || !novoNome || isNaN(novoVal) || novoVal < 0) { CustomModal.show('Preencha os campos obrigatórios.'); return; }
+        const novoNome =
+            document.getElementById(`edit-prod-nome-${index}`).value.trim();
+
+        const novoForn =
+            document.getElementById(`edit-prod-forn-${index}`).value.trim();
+
+        const novoVal =
+            parseFloat(document.getElementById(`edit-prod-val-${index}`).value);
+
+        const novoValProducao =
+            parseFloat(
+                document.getElementById(`edit-prod-producao-${index}`).value
+            ) || 0;
+
+        const novoValPolido =
+            parseFloat(
+                document.getElementById(`edit-prod-val-polido-${index}`).value
+            ) || novoVal;
+
+        const varPolido =
+            document.getElementById(`edit-prod-var-polido-${index}`).checked;
+
+        const varPintura =
+            document.getElementById(`edit-prod-var-pintura-${index}`).checked;
+
+        const varAfinado =
+            document.getElementById(`edit-prod-var-afinado-${index}`).checked;
+
+        if (!novoCod || !novoNome || isNaN(novoVal) || novoVal < 0) {
+            CustomModal.show('Preencha os campos obrigatórios.');
+            return;
+        }
 
         const db = DB.get();
+
         if (db.produtos[index]) {
-            let variacoesArray = ["Cromado"];
-            if (varPintura) variacoesArray.push("Pintura");
-            if (varPolido) variacoesArray.push("Polido");
-            if (varAfinado) variacoesArray.push("Afinado");
+            let variacoesArray = ['Cromado'];
+
+            if (varPintura) variacoesArray.push('Pintura');
+            if (varPolido) variacoesArray.push('Polido');
+            if (varAfinado) variacoesArray.push('Afinado');
 
             db.produtos[index] = {
-                codigo: novoCod, nome: novoNome, fornecedor: novoForn,
-                valVenda: novoVal, valVendaPolido: novoValPolido, valProducao: novoValProducao, variacoes: variacoesArray
+                codigo: novoCod,
+                nome: novoNome,
+                fornecedor: novoForn,
+                valVenda: novoVal,
+                valVendaPolido: novoValPolido,
+                valProducao: novoValProducao,
+                variacoes: variacoesArray
             };
+
             DB.save(db);
             UI.renderTabelaProdutos();
         }
     },
 
     toggleEditPolido: function (index) {
-        const checkPolido = document.getElementById(`edit-prod-var-polido-${index}`);
-        const divPolido = document.getElementById(`div-edit-polido-${index}`);
-        if (checkPolido && divPolido) divPolido.style.display = checkPolido.checked ? 'block' : 'none';
+        const checkPolido =
+            document.getElementById(`edit-prod-var-polido-${index}`);
+
+        const divPolido =
+            document.getElementById(`div-edit-polido-${index}`);
+
+        if (checkPolido && divPolido) {
+            divPolido.style.display =
+                checkPolido.checked ? 'block' : 'none';
+        }
     },
 
     salvarCliente: function () {
         const db = DB.get();
+
         db.clientes.push({
-            nome: document.getElementById('cli-nome').value, cnpj: document.getElementById('cli-cnpj').value,
-            endereco: document.getElementById('cli-endereco').value, telefone: document.getElementById('cli-telefone').value
+            nome: document.getElementById('cli-nome').value,
+            cnpj: document.getElementById('cli-cnpj').value,
+            endereco: document.getElementById('cli-endereco').value,
+            telefone: document.getElementById('cli-telefone').value
         });
+
         DB.save(db);
+
         document.getElementById('form-cliente').reset();
-        UI.renderTabelaClientes(); UI.renderSelectClientes(); UI.renderSelectFornecedorProduto();
+
+        UI.renderTabelaClientes();
+        UI.renderSelectClientes();
+        UI.renderSelectFornecedorProduto();
+
         CustomModal.show('Cliente salvo com sucesso!');
     },
 
     excluirCliente: function (index) {
-        CustomModal.show('Tem certeza que deseja excluir este cliente?', true, () => {
-            const db = DB.get(); db.clientes.splice(index, 1); DB.save(db);
-            UI.renderTabelaClientes(); UI.renderSelectClientes(); UI.renderSelectFornecedorProduto();
-        });
+        CustomModal.show(
+            'Tem certeza que deseja excluir este cliente?',
+            true,
+            () => {
+                const db = DB.get();
+
+                db.clientes.splice(index, 1);
+                DB.save(db);
+
+                UI.renderTabelaClientes();
+                UI.renderSelectClientes();
+                UI.renderSelectFornecedorProduto();
+            }
+        );
     },
 
     iniciarEdicaoCliente: function (index) {
         const db = DB.get();
         const cliente = db.clientes[index];
+
         if (!cliente) return;
-        const tr = document.getElementById(`tr-cliente-${index}`);
+
+        const tr =
+            document.getElementById(`tr-cliente-${index}`);
+
         tr.innerHTML = `
-            <td><input type="text" id="edit-cli-nome-${index}" value="${cliente.nome}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
-            <td><input type="text" id="edit-cli-cnpj-${index}" value="${cliente.cnpj || ''}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
-            <td><input type="text" id="edit-cli-telefone-${index}" value="${cliente.telefone || ''}" style="width: 100%; margin: 0; padding: 4px; font-size: 12px;"></td>
             <td>
-                <div style="display: flex; gap: 4px;">
-                    <button onclick="LogicaNegocio.salvarEdicaoCliente(${index})" style="background: var(--success-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer;"><i data-lucide="check" style="width: 14px; height: 14px;"></i></button>
-                    <button onclick="UI.renderTabelaClientes()" style="background: var(--danger-color); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></button>
+                <input
+                    type="text"
+                    id="edit-cli-nome-${index}"
+                    value="${cliente.nome}"
+                    style="width:100%; margin:0; padding:4px; font-size:12px;"
+                >
+            </td>
+
+            <td>
+                <input
+                    type="text"
+                    id="edit-cli-cnpj-${index}"
+                    value="${cliente.cnpj || ''}"
+                    style="width:100%; margin:0; padding:4px; font-size:12px;"
+                >
+            </td>
+
+            <td>
+                <input
+                    type="text"
+                    id="edit-cli-telefone-${index}"
+                    value="${cliente.telefone || ''}"
+                    style="width:100%; margin:0; padding:4px; font-size:12px;"
+                >
+            </td>
+
+            <td>
+                <div style="display:flex; gap:4px;">
+                    <button
+                        onclick="LogicaNegocio.salvarEdicaoCliente(${index})"
+                        style="background:var(--success-color); border:none; color:white; border-radius:4px; padding:6px; cursor:pointer;"
+                    >
+                        <i data-lucide="check" style="width:14px; height:14px;"></i>
+                    </button>
+
+                    <button
+                        onclick="UI.renderTabelaClientes()"
+                        style="background:var(--danger-color); border:none; color:white; border-radius:4px; padding:6px; cursor:pointer;"
+                    >
+                        <i data-lucide="x" style="width:14px; height:14px;"></i>
+                    </button>
                 </div>
             </td>
         `;
+
         lucide.createIcons();
     },
 
     salvarEdicaoCliente: function (index) {
-        const nome = document.getElementById(`edit-cli-nome-${index}`).value;
-        const cnpj = document.getElementById(`edit-cli-cnpj-${index}`).value;
-        const telefone = document.getElementById(`edit-cli-telefone-${index}`).value;
+        const nome =
+            document.getElementById(`edit-cli-nome-${index}`).value;
 
-        if (!nome.trim()) { CustomModal.show('O nome do cliente é obrigatório.'); return; }
+        const cnpj =
+            document.getElementById(`edit-cli-cnpj-${index}`).value;
+
+        const telefone =
+            document.getElementById(`edit-cli-telefone-${index}`).value;
+
+        if (!nome.trim()) {
+            CustomModal.show('O nome do cliente é obrigatório.');
+            return;
+        }
+
         const db = DB.get();
+
         if (db.clientes[index]) {
-            const enderecoAnterior = db.clientes[index].endereco || '';
-            db.clientes[index] = { nome, cnpj, endereco: enderecoAnterior, telefone };
+            const enderecoAnterior =
+                db.clientes[index].endereco || '';
+
+            db.clientes[index] = {
+                nome,
+                cnpj,
+                endereco: enderecoAnterior,
+                telefone
+            };
+
             DB.save(db);
-            UI.renderTabelaClientes(); UI.renderSelectClientes(); UI.renderSelectFornecedorProduto();
+
+            UI.renderTabelaClientes();
+            UI.renderSelectClientes();
+            UI.renderSelectFornecedorProduto();
         }
     },
 
     buscarProduto: function (index = null) {
         const db = DB.get();
+
         let prod = null;
-        if (index !== null && index >= 0 && index < db.produtos.length) {
+
+        if (
+            index !== null &&
+            index >= 0 &&
+            index < db.produtos.length
+        ) {
             prod = db.produtos[index];
         } else {
-            const cod = document.getElementById('busca-codigo').value.trim();
-            prod = db.produtos.find(p => p.codigo === cod);
+            const cod =
+                document.getElementById('busca-codigo').value.trim();
+
+            prod =
+                db.produtos.find(p => p.codigo === cod);
         }
 
-        const div = document.getElementById('busca-resultado');
-        const listaSugestoes = document.getElementById('lista-sugestoes-busca');
-        if (listaSugestoes) listaSugestoes.style.display = 'none';
+        const div =
+            document.getElementById('busca-resultado');
+
+        const listaSugestoes =
+            document.getElementById('lista-sugestoes-busca');
+
+        if (listaSugestoes) {
+            listaSugestoes.style.display = 'none';
+        }
+
         div.style.display = 'block';
 
         if (prod) {
-            document.getElementById('busca-codigo').value = prod.codigo;
-            const varsTexto = prod.variacoes ? prod.variacoes.join(', ') : "Cromado";
+            document.getElementById('busca-codigo').value =
+                prod.codigo;
+
+            const varsTexto =
+                prod.variacoes
+                    ? prod.variacoes.join(', ')
+                    : 'Cromado';
+
             div.innerHTML = `
-                <h3 style="color: var(--text-main); font-size: 16px; margin-bottom: 10px;">${prod.nome}</h3>
-                <p style="color: var(--text-muted); font-size: 14px;"><strong>Cód:</strong> ${prod.codigo}</p>
-                <p style="color: var(--text-muted); font-size: 14px;"><strong>Variações:</strong> ${varsTexto}</p>
-                <p style="color: var(--text-muted); font-size: 14px;"><strong>Empresa:</strong> ${prod.fornecedor || '-'}</p>
-                <p style="color: var(--text-main); font-size: 14px; margin-top: 10px;"><strong>Valor:</strong> R$ ${prod.valVenda.toFixed(2)}</p>
+                <h3 style="color:var(--text-main); font-size:16px; margin-bottom:10px;">
+                    ${prod.nome}
+                </h3>
+
+                <p style="color:var(--text-muted); font-size:14px;">
+                    <strong>Cód:</strong> ${prod.codigo}
+                </p>
+
+                <p style="color:var(--text-muted); font-size:14px;">
+                    <strong>Variações:</strong> ${varsTexto}
+                </p>
+
+                <p style="color:var(--text-muted); font-size:14px;">
+                    <strong>Empresa:</strong> ${prod.fornecedor || '-'}
+                </p>
+
+                <p style="color:var(--text-main); font-size:14px; margin-top:10px;">
+                    <strong>Valor:</strong> R$ ${prod.valVenda.toFixed(2)}
+                </p>
             `;
         } else {
-            div.innerHTML = `<p style="color: var(--danger-color); font-size: 14px;">Produto não encontrado.</p>`;
+            div.innerHTML = `
+                <p style="color:var(--danger-color); font-size:14px;">
+                    Produto não encontrado.
+                </p>
+            `;
         }
     },
 
     filtrarProdutosBusca: function (event) {
-        if (event && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+        if (
+            event &&
+            ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)
+        ) {
+            return;
+        }
+
         sugestaoIndexBusca = -1;
-        const codigoInput = document.getElementById('busca-codigo');
-        const termoBusca = codigoInput.value.trim().toLowerCase();
-        const listaSugestoes = document.getElementById('lista-sugestoes-busca');
+
+        const codigoInput =
+            document.getElementById('busca-codigo');
+
+        const termoBusca =
+            codigoInput.value.trim().toLowerCase();
+
+        const listaSugestoes =
+            document.getElementById('lista-sugestoes-busca');
+
         const db = DB.get();
 
-        if (!termoBusca) { listaSugestoes.style.display = 'none'; document.getElementById('busca-resultado').style.display = 'none'; return; }
+        if (!termoBusca) {
+            listaSugestoes.style.display = 'none';
+            document.getElementById('busca-resultado').style.display = 'none';
+            return;
+        }
 
-        const produtosFiltrados = db.produtos
-            .map((p, i) => ({ ...p, originalIndex: i }))
-            .filter(p => String(p.codigo).trim().toLowerCase().startsWith(termoBusca));
+        const produtosFiltrados =
+            db.produtos
+                .map((p, i) => ({
+                    ...p,
+                    originalIndex: i
+                }))
+                .filter(p =>
+                    String(p.codigo)
+                        .trim()
+                        .toLowerCase()
+                        .startsWith(termoBusca)
+                );
 
         if (produtosFiltrados.length > 0) {
-            listaSugestoes.innerHTML = produtosFiltrados.map((prod, index) => {
-                const regex = new RegExp(`^(${termoBusca})`, "i");
-                const nomeDestacado = `${prod.codigo} - ${prod.nome}`.replace(regex, "<strong style='color:var(--primary-color);'>$1</strong>");
-                return `<li class="sugestao-item" onmouseenter="sugestaoIndexBusca=${index}; LogicaNegocio.atualizarSelecaoVisual(document.getElementById('lista-sugestoes-busca').getElementsByTagName('li'), ${index})" onclick="document.getElementById('busca-codigo').value='${prod.codigo}'; document.getElementById('lista-sugestoes-busca').style.display='none'; LogicaNegocio.buscarProduto(${prod.originalIndex})">${nomeDestacado}</li>`;
-            }).join('');
+            listaSugestoes.innerHTML =
+                produtosFiltrados.map((prod, index) => {
+                    const regex =
+                        new RegExp(`^(${termoBusca})`, 'i');
+
+                    const nomeDestacado =
+                        `${prod.codigo} - ${prod.nome}`
+                            .replace(
+                                regex,
+                                "<strong style='color:var(--primary-color);'>$1</strong>"
+                            );
+
+                    return `
+                        <li
+                            class="sugestao-item"
+                            onmouseenter="
+                                sugestaoIndexBusca=${index};
+                                LogicaNegocio.atualizarSelecaoVisual(
+                                    document.getElementById('lista-sugestoes-busca').getElementsByTagName('li'),
+                                    ${index}
+                                )
+                            "
+                            onclick="
+                                document.getElementById('busca-codigo').value='${prod.codigo}';
+                                document.getElementById('lista-sugestoes-busca').style.display='none';
+                                LogicaNegocio.buscarProduto(${prod.originalIndex})
+                            "
+                        >
+                            ${nomeDestacado}
+                        </li>
+                    `;
+                }).join('');
+
             listaSugestoes.style.display = 'block';
-            this.atualizarSelecaoVisual(listaSugestoes.getElementsByTagName('li'), 0);
+
+            this.atualizarSelecaoVisual(
+                listaSugestoes.getElementsByTagName('li'),
+                0
+            );
+
             sugestaoIndexBusca = 0;
+
         } else {
             listaSugestoes.style.display = 'none';
         }
     },
 
     filtrarProdutosNota: function (event) {
-        if (event && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
+        if (
+            event &&
+            ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)
+        ) {
+            return;
+        }
+
         sugestaoIndexNota = -1;
-        const codigoInput = document.getElementById('nota-item-codigo');
-        const termoBusca = codigoInput.value.trim().toLowerCase();
-        const listaSugestoes = document.getElementById('lista-sugestoes-produtos');
+
+        // Enquanto o usuário está digitando um novo produto,
+        // o cadastro anteriormente selecionado deixa de valer.
+        produtoSelecionadoIndex = null;
+
+        const codigoInput =
+            document.getElementById('nota-item-codigo');
+
+        const termoBusca =
+            codigoInput.value.trim().toLowerCase();
+
+        const listaSugestoes =
+            document.getElementById('lista-sugestoes-produtos');
+
         const db = DB.get();
 
-        const selClienteIdx = document.getElementById('nota-cliente').value;
-        const isAvulso = (selClienteIdx === 'AVULSO');
+        const selClienteIdx =
+            document.getElementById('nota-cliente').value;
+
+        const isAvulso =
+            (selClienteIdx === 'AVULSO');
 
         if (!termoBusca) {
             listaSugestoes.style.display = 'none';
-            if (!isAvulso) this.limparFormularioItemNota();
+
+            if (!isAvulso) {
+                this.limparFormularioItemNota();
+            }
+
             return;
         }
 
         let empresaFiltro = '';
-        if (selClienteIdx !== '' && !isAvulso) empresaFiltro = db.clientes[selClienteIdx].nome;
 
-        const produtosFiltrados = db.produtos
-            .map((p, i) => ({ ...p, originalIndex: i }))
-            .filter(p => {
-                const matchBusca = String(p.codigo).toLowerCase().includes(termoBusca) || String(p.nome).toLowerCase().includes(termoBusca);
-                if (!matchBusca) return false;
+        if (selClienteIdx !== '' && !isAvulso) {
+            const clienteSelecionado =
+                db.clientes[selClienteIdx];
 
-                if (isAvulso) return (!p.fornecedor || p.fornecedor.trim() === '');
-                if (empresaFiltro !== '') return (p.fornecedor === empresaFiltro || !p.fornecedor);
-                return true;
-            });
+            if (clienteSelecionado) {
+                empresaFiltro = clienteSelecionado.nome;
+            }
+        }
+
+        const produtosFiltrados =
+            db.produtos
+                .map((p, i) => ({
+                    ...p,
+                    originalIndex: i
+                }))
+                .filter(p => {
+                    const matchBusca =
+                        String(p.codigo)
+                            .toLowerCase()
+                            .includes(termoBusca) ||
+                        String(p.nome)
+                            .toLowerCase()
+                            .includes(termoBusca);
+
+                    if (!matchBusca) {
+                        return false;
+                    }
+
+                    if (isAvulso) {
+                        return (
+                            !p.fornecedor ||
+                            p.fornecedor.trim() === ''
+                        );
+                    }
+
+                    if (empresaFiltro !== '') {
+                        return (
+                            p.fornecedor === empresaFiltro ||
+                            !p.fornecedor
+                        );
+                    }
+
+                    return true;
+                });
 
         if (produtosFiltrados.length > 0) {
-            listaSugestoes.innerHTML = produtosFiltrados.map((prod, index) => {
-                const regex = new RegExp(`(${termoBusca})`, "gi");
-                const textoExibicao = `${prod.codigo} - ${prod.nome.toUpperCase()}`;
-                const nomeDestacado = textoExibicao.replace(regex, "<strong style='color:var(--primary-color);'>$1</strong>");
+            listaSugestoes.innerHTML =
+                produtosFiltrados.map((prod, index) => {
+                    const regex =
+                        new RegExp(`(${termoBusca})`, 'gi');
 
-                return `<li class="sugestao-item" onmouseenter="sugestaoIndexNota=${index}; LogicaNegocio.atualizarSelecaoVisual(document.getElementById('lista-sugestoes-produtos').getElementsByTagName('li'), ${index})" onclick="document.getElementById('nota-item-codigo').value='${prod.codigo}'; document.getElementById('lista-sugestoes-produtos').style.display='none'; LogicaNegocio.autoPreencherItemNota(${prod.originalIndex})">${nomeDestacado}</li>`;
-            }).join('');
+                    const textoExibicao =
+                        `${prod.codigo} - ${prod.nome.toUpperCase()}`;
+
+                    const nomeDestacado =
+                        textoExibicao.replace(
+                            regex,
+                            "<strong style='color:var(--primary-color);'>$1</strong>"
+                        );
+
+                    return `
+                        <li
+                            class="sugestao-item"
+
+                            onmouseenter="
+                                sugestaoIndexNota=${index};
+                                LogicaNegocio.atualizarSelecaoVisual(
+                                    document.getElementById('lista-sugestoes-produtos').getElementsByTagName('li'),
+                                    ${index}
+                                )
+                            "
+
+                            onclick="
+                                document.getElementById('nota-item-codigo').value='${prod.codigo}';
+                                document.getElementById('lista-sugestoes-produtos').style.display='none';
+                                LogicaNegocio.autoPreencherItemNota(${prod.originalIndex})
+                            "
+                        >
+                            ${nomeDestacado}
+                        </li>
+                    `;
+                }).join('');
+
             listaSugestoes.style.display = 'block';
-            this.atualizarSelecaoVisual(listaSugestoes.getElementsByTagName('li'), 0);
+
+            this.atualizarSelecaoVisual(
+                listaSugestoes.getElementsByTagName('li'),
+                0
+            );
+
             sugestaoIndexNota = 0;
+
         } else {
             listaSugestoes.style.display = 'none';
+
             if (!isAvulso) {
                 this.limparFormularioItemNota();
             } else {
-                document.getElementById('nota-item-variacao').innerHTML = `
+                document.getElementById(
+                    'nota-item-variacao'
+                ).innerHTML = `
                     <option value="Cromado">Cromado</option>
                     <option value="Pintura">Pintura</option>
                     <option value="Polido">Polido</option>
@@ -536,56 +1265,144 @@ const LogicaNegocio = {
     },
 
     navegarSugestoes: function (event, tipo) {
-        if (!['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) return;
-        const listId = tipo === 'nota' ? 'lista-sugestoes-produtos' : 'lista-sugestoes-busca';
-        const lista = document.getElementById(listId);
+        if (
+            !['ArrowDown', 'ArrowUp', 'Enter', 'Tab']
+                .includes(event.key)
+        ) {
+            return;
+        }
+
+        const listId =
+            tipo === 'nota'
+                ? 'lista-sugestoes-produtos'
+                : 'lista-sugestoes-busca';
+
+        const lista =
+            document.getElementById(listId);
 
         if (!lista || lista.style.display === 'none') {
             if (event.key === 'Enter' || event.key === 'Tab') {
                 event.preventDefault();
-                if (tipo === 'nota') this.selecionarPrimeiraSugestao();
-                else this.selecionarPrimeiraSugestaoBusca();
+
+                if (tipo === 'nota') {
+                    this.selecionarPrimeiraSugestao();
+                } else {
+                    this.selecionarPrimeiraSugestaoBusca();
+                }
             }
+
             return;
         }
 
-        const items = lista.getElementsByTagName('li');
-        let indexAtual = tipo === 'nota' ? sugestaoIndexNota : sugestaoIndexBusca;
+        const items =
+            lista.getElementsByTagName('li');
+
+        let indexAtual =
+            tipo === 'nota'
+                ? sugestaoIndexNota
+                : sugestaoIndexBusca;
 
         if (event.key === 'ArrowDown') {
-            event.preventDefault(); indexAtual++; if (indexAtual >= items.length) indexAtual = 0;
-            this.atualizarSelecaoVisual(items, indexAtual);
-        } else if (event.key === 'ArrowUp') {
-            event.preventDefault(); indexAtual--; if (indexAtual < 0) indexAtual = items.length - 1;
-            this.atualizarSelecaoVisual(items, indexAtual);
-        } else if (event.key === 'Enter' || event.key === 'Tab') {
             event.preventDefault();
-            if (indexAtual >= 0 && indexAtual < items.length) items[indexAtual].click();
-            else if (items.length > 0) items[0].click();
+
+            indexAtual++;
+
+            if (indexAtual >= items.length) {
+                indexAtual = 0;
+            }
+
+            this.atualizarSelecaoVisual(
+                items,
+                indexAtual
+            );
+
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+
+            indexAtual--;
+
+            if (indexAtual < 0) {
+                indexAtual = items.length - 1;
+            }
+
+            this.atualizarSelecaoVisual(
+                items,
+                indexAtual
+            );
+
+        } else if (
+            event.key === 'Enter' ||
+            event.key === 'Tab'
+        ) {
+            event.preventDefault();
+
+            if (
+                indexAtual >= 0 &&
+                indexAtual < items.length
+            ) {
+                items[indexAtual].click();
+            } else if (items.length > 0) {
+                items[0].click();
+            }
         }
-        if (tipo === 'nota') sugestaoIndexNota = indexAtual; else sugestaoIndexBusca = indexAtual;
+
+        if (tipo === 'nota') {
+            sugestaoIndexNota = indexAtual;
+        } else {
+            sugestaoIndexBusca = indexAtual;
+        }
     },
 
     atualizarSelecaoVisual: function (items, indexAtual) {
-        for (let i = 0; i < items.length; i++) items[i].classList.remove('selecionado');
-        if (indexAtual >= 0 && indexAtual < items.length) {
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.remove('selecionado');
+        }
+
+        if (
+            indexAtual >= 0 &&
+            indexAtual < items.length
+        ) {
             items[indexAtual].classList.add('selecionado');
-            items[indexAtual].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+            items[indexAtual].scrollIntoView({
+                block: 'nearest',
+                behavior: 'smooth'
+            });
         }
     },
 
     selecionarPrimeiraSugestao: function () {
-        const lista = document.getElementById('lista-sugestoes-produtos');
-        if (lista.style.display === 'block' && lista.firstChild) {
-            const itemSelecionado = lista.querySelector('.selecionado') || lista.firstChild;
+        const lista =
+            document.getElementById(
+                'lista-sugestoes-produtos'
+            );
+
+        if (
+            lista.style.display === 'block' &&
+            lista.firstChild
+        ) {
+            const itemSelecionado =
+                lista.querySelector('.selecionado') ||
+                lista.firstChild;
+
             itemSelecionado.click();
         }
     },
 
     selecionarPrimeiraSugestaoBusca: function () {
-        const lista = document.getElementById('lista-sugestoes-busca');
-        if (lista.style.display === 'block' && lista.firstChild) {
-            const itemSelecionado = lista.querySelector('.selecionado') || lista.firstChild;
+        const lista =
+            document.getElementById(
+                'lista-sugestoes-busca'
+            );
+
+        if (
+            lista.style.display === 'block' &&
+            lista.firstChild
+        ) {
+            const itemSelecionado =
+                lista.querySelector('.selecionado') ||
+                lista.firstChild;
+
             itemSelecionado.click();
         }
     },
@@ -593,7 +1410,10 @@ const LogicaNegocio = {
     limparFormularioItemNota: function () {
         document.getElementById('nota-item-nome').value = '';
         document.getElementById('nota-item-valor').value = '';
-        document.getElementById('nota-item-variacao').innerHTML = `
+
+        document.getElementById(
+            'nota-item-variacao'
+        ).innerHTML = `
             <option value="Cromado">Cromado</option>
             <option value="Pintura">Pintura</option>
             <option value="Polido">Polido</option>
@@ -601,41 +1421,152 @@ const LogicaNegocio = {
         `;
     },
 
+    // CORREÇÃO PRINCIPAL:
+    // o índice do cadastro selecionado é preservado.
+    // Assim, produtos com mesmo código/nome em empresas diferentes
+    // não voltam para o primeiro registro.
     autoPreencherItemNota: function (index = null) {
         const db = DB.get();
-        let prod = null;
-        const selClienteIdx = document.getElementById('nota-cliente').value;
-        const isAvulso = (selClienteIdx === 'AVULSO');
 
-        if (index !== null && !isNaN(index)) {
+        let prod = null;
+        let prodIndex = null;
+
+        const selClienteIdx =
+            document.getElementById('nota-cliente').value;
+
+        const isAvulso =
+            (selClienteIdx === 'AVULSO');
+
+        if (
+            index !== null &&
+            !isNaN(index) &&
+            index >= 0 &&
+            index < db.produtos.length
+        ) {
+            prodIndex = index;
             prod = db.produtos[index];
+
         } else {
-            const codigoInput = document.getElementById('nota-item-codigo').value.trim();
-            let empresaFiltro = selClienteIdx !== '' && !isAvulso ? db.clientes[selClienteIdx].nome : '';
+            const codigoInput =
+                document.getElementById(
+                    'nota-item-codigo'
+                ).value.trim();
 
             if (isAvulso) {
-                prod = db.produtos.find(p => String(p.codigo) === String(codigoInput) && (!p.fornecedor || p.fornecedor.trim() === ''));
+                prodIndex =
+                    db.produtos.findIndex(p =>
+                        String(p.codigo) === String(codigoInput) &&
+                        (
+                            !p.fornecedor ||
+                            p.fornecedor.trim() === ''
+                        )
+                    );
+
+                if (prodIndex >= 0) {
+                    prod = db.produtos[prodIndex];
+                }
+
             } else {
-                prod = db.produtos.find(p => String(p.codigo) === String(codigoInput) && (empresaFiltro === '' || p.fornecedor === empresaFiltro || !p.fornecedor));
-                if (!prod) prod = db.produtos.find(p => String(p.codigo) === String(codigoInput));
+                let empresaFiltro = '';
+
+                if (selClienteIdx !== '') {
+                    const clienteSelecionado =
+                        db.clientes[selClienteIdx];
+
+                    if (clienteSelecionado) {
+                        empresaFiltro =
+                            clienteSelecionado.nome;
+                    }
+                }
+
+                if (empresaFiltro !== '') {
+                    prodIndex =
+                        db.produtos.findIndex(p =>
+                            String(p.codigo) === String(codigoInput) &&
+                            p.fornecedor === empresaFiltro
+                        );
+
+                    if (prodIndex < 0) {
+                        prodIndex =
+                            db.produtos.findIndex(p =>
+                                String(p.codigo) === String(codigoInput) &&
+                                (
+                                    !p.fornecedor ||
+                                    p.fornecedor.trim() === ''
+                                )
+                            );
+                    }
+
+                    if (prodIndex >= 0) {
+                        prod = db.produtos[prodIndex];
+                    }
+
+                } else {
+                    prodIndex =
+                        db.produtos.findIndex(p =>
+                            String(p.codigo) === String(codigoInput)
+                        );
+
+                    if (prodIndex >= 0) {
+                        prod = db.produtos[prodIndex];
+                    }
+                }
             }
         }
 
-        const selectVariacao = document.getElementById('nota-item-variacao');
+        produtoSelecionadoIndex =
+            (
+                prodIndex !== null &&
+                prodIndex >= 0
+            )
+                ? prodIndex
+                : null;
+
+        const selectVariacao =
+            document.getElementById(
+                'nota-item-variacao'
+            );
+
         selectVariacao.innerHTML = '';
 
         if (prod) {
-            document.getElementById('nota-item-codigo').value = prod.codigo;
-            document.getElementById('nota-item-nome').value = prod.nome;
-            document.getElementById('nota-item-valor').value = prod.valVenda;
-            document.getElementById('nota-item-valor-producao-base').value = prod.valProducao || 0;
+            document.getElementById(
+                'nota-item-codigo'
+            ).value = prod.codigo;
 
-            const variacoesDaPeca = prod.variacoes || ["Cromado"];
-            variacoesDaPeca.forEach(v => { selectVariacao.innerHTML += `<option value="${v}">${v}</option>`; });
+            document.getElementById(
+                'nota-item-nome'
+            ).value = prod.nome;
 
-            document.getElementById('nota-item-variacao').focus();
-            document.getElementById('lista-sugestoes-produtos').style.display = 'none';
+            document.getElementById(
+                'nota-item-valor'
+            ).value = prod.valVenda;
+
+            document.getElementById(
+                'nota-item-valor-producao-base'
+            ).value = prod.valProducao || 0;
+
+            const variacoesDaPeca =
+                prod.variacoes || ['Cromado'];
+
+            variacoesDaPeca.forEach(v => {
+                selectVariacao.innerHTML += `
+                    <option value="${v}">
+                        ${v}
+                    </option>
+                `;
+            });
+
+            document.getElementById(
+                'nota-item-variacao'
+            ).focus();
+
+            document.getElementById(
+                'lista-sugestoes-produtos'
+            ).style.display = 'none';
+
             this.verificarVariacao();
+
         } else if (isAvulso) {
             selectVariacao.innerHTML = `
                 <option value="Cromado">Cromado</option>
@@ -643,812 +1574,3318 @@ const LogicaNegocio = {
                 <option value="Polido">Polido</option>
                 <option value="Afinado">Afinado</option>
             `;
-            document.getElementById('lista-sugestoes-produtos').style.display = 'none';
+
+            document.getElementById(
+                'lista-sugestoes-produtos'
+            ).style.display = 'none';
         }
     },
 
     toggleMaoObra: function () {
-        const tipo = document.getElementById('nota-item-tipo-mao').value;
-        document.getElementById('div-responsavel-producao').style.display = tipo === 'PRODUCAO' ? 'block' : 'none';
-        document.getElementById('div-responsavel-empreita').style.display = tipo === 'EMPREITA' ? 'block' : 'none';
+        const tipo =
+            document.getElementById(
+                'nota-item-tipo-mao'
+            ).value;
+
+        document.getElementById(
+            'div-responsavel-producao'
+        ).style.display =
+            tipo === 'PRODUCAO'
+                ? 'block'
+                : 'none';
+
+        document.getElementById(
+            'div-responsavel-empreita'
+        ).style.display =
+            tipo === 'EMPREITA'
+                ? 'block'
+                : 'none';
     },
 
+    // CORREÇÃO:
+    // utiliza o MESMO cadastro selecionado por índice.
     verificarVariacao: function () {
-        const variacao = document.getElementById('nota-item-variacao').value;
-        const inputValor = document.getElementById('nota-item-valor');
-        const codigoInput = document.getElementById('nota-item-codigo').value.trim();
-        const nomeInput = document.getElementById('nota-item-nome').value.trim();
+        const variacao =
+            document.getElementById(
+                'nota-item-variacao'
+            ).value;
+
+        const inputValor =
+            document.getElementById(
+                'nota-item-valor'
+            );
+
+        const codigoInput =
+            document.getElementById(
+                'nota-item-codigo'
+            ).value.trim();
+
+        const nomeInput =
+            document.getElementById(
+                'nota-item-nome'
+            ).value.trim();
 
         const db = DB.get();
-        const prod = db.produtos.find(p => String(p.codigo) === String(codigoInput) && p.nome === nomeInput);
-        if (!prod) return;
+
+        let prod = null;
+
+        if (
+            produtoSelecionadoIndex !== null &&
+            produtoSelecionadoIndex >= 0 &&
+            produtoSelecionadoIndex < db.produtos.length
+        ) {
+            const produtoSelecionado =
+                db.produtos[produtoSelecionadoIndex];
+
+            if (
+                String(produtoSelecionado.codigo) ===
+                String(codigoInput) &&
+                produtoSelecionado.nome === nomeInput
+            ) {
+                prod = produtoSelecionado;
+            }
+        }
+
+        if (!prod) {
+            const selClienteIdx =
+                document.getElementById(
+                    'nota-cliente'
+                ).value;
+
+            const isAvulso =
+                (selClienteIdx === 'AVULSO');
+
+            if (isAvulso) {
+                prod =
+                    db.produtos.find(p =>
+                        String(p.codigo) === String(codigoInput) &&
+                        p.nome === nomeInput &&
+                        (
+                            !p.fornecedor ||
+                            p.fornecedor.trim() === ''
+                        )
+                    );
+
+            } else {
+                let empresaFiltro = '';
+
+                if (selClienteIdx !== '') {
+                    const clienteSelecionado =
+                        db.clientes[selClienteIdx];
+
+                    if (clienteSelecionado) {
+                        empresaFiltro =
+                            clienteSelecionado.nome;
+                    }
+                }
+
+                if (empresaFiltro !== '') {
+                    prod =
+                        db.produtos.find(p =>
+                            String(p.codigo) === String(codigoInput) &&
+                            p.nome === nomeInput &&
+                            p.fornecedor === empresaFiltro
+                        );
+
+                    if (!prod) {
+                        prod =
+                            db.produtos.find(p =>
+                                String(p.codigo) === String(codigoInput) &&
+                                p.nome === nomeInput &&
+                                (
+                                    !p.fornecedor ||
+                                    p.fornecedor.trim() === ''
+                                )
+                            );
+                    }
+                } else {
+                    prod =
+                        db.produtos.find(p =>
+                            String(p.codigo) === String(codigoInput) &&
+                            p.nome === nomeInput
+                        );
+                }
+            }
+        }
+
+        if (!prod) {
+            return;
+        }
 
         if (variacao === 'Polido') {
-            inputValor.value = prod.valVendaPolido || prod.valVendaPolida || prod.valVenda;
+            inputValor.value =
+                prod.valVendaPolido ||
+                prod.valVendaPolida ||
+                prod.valVenda;
         } else {
-            inputValor.value = prod.valVenda;
+            inputValor.value =
+                prod.valVenda;
         }
     },
 
     carregarFuncionariosProducao: function () {
-        const rhRaw = localStorage.getItem('ks_rh_dados');
-        const rh = rhRaw ? JSON.parse(rhRaw) : { funcionarios: [] };
-        const sel = document.getElementById('nota-item-func-producao');
+        const rhRaw =
+            localStorage.getItem('ks_rh_dados');
+
+        const rh =
+            rhRaw
+                ? JSON.parse(rhRaw)
+                : { funcionarios: [] };
+
+        const sel =
+            document.getElementById(
+                'nota-item-func-producao'
+            );
+
         if (!sel) return;
-        const prods = rh.funcionarios.filter(f => f.tipo === 'Produção');
-        sel.innerHTML = '<option value="">-- Selecione o Funcionário --</option>' +
-            prods.map(f => `<option value="${f.nome}">${f.nome}</option>`).join('');
+
+        const prods =
+            rh.funcionarios.filter(
+                f => f.tipo === 'Produção'
+            );
+
+        sel.innerHTML =
+            '<option value="">-- Selecione o Funcionário --</option>' +
+            prods.map(f =>
+                `<option value="${f.nome}">${f.nome}</option>`
+            ).join('');
     },
 
     adicionarItemNota: function () {
-        if (document.getElementById('nota-item-codigo').value && !document.getElementById('nota-item-nome').value) {
+        if (
+            document.getElementById(
+                'nota-item-codigo'
+            ).value &&
+            !document.getElementById(
+                'nota-item-nome'
+            ).value
+        ) {
             this.autoPreencherItemNota();
         }
 
-        const codigo = document.getElementById('nota-item-codigo').value;
-        const nomeBase = document.getElementById('nota-item-nome').value;
-        const variacaoSelecionada = document.getElementById('nota-item-variacao').value;
-        let valor = parseFloat(document.getElementById('nota-item-valor').value);
+        const codigo =
+            document.getElementById(
+                'nota-item-codigo'
+            ).value;
 
-        const radiosTipo = document.querySelectorAll('input[name="nota-tipo"]');
+        const nomeBase =
+            document.getElementById(
+                'nota-item-nome'
+            ).value;
+
+        const variacaoSelecionada =
+            document.getElementById(
+                'nota-item-variacao'
+            ).value;
+
+        let valor =
+            parseFloat(
+                document.getElementById(
+                    'nota-item-valor'
+                ).value
+            );
+
+        const radiosTipo =
+            document.querySelectorAll(
+                'input[name="nota-tipo"]'
+            );
+
         let tipoNota = 'VENDA';
-        radiosTipo.forEach(radio => { if (radio.checked) tipoNota = radio.value; });
 
-        const qtd = parseInt(document.getElementById('nota-item-qtd').value);
-        const perca = parseInt(document.getElementById('nota-item-perca').value) || 0;
-        const repeticoes = parseInt(document.getElementById('nota-item-repeticoes').value) || 1;
+        radiosTipo.forEach(radio => {
+            if (radio.checked) {
+                tipoNota = radio.value;
+            }
+        });
 
-        if (!codigo || !nomeBase || !variacaoSelecionada || isNaN(valor) || isNaN(qtd) || qtd < 1) {
-            CustomModal.show('Verifique os dados do item. A quantidade deve ser no mínimo 1.'); return;
+        const qtd =
+            parseInt(
+                document.getElementById(
+                    'nota-item-qtd'
+                ).value
+            );
+
+        const perca =
+            parseInt(
+                document.getElementById(
+                    'nota-item-perca'
+                ).value
+            ) || 0;
+
+        const repeticoes =
+            parseInt(
+                document.getElementById(
+                    'nota-item-repeticoes'
+                ).value
+            ) || 1;
+
+        if (
+            !codigo ||
+            !nomeBase ||
+            !variacaoSelecionada ||
+            isNaN(valor) ||
+            isNaN(qtd) ||
+            qtd < 1
+        ) {
+            CustomModal.show(
+                'Verifique os dados do item. A quantidade deve ser no mínimo 1.'
+            );
+            return;
         }
 
-        const maoObraTipo = document.getElementById('nota-item-tipo-mao').value;
+        const maoObraTipo =
+            document.getElementById(
+                'nota-item-tipo-mao'
+            ).value;
+
         let maoObraNome = 'KS Afinações';
         let custoProducao = 0;
 
         if (maoObraTipo === 'PRODUCAO') {
-            maoObraNome = document.getElementById('nota-item-func-producao').value;
-            if (!maoObraNome) { CustomModal.show('Selecione o funcionário de produção da lista!'); return; }
-            custoProducao = parseFloat(document.getElementById('nota-item-valor-producao-base').value) || 0;
+            maoObraNome =
+                document.getElementById(
+                    'nota-item-func-producao'
+                ).value;
+
+            if (!maoObraNome) {
+                CustomModal.show(
+                    'Selecione o funcionário de produção da lista!'
+                );
+                return;
+            }
+
+            custoProducao =
+                parseFloat(
+                    document.getElementById(
+                        'nota-item-valor-producao-base'
+                    ).value
+                ) || 0;
+
         } else if (maoObraTipo === 'EMPREITA') {
-            maoObraNome = document.getElementById('nota-item-nome-empreita').value.trim();
-            if (!maoObraNome) { CustomModal.show('Digite o nome da empreita/oficina!'); return; }
-            custoProducao = parseFloat(document.getElementById('nota-item-valor-empreita').value);
-            if (isNaN(custoProducao) || custoProducao < 0) { CustomModal.show('Digite o valor por peça combinado com a empreita!'); return; }
+            maoObraNome =
+                document.getElementById(
+                    'nota-item-nome-empreita'
+                ).value.trim();
+
+            if (!maoObraNome) {
+                CustomModal.show(
+                    'Digite o nome da empreita/oficina!'
+                );
+                return;
+            }
+
+            custoProducao =
+                parseFloat(
+                    document.getElementById(
+                        'nota-item-valor-empreita'
+                    ).value
+                );
+
+            if (
+                isNaN(custoProducao) ||
+                custoProducao < 0
+            ) {
+                CustomModal.show(
+                    'Digite o valor por peça combinado com a empreita!'
+                );
+                return;
+            }
         }
 
-        if (tipoNota === 'RETRABALHO') { valor = 0; custoProducao = 0; }
+        if (tipoNota === 'RETRABALHO') {
+            valor = 0;
+            custoProducao = 0;
+        }
 
-        const nomeFinalNaNota = `${nomeBase.toUpperCase()} - ${variacaoSelecionada.toUpperCase()}`;
-        const subtotal = valor * qtd;
-        const custoProducaoTotal = custoProducao * qtd;
+        const nomeFinalNaNota =
+            `${nomeBase.toUpperCase()} - ${variacaoSelecionada.toUpperCase()}`;
+
+        const subtotal =
+            valor * qtd;
+
+        const custoProducaoTotal =
+            custoProducao * qtd;
 
         if (itemNotaEmEdicaoIndex !== null) {
             itensNotaAtual[itemNotaEmEdicaoIndex] = {
-                codigo: codigo, nome: nomeFinalNaNota, valor: valor, qtd: qtd, perca: perca, subtotal: subtotal, variacaoBruta: variacaoSelecionada,
-                maoObraTipo: maoObraTipo, maoObraNome: maoObraNome, custoProducao: custoProducao, custoProducaoTotal: custoProducaoTotal
+                codigo,
+                nome: nomeFinalNaNota,
+                valor,
+                qtd,
+                perca,
+                subtotal,
+                variacaoBruta: variacaoSelecionada,
+                maoObraTipo,
+                maoObraNome,
+                custoProducao,
+                custoProducaoTotal
             };
+
             itemNotaEmEdicaoIndex = null;
-            const btnAdd = document.getElementById('btn-add-item-nota');
-            btnAdd.innerText = "Adicionar"; btnAdd.classList.remove('btn-success'); btnAdd.classList.add('btn-outline');
-            btnAdd.style.borderColor = 'var(--border-color)'; btnAdd.style.color = 'var(--text-main)';
+
+            const btnAdd =
+                document.getElementById(
+                    'btn-add-item-nota'
+                );
+
+            btnAdd.innerText = 'Adicionar';
+
+            btnAdd.classList.remove('btn-success');
+            btnAdd.classList.add('btn-outline');
+
+            btnAdd.style.borderColor =
+                'var(--border-color)';
+
+            btnAdd.style.color =
+                'var(--text-main)';
+
         } else {
             for (let i = 0; i < repeticoes; i++) {
                 itensNotaAtual.push({
-                    codigo: codigo, nome: nomeFinalNaNota, valor: valor, qtd: qtd, perca: perca, subtotal: subtotal, variacaoBruta: variacaoSelecionada,
-                    maoObraTipo: maoObraTipo, maoObraNome: maoObraNome, custoProducao: custoProducao, custoProducaoTotal: custoProducaoTotal
+                    codigo,
+                    nome: nomeFinalNaNota,
+                    valor,
+                    qtd,
+                    perca,
+                    subtotal,
+                    variacaoBruta: variacaoSelecionada,
+                    maoObraTipo,
+                    maoObraNome,
+                    custoProducao,
+                    custoProducaoTotal
                 });
             }
         }
 
-        document.getElementById('nota-item-codigo').value = '';
-        document.getElementById('nota-item-nome').value = '';
-        document.getElementById('nota-item-valor').value = '';
-        document.getElementById('nota-item-qtd').value = '';
-        document.getElementById('nota-item-perca').value = '0';
-        document.getElementById('nota-item-repeticoes').value = '1';
-        document.getElementById('nota-item-variacao').innerHTML = `
+        document.getElementById(
+            'nota-item-codigo'
+        ).value = '';
+
+        document.getElementById(
+            'nota-item-nome'
+        ).value = '';
+
+        document.getElementById(
+            'nota-item-valor'
+        ).value = '';
+
+        document.getElementById(
+            'nota-item-qtd'
+        ).value = '';
+
+        document.getElementById(
+            'nota-item-perca'
+        ).value = '0';
+
+        document.getElementById(
+            'nota-item-repeticoes'
+        ).value = '1';
+
+        document.getElementById(
+            'nota-item-variacao'
+        ).innerHTML = `
             <option value="Cromado">Cromado</option>
             <option value="Pintura">Pintura</option>
             <option value="Polido">Polido</option>
             <option value="Afinado">Afinado</option>
         `;
-        document.getElementById('lista-sugestoes-produtos').style.display = 'none';
 
-        document.getElementById('nota-item-valor-producao-base').value = '';
-        document.getElementById('nota-item-nome-empreita').value = '';
-        document.getElementById('nota-item-valor-empreita').value = '';
+        document.getElementById(
+            'lista-sugestoes-produtos'
+        ).style.display = 'none';
+
+        document.getElementById(
+            'nota-item-valor-producao-base'
+        ).value = '';
+
+        document.getElementById(
+            'nota-item-nome-empreita'
+        ).value = '';
+
+        document.getElementById(
+            'nota-item-valor-empreita'
+        ).value = '';
+
+        // Limpa o cadastro selecionado SOMENTE depois
+        // que o item já foi salvo na nota.
+        produtoSelecionadoIndex = null;
 
         UI.renderItensNota();
 
-        setTimeout(() => { document.getElementById('nota-item-codigo').focus(); sugestaoIndexNota = -1; }, 50);
+        setTimeout(() => {
+            document.getElementById(
+                'nota-item-codigo'
+            ).focus();
+
+            sugestaoIndexNota = -1;
+        }, 50);
     },
 
     editarItemNota: function (index) {
-        const item = itensNotaAtual[index];
+        const item =
+            itensNotaAtual[index];
+
         if (!item) return;
 
-        document.getElementById('nota-item-codigo').value = item.codigo;
-        // Joga o nome bruto (antes do traço da variação) e o valor para não ficar em branco
-        document.getElementById('nota-item-nome').value = item.nome.split(' - ')[0];
-        document.getElementById('nota-item-valor').value = item.valor;
+        document.getElementById(
+            'nota-item-codigo'
+        ).value = item.codigo;
 
-        const selectVariacao = document.getElementById('nota-item-variacao');
+        document.getElementById(
+            'nota-item-nome'
+        ).value =
+            item.nome.split(' - ')[0];
+
+        document.getElementById(
+            'nota-item-valor'
+        ).value = item.valor;
+
+        const selectVariacao =
+            document.getElementById(
+                'nota-item-variacao'
+            );
+
         selectVariacao.innerHTML = `
             <option value="Cromado">Cromado</option>
             <option value="Pintura">Pintura</option>
             <option value="Polido">Polido</option>
             <option value="Afinado">Afinado</option>
         `;
-        if (item.variacaoBruta) selectVariacao.value = item.variacaoBruta;
 
-        document.getElementById('nota-item-tipo-mao').value = item.maoObraTipo || 'KS';
-        LogicaNegocio.toggleMaoObra();
-        if (item.maoObraTipo === 'PRODUCAO') {
-            document.getElementById('nota-item-func-producao').value = item.maoObraNome;
-        } else if (item.maoObraTipo === 'EMPREITA') {
-            document.getElementById('nota-item-nome-empreita').value = item.maoObraNome;
-            document.getElementById('nota-item-valor-empreita').value = item.custoProducao;
+        if (item.variacaoBruta) {
+            selectVariacao.value =
+                item.variacaoBruta;
         }
 
-        document.getElementById('nota-item-qtd').value = item.qtd;
-        document.getElementById('nota-item-perca').value = item.perca;
-        document.getElementById('nota-item-repeticoes').value = '1';
+        document.getElementById(
+            'nota-item-tipo-mao'
+        ).value =
+            item.maoObraTipo || 'KS';
+
+        LogicaNegocio.toggleMaoObra();
+
+        if (item.maoObraTipo === 'PRODUCAO') {
+            document.getElementById(
+                'nota-item-func-producao'
+            ).value =
+                item.maoObraNome;
+
+        } else if (item.maoObraTipo === 'EMPREITA') {
+            document.getElementById(
+                'nota-item-nome-empreita'
+            ).value =
+                item.maoObraNome;
+
+            document.getElementById(
+                'nota-item-valor-empreita'
+            ).value =
+                item.custoProducao;
+        }
+
+        document.getElementById(
+            'nota-item-qtd'
+        ).value = item.qtd;
+
+        document.getElementById(
+            'nota-item-perca'
+        ).value = item.perca;
+
+        document.getElementById(
+            'nota-item-repeticoes'
+        ).value = '1';
+
         itemNotaEmEdicaoIndex = index;
 
-        const btnAdd = document.getElementById('btn-add-item-nota');
-        btnAdd.innerText = "Salvar Edição"; btnAdd.classList.remove('btn-outline'); btnAdd.classList.add('btn-success');
-        btnAdd.style.borderColor = 'var(--success-color)'; btnAdd.style.color = 'var(--success-color)';
+        const btnAdd =
+            document.getElementById(
+                'btn-add-item-nota'
+            );
+
+        btnAdd.innerText =
+            'Salvar Edição';
+
+        btnAdd.classList.remove(
+            'btn-outline'
+        );
+
+        btnAdd.classList.add(
+            'btn-success'
+        );
+
+        btnAdd.style.borderColor =
+            'var(--success-color)';
+
+        btnAdd.style.color =
+            'var(--success-color)';
     },
 
-    removerItemNota: function (index) { itensNotaAtual.splice(index, 1); UI.renderItensNota(); },
+    removerItemNota: function (index) {
+        itensNotaAtual.splice(index, 1);
+        UI.renderItensNota();
+    },
 
     limparNota: function () {
-        CustomModal.show('Deseja realmente apagar todos os itens desta nota e começar de novo?', true, () => {
-            itensNotaAtual = []; itemNotaEmEdicaoIndex = null; idNotaAtual = null; notaAbatida = false;
-            UI.renderItensNota();
-            document.getElementById('nota-cliente').value = '';
-            document.getElementById('nota-data').value = new Date().toISOString().split('T')[0];
-            document.getElementById('div-cliente-avulso').style.display = 'none';
+        CustomModal.show(
+            'Deseja realmente apagar todos os itens desta nota e começar de novo?',
+            true,
+            () => {
+                itensNotaAtual = [];
+                itemNotaEmEdicaoIndex = null;
+                idNotaAtual = null;
+                notaAbatida = false;
+                produtoSelecionadoIndex = null;
 
-            const btnAdd = document.getElementById('btn-add-item-nota');
-            btnAdd.innerText = "Adicionar"; btnAdd.classList.remove('btn-success'); btnAdd.classList.add('btn-outline');
-            btnAdd.style.borderColor = 'var(--border-color)'; btnAdd.style.color = 'var(--text-main)';
+                UI.renderItensNota();
 
-            const btnEstoque = document.getElementById('btn-abater-estoque');
-            if (btnEstoque) {
-                btnEstoque.style.backgroundColor = 'transparent'; btnEstoque.style.borderColor = '#38bdf8'; btnEstoque.style.color = '#38bdf8';
-                btnEstoque.innerHTML = '<i data-lucide="package-minus" style="width: 18px; height: 18px;"></i> Abater Estoque';
-                lucide.createIcons();
+                document.getElementById(
+                    'nota-cliente'
+                ).value = '';
+
+                document.getElementById(
+                    'nota-data'
+                ).value =
+                    new Date().toISOString().split('T')[0];
+
+                document.getElementById(
+                    'div-cliente-avulso'
+                ).style.display = 'none';
+
+                const btnAdd =
+                    document.getElementById(
+                        'btn-add-item-nota'
+                    );
+
+                btnAdd.innerText = 'Adicionar';
+
+                btnAdd.classList.remove(
+                    'btn-success'
+                );
+
+                btnAdd.classList.add(
+                    'btn-outline'
+                );
+
+                btnAdd.style.borderColor =
+                    'var(--border-color)';
+
+                btnAdd.style.color =
+                    'var(--text-main)';
+
+                const btnEstoque =
+                    document.getElementById(
+                        'btn-abater-estoque'
+                    );
+
+                if (btnEstoque) {
+                    btnEstoque.style.backgroundColor =
+                        'transparent';
+
+                    btnEstoque.style.borderColor =
+                        '#38bdf8';
+
+                    btnEstoque.style.color =
+                        '#38bdf8';
+
+                    btnEstoque.innerHTML =
+                        '<i data-lucide="package-minus" style="width:18px; height:18px;"></i> Abater Estoque';
+
+                    lucide.createIcons();
+                }
+
+                CustomModal.show(
+                    'Nota limpa com sucesso!'
+                );
             }
-            CustomModal.show('Nota limpa com sucesso!');
-        });
+        );
     },
 
     gerarPreviewNota: function () {
-        const codigoPendente = document.getElementById('nota-item-codigo').value;
-        if (codigoPendente.trim() !== "") { CustomModal.show('ATENÇÃO: Você tem um código digitado que não foi adicionado à nota.'); return; }
+        const codigoPendente =
+            document.getElementById(
+                'nota-item-codigo'
+            ).value;
 
-        const clIndex = document.getElementById('nota-cliente').value;
-        let objCliente = {};
-
-        if (clIndex === "") { CustomModal.show('Selecione o Destinatário/Cliente da lista.'); return; }
-
-        if (clIndex === "AVULSO") {
-            const nomeAvulso = document.getElementById('avulso-nome').value.trim();
-            if (!nomeAvulso) { CustomModal.show('Preencha o Nome do Cliente Avulso!'); return; }
-            objCliente = {
-                nome: nomeAvulso.toUpperCase(), cnpj: document.getElementById('avulso-cnpj').value.trim() || '-',
-                endereco: document.getElementById('avulso-endereco').value.trim() || '-', telefone: document.getElementById('avulso-telefone').value.trim() || '-'
-            };
-        } else {
-            objCliente = DB.get().clientes[clIndex];
+        if (codigoPendente.trim() !== '') {
+            CustomModal.show(
+                'ATENÇÃO: Você tem um código digitado que não foi adicionado à nota.'
+            );
+            return;
         }
 
-        if (itensNotaAtual.length === 0) { CustomModal.show('Sua nota está vazia. Adicione os itens na tabela!'); return; }
+        const clIndex =
+            document.getElementById(
+                'nota-cliente'
+            ).value;
 
-        const radiosTipo = document.querySelectorAll('input[name="nota-tipo"]');
+        let objCliente = {};
+
+        if (clIndex === '') {
+            CustomModal.show(
+                'Selecione o Destinatário/Cliente da lista.'
+            );
+            return;
+        }
+
+        if (clIndex === 'AVULSO') {
+            const nomeAvulso =
+                document.getElementById(
+                    'avulso-nome'
+                ).value.trim();
+
+            if (!nomeAvulso) {
+                CustomModal.show(
+                    'Preencha o Nome do Cliente Avulso!'
+                );
+                return;
+            }
+
+            objCliente = {
+                nome: nomeAvulso.toUpperCase(),
+                cnpj:
+                    document.getElementById(
+                        'avulso-cnpj'
+                    ).value.trim() || '-',
+
+                endereco:
+                    document.getElementById(
+                        'avulso-endereco'
+                    ).value.trim() || '-',
+
+                telefone:
+                    document.getElementById(
+                        'avulso-telefone'
+                    ).value.trim() || '-'
+            };
+
+        } else {
+            objCliente =
+                DB.get().clientes[clIndex];
+        }
+
+        if (itensNotaAtual.length === 0) {
+            CustomModal.show(
+                'Sua nota está vazia. Adicione os itens na tabela!'
+            );
+            return;
+        }
+
+        const radiosTipo =
+            document.querySelectorAll(
+                'input[name="nota-tipo"]'
+            );
+
         let tipoNota = 'VENDA';
-        radiosTipo.forEach(radio => { if (radio.checked) tipoNota = radio.value; });
 
-        if (tipoNota === 'RETRABALHO') { itensNotaAtual.forEach(item => { item.valor = 0; item.subtotal = 0; }); }
+        radiosTipo.forEach(radio => {
+            if (radio.checked) {
+                tipoNota = radio.value;
+            }
+        });
 
-        if (!idNotaAtual) idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
-        const idNota = idNotaAtual;
-        const total = itensNotaAtual.reduce((acc, item) => acc + item.subtotal, 0);
+        if (tipoNota === 'RETRABALHO') {
+            itensNotaAtual.forEach(item => {
+                item.valor = 0;
+                item.subtotal = 0;
+            });
+        }
 
-        const dataInputRaw = document.getElementById('nota-data').value;
-        let dataImpressao = new Date().toLocaleDateString('pt-BR');
-        if (dataInputRaw) { const partes = dataInputRaw.split('-'); dataImpressao = `${partes[2]}/${partes[1]}/${partes[0]}`; }
+        if (!idNotaAtual) {
+            idNotaAtual =
+                Math.floor(
+                    10000 +
+                    Math.random() * 90000
+                ).toString();
+        }
+
+        const idNota =
+            idNotaAtual;
+
+        const total =
+            itensNotaAtual.reduce(
+                (acc, item) =>
+                    acc + item.subtotal,
+                0
+            );
+
+        const dataInputRaw =
+            document.getElementById(
+                'nota-data'
+            ).value;
+
+        let dataImpressao =
+            new Date().toLocaleDateString(
+                'pt-BR'
+            );
+
+        if (dataInputRaw) {
+            const partes =
+                dataInputRaw.split('-');
+
+            dataImpressao =
+                `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
 
         window.notaPendenteParaSalvar = {
-            id: idNota, data: dataInputRaw || new Date().toISOString().split('T')[0],
-            cliente: objCliente.nome.toUpperCase(), clienteObj: clIndex === 'AVULSO' ? objCliente : null,
-            clienteIndex: clIndex, itens: JSON.parse(JSON.stringify(itensNotaAtual)), total: total, tipo: tipoNota
+            id: idNota,
+            data:
+                dataInputRaw ||
+                new Date().toISOString().split('T')[0],
+
+            cliente:
+                objCliente.nome.toUpperCase(),
+
+            clienteObj:
+                clIndex === 'AVULSO'
+                    ? objCliente
+                    : null,
+
+            clienteIndex:
+                clIndex,
+
+            itens:
+                JSON.parse(
+                    JSON.stringify(itensNotaAtual)
+                ),
+
+            total,
+            tipo: tipoNota
         };
 
         const generateVia = (viaName) => `
-            <div style="border: 2px solid black; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; font-family: Arial, sans-serif; background: white;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid black; padding: 4px 8px; font-size: 10px; font-weight: bold;">
+            <div style="border:2px solid black; display:flex; flex-direction:column; height:100%; box-sizing:border-box; font-family:Arial, sans-serif; background:white;">
+
+                <div style="display:flex; justify-content:space-between; border-bottom:2px solid black; padding:4px 8px; font-size:10px; font-weight:bold;">
                     <span>${viaName}</span>
-                    <span class="${tipoNota === 'RETRABALHO' ? 'selo-retrabalho' : ''}" style="font-size: 12px;">${tipoNota === 'RETRABALHO' ? 'RETRABALHO (SEM CUSTO)' : 'DOCUMENTO AUXILIAR'}</span>
+                    <span class="${tipoNota === 'RETRABALHO' ? 'selo-retrabalho' : ''}" style="font-size:12px;">
+                        ${tipoNota === 'RETRABALHO'
+                ? 'RETRABALHO (SEM CUSTO)'
+                : 'DOCUMENTO AUXILIAR'}
+                    </span>
                     <span></span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 2px solid black;">
-                    <div><div style="font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">KS Afinações</div><div style="font-size: 11px; margin-top: 2px;">Metais Sanitários</div></div>
-                    <div style="text-align: right; font-size: 11px;">
-                        <div style="margin-bottom: 4px;">N.º <span style="font-weight: bold; font-size: 14px;">${idNota}</span></div>
-                        <div>Data: ${dataImpressao}</div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border-bottom:2px solid black;">
+                    <div>
+                        <div style="font-size:24px; font-weight:bold; letter-spacing:0.5px;">
+                            KS Afinações
+                        </div>
+                        <div style="font-size:11px; margin-top:2px;">
+                            Metais Sanitários
+                        </div>
+                    </div>
+
+                    <div style="text-align:right; font-size:11px;">
+                        <div style="margin-bottom:4px;">
+                            N.º
+                            <span style="font-weight:bold; font-size:14px;">
+                                ${idNota}
+                            </span>
+                        </div>
+
+                        <div>
+                            Data: ${dataImpressao}
+                        </div>
                     </div>
                 </div>
-                <div style="display: flex; border-bottom: 2px solid black; font-size: 10px;">
-                    <div style="flex: 1; border-right: 2px solid black; padding: 0;">
-                        <div style="text-align: center; font-weight: bold; border-bottom: 1px solid black; padding: 4px 0;">KS Afinações</div>
-                        <table style="width: 100%; font-size: 10px; border-collapse: collapse;">
-                            <tr><td style="width: 55px; padding: 3px 6px;">Endereço:</td><td style="padding: 3px 6px;">KS Afinações, Santa Isabel - PR, 87910-000</td></tr>
-                            <tr><td style="padding: 3px 6px;">Telefone:</td><td style="padding: 3px 6px;">(44) 9 9828-8914</td></tr>
-                            <tr><td style="padding: 3px 6px;">CNPJ:</td><td style="padding: 3px 6px;">42.360.395/0001-83</td></tr>
+
+                <div style="display:flex; border-bottom:2px solid black; font-size:10px;">
+                    <div style="flex:1; border-right:2px solid black; padding:0;">
+
+                        <div style="text-align:center; font-weight:bold; border-bottom:1px solid black; padding:4px 0;">
+                            KS Afinações
+                        </div>
+
+                        <table style="width:100%; font-size:10px; border-collapse:collapse;">
+                            <tr>
+                                <td style="width:55px; padding:3px 6px;">
+                                    Endereço:
+                                </td>
+                                <td style="padding:3px 6px;">
+                                    KS Afinações, Santa Isabel - PR, 87910-000
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td style="padding:3px 6px;">
+                                    Telefone:
+                                </td>
+                                <td style="padding:3px 6px;">
+                                    (44) 9 9828-8914
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td style="padding:3px 6px;">
+                                    CNPJ:
+                                </td>
+                                <td style="padding:3px 6px;">
+                                    42.360.395/0001-83
+                                </td>
+                            </tr>
                         </table>
                     </div>
-                    <div style="flex: 1; padding: 0;">
-                        <div style="text-align: center; font-weight: bold; border-bottom: 1px solid black; padding: 4px 0;">${objCliente.nome.toUpperCase()}</div>
-                        <table style="width: 100%; font-size: 10px; border-collapse: collapse;">
-                            <tr><td style="width: 55px; padding: 3px 6px;">Endereço:</td><td style="padding: 3px 6px;">${objCliente.endereco || '-'}</td></tr>
-                            <tr><td style="padding: 3px 6px;">Telefone:</td><td style="padding: 3px 6px;">${objCliente.telefone || '-'}</td></tr>
-                            <tr><td style="padding: 3px 6px;">CNPJ:</td><td style="padding: 3px 6px;">${objCliente.cnpj || '-'}</td></tr>
+
+                    <div style="flex:1; padding:0;">
+
+                        <div style="text-align:center; font-weight:bold; border-bottom:1px solid black; padding:4px 0;">
+                            ${objCliente.nome.toUpperCase()}
+                        </div>
+
+                        <table style="width:100%; font-size:10px; border-collapse:collapse;">
+                            <tr>
+                                <td style="width:55px; padding:3px 6px;">
+                                    Endereço:
+                                </td>
+                                <td style="padding:3px 6px;">
+                                    ${objCliente.endereco || '-'}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td style="padding:3px 6px;">
+                                    Telefone:
+                                </td>
+                                <td style="padding:3px 6px;">
+                                    ${objCliente.telefone || '-'}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td style="padding:3px 6px;">
+                                    CNPJ:
+                                </td>
+                                <td style="padding:3px 6px;">
+                                    ${objCliente.cnpj || '-'}
+                                </td>
+                            </tr>
                         </table>
                     </div>
                 </div>
-                <div style="flex: 1; border-bottom: 2px solid black;">
-                    ${tipoNota === 'RETRABALHO' ? `<div class="selo-retrabalho" style="text-align: center; padding: 5px; font-weight: bold; font-size: 14px; letter-spacing: 2px; border-bottom: 2px solid black;">RETRABALHO - SEM CUSTO ADICIONAL</div>` : ''}
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: black;">
+
+                <div style="flex:1; border-bottom:2px solid black;">
+
+                    ${tipoNota === 'RETRABALHO'
+                ? `
+                            <div
+                                class="selo-retrabalho"
+                                style="text-align:center; padding:5px; font-weight:bold; font-size:14px; letter-spacing:2px; border-bottom:2px solid black;"
+                            >
+                                RETRABALHO - SEM CUSTO ADICIONAL
+                            </div>
+                            `
+                : ''
+            }
+
+                    <table style="width:100%; border-collapse:collapse; font-size:11px; color:black;">
                         <thead>
-                            <tr style="color: black;">
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 12%; color: black;">CÓDIGO</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 40%; color: black;">PRODUTO</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 8%; color: black;">QTD</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 10%; color: black;">PERCA</th>
-                                <th style="border-right: 1px solid black; border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%; color: black;">VAL. UNIT.</th>
-                                <th style="border-bottom: 2px solid black; padding: 4px; text-align: center; width: 15%; color: black;">VAL. TOTAL</th>
+                            <tr style="color:black;">
+
+                                <th style="border-right:1px solid black; border-bottom:2px solid black; padding:4px; text-align:center; width:12%; color:black;">
+                                    CÓDIGO
+                                </th>
+
+                                <th style="border-right:1px solid black; border-bottom:2px solid black; padding:4px; text-align:center; width:40%; color:black;">
+                                    PRODUTO
+                                </th>
+
+                                <th style="border-right:1px solid black; border-bottom:2px solid black; padding:4px; text-align:center; width:8%; color:black;">
+                                    QTD
+                                </th>
+
+                                <th style="border-right:1px solid black; border-bottom:2px solid black; padding:4px; text-align:center; width:10%; color:black;">
+                                    PERCA
+                                </th>
+
+                                <th style="border-right:1px solid black; border-bottom:2px solid black; padding:4px; text-align:center; width:15%; color:black;">
+                                    VAL. UNIT.
+                                </th>
+
+                                <th style="border-bottom:2px solid black; padding:4px; text-align:center; width:15%; color:black;">
+                                    VAL. TOTAL
+                                </th>
                             </tr>
                         </thead>
+
                         <tbody>
-                            ${itensNotaAtual.map(i => `<tr><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; color: black;">${i.codigo}</td><td style="border-right: 1px solid black; padding: 3px 4px; color: black;">${i.nome.toUpperCase()}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; color: black;">${i.qtd}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: center; font-weight: ${i.perca > 0 ? 'bold' : 'normal'}; color: black;">${i.perca > 0 ? i.perca : ''}</td><td style="border-right: 1px solid black; padding: 3px 4px; text-align: right; color: black;">R$ ${i.valor.toFixed(2).replace('.', ',')}</td><td style="padding: 3px 4px; text-align: right; color: black;">R$ ${i.subtotal.toFixed(2).replace('.', ',')}</td></tr>`).join('')}
+                            ${itensNotaAtual.map(i => `
+                                    <tr>
+                                        <td style="border-right:1px solid black; padding:3px 4px; text-align:center; color:black;">
+                                            ${i.codigo}
+                                        </td>
+
+                                        <td style="border-right:1px solid black; padding:3px 4px; color:black;">
+                                            ${i.nome.toUpperCase()}
+                                        </td>
+
+                                        <td style="border-right:1px solid black; padding:3px 4px; text-align:center; color:black;">
+                                            ${i.qtd}
+                                        </td>
+
+                                        <td style="border-right:1px solid black; padding:3px 4px; text-align:center; font-weight:${i.perca > 0 ? 'bold' : 'normal'}; color:black;">
+                                            ${i.perca > 0 ? i.perca : ''}
+                                        </td>
+
+                                        <td style="border-right:1px solid black; padding:3px 4px; text-align:right; color:black;">
+                                            R$ ${i.valor.toFixed(2).replace('.', ',')}
+                                        </td>
+
+                                        <td style="padding:3px 4px; text-align:right; color:black;">
+                                            R$ ${i.subtotal.toFixed(2).replace('.', ',')}
+                                        </td>
+                                    </tr>
+                                `).join('')
+            }
                         </tbody>
                     </table>
                 </div>
-                <div style="display: flex; min-height: ${viaName === '1ª VIA' ? '80px' : '50px'};">
-                    <div style="flex: 6; border-right: 1px solid black; padding: 4px 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
-                        <div style="text-align: center; margin-bottom: 1px; font-size: 11px;">Dúvidas sobre o pedido? Contacte <strong>(44) 9 9828-8914</strong></div>
-                        <div style="text-align: center; font-weight: bold; font-size: 11px; ${viaName === '1ª VIA' ? 'margin-bottom: 25px;' : 'margin-bottom: 4px;'}">OBRIGADO PELA CONFIANÇA!</div>
-                        ${viaName === '1ª VIA' ? `<div style="border-top: 1px solid black; width: 85%; text-align: center; font-size: 12px;">Assinatura Cliente</div>` : ''}
+
+                <div style="display:flex; min-height:${viaName === '1ª VIA' ? '80px' : '50px'};">
+
+                    <div style="flex:6; border-right:1px solid black; padding:4px 15px; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;">
+                        <div style="text-align:center; margin-bottom:1px; font-size:11px;">
+                            Dúvidas sobre o pedido? Contacte
+                            <strong>(44) 9 9828-8914</strong>
+                        </div>
+
+                        <div style="text-align:center; font-weight:bold; font-size:11px; ${viaName === '1ª VIA' ? 'margin-bottom:25px;' : 'margin-bottom:4px;'}">
+                            OBRIGADO PELA CONFIANÇA!
+                        </div>
+
+                        ${viaName === '1ª VIA'
+                ? `
+                                <div style="border-top:1px solid black; width:85%; text-align:center; font-size:12px;">
+                                    Assinatura Cliente
+                                </div>
+                                `
+                : ''
+            }
                     </div>
-                    <div style="flex: 4; display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; font-size: 18px; font-weight: bold;">
-                        <span>TOTAL:</span><span>R$ ${total.toFixed(2).replace('.', ',')}</span>
+
+                    <div style="flex:4; display:flex; align-items:center; justify-content:space-between; padding:12px 15px; font-size:18px; font-weight:bold;">
+                        <span>TOTAL:</span>
+                        <span>
+                            R$ ${total.toFixed(2).replace('.', ',')}
+                        </span>
                     </div>
                 </div>
             </div>
         `;
 
-        const corEscolhida = document.getElementById('cor-impressao') ? document.getElementById('cor-impressao').value : '#000000';
-        document.documentElement.style.setProperty('--print-color', corEscolhida);
+        const corEscolhida =
+            document.getElementById(
+                'cor-impressao'
+            )
+                ? document.getElementById(
+                    'cor-impressao'
+                ).value
+                : '#000000';
 
-        const printArea = document.getElementById('print-area-nota');
-        if (tipoNota === 'RETRABALHO') printArea.classList.add('is-retrabalho'); else printArea.classList.remove('is-retrabalho');
+        document.documentElement.style.setProperty(
+            '--print-color',
+            corEscolhida
+        );
 
-        document.getElementById('print-top').innerHTML = generateVia("1ª VIA");
-        document.getElementById('print-bottom').innerHTML = generateVia("2ª VIA");
+        const printArea =
+            document.getElementById(
+                'print-area-nota'
+            );
 
-        document.body.classList.add('preview-mode');
-        document.getElementById('print-preview-paper').innerHTML = printArea.innerHTML;
-        document.getElementById('print-preview-container').style.display = 'flex';
+        if (tipoNota === 'RETRABALHO') {
+            printArea.classList.add('is-retrabalho');
+        } else {
+            printArea.classList.remove('is-retrabalho');
+        }
+
+        document.getElementById(
+            'print-top'
+        ).innerHTML =
+            generateVia('1ª VIA');
+
+        document.getElementById(
+            'print-bottom'
+        ).innerHTML =
+            generateVia('2ª VIA');
+
+        document.body.classList.add(
+            'preview-mode'
+        );
+
+        document.getElementById(
+            'print-preview-paper'
+        ).innerHTML =
+            printArea.innerHTML;
+
+        document.getElementById(
+            'print-preview-container'
+        ).style.display = 'flex';
     },
 
     confirmarImpressaoNota: function () {
         if (window.notaPendenteParaSalvar) {
             const db = DB.get();
-            const idx = db.notasSalvas.findIndex(n => n.id === window.notaPendenteParaSalvar.id);
-            if (idx > -1) db.notasSalvas[idx] = window.notaPendenteParaSalvar;
-            else db.notasSalvas.push(window.notaPendenteParaSalvar);
+
+            const idx =
+                db.notasSalvas.findIndex(
+                    n =>
+                        n.id ===
+                        window.notaPendenteParaSalvar.id
+                );
+
+            if (idx > -1) {
+                db.notasSalvas[idx] =
+                    window.notaPendenteParaSalvar;
+            } else {
+                db.notasSalvas.push(
+                    window.notaPendenteParaSalvar
+                );
+            }
+
             DB.save(db);
 
-            const dbRHRaw = localStorage.getItem('ks_rh_dados');
-            const dbRH = dbRHRaw ? JSON.parse(dbRHRaw) : { lancamentosProducao: [], funcionarios: [] };
+            const dbRHRaw =
+                localStorage.getItem(
+                    'ks_rh_dados'
+                );
+
+            const dbRH =
+                dbRHRaw
+                    ? JSON.parse(dbRHRaw)
+                    : {
+                        lancamentosProducao: [],
+                        funcionarios: []
+                    };
+
             let enviouRH = false;
 
-            // PREVINE DUPLICAÇÃO: Remove os lançamentos anteriores vinculados a esta nota antes de inserir os novos
-            const originalLength = dbRH.lancamentosProducao.length;
-            dbRH.lancamentosProducao = dbRH.lancamentosProducao.filter(l => l.idNota !== window.notaPendenteParaSalvar.id);
-            if (dbRH.lancamentosProducao.length !== originalLength) enviouRH = true;
+            const originalLength =
+                dbRH.lancamentosProducao.length;
+
+            dbRH.lancamentosProducao =
+                dbRH.lancamentosProducao.filter(
+                    l =>
+                        l.idNota !==
+                        window.notaPendenteParaSalvar.id
+                );
+
+            if (
+                dbRH.lancamentosProducao.length !==
+                originalLength
+            ) {
+                enviouRH = true;
+            }
 
             window.notaPendenteParaSalvar.itens.forEach(item => {
-                if (item.maoObraTipo === 'PRODUCAO' && item.maoObraNome) {
-                    const funcRH = dbRH.funcionarios.find(f => f.nome === item.maoObraNome);
+                if (
+                    item.maoObraTipo === 'PRODUCAO' &&
+                    item.maoObraNome
+                ) {
+                    const funcRH =
+                        dbRH.funcionarios.find(
+                            f =>
+                                f.nome ===
+                                item.maoObraNome
+                        );
+
                     if (funcRH) {
                         dbRH.lancamentosProducao.push({
-                            id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
-                            idNota: window.notaPendenteParaSalvar.id, // <-- Chave de identificação da nota vinculada
-                            idFunc: funcRH.id, data: window.notaPendenteParaSalvar.data,
-                            pecaNome: item.nome, pecaCodigo: item.codigo, valorUnit: item.custoProducao,
-                            qtd: item.qtd, total: item.custoProducao * item.qtd
+                            id:
+                                Date.now().toString() +
+                                Math.random()
+                                    .toString(36)
+                                    .substring(2, 5),
+
+                            idNota:
+                                window.notaPendenteParaSalvar.id,
+
+                            idFunc:
+                                funcRH.id,
+
+                            data:
+                                window.notaPendenteParaSalvar.data,
+
+                            pecaNome:
+                                item.nome,
+
+                            pecaCodigo:
+                                item.codigo,
+
+                            valorUnit:
+                                item.custoProducao,
+
+                            qtd:
+                                item.qtd,
+
+                            total:
+                                item.custoProducao *
+                                item.qtd
                         });
+
                         enviouRH = true;
                     }
                 }
             });
-            if (enviouRH) localStorage.setItem('ks_rh_dados', JSON.stringify(dbRH));
+
+            if (enviouRH) {
+                localStorage.setItem(
+                    'ks_rh_dados',
+                    JSON.stringify(dbRH)
+                );
+            }
+
             window.notaPendenteParaSalvar = null;
         }
 
-        document.getElementById('print-preview-container').style.display = 'none';
-        document.body.classList.remove('preview-mode');
-        document.body.className = 'printing-nota';
-        setTimeout(() => { window.print(); document.body.className = ''; ArquivoNotas.renderLista(); }, 500);
+        document.getElementById(
+            'print-preview-container'
+        ).style.display = 'none';
+
+        document.body.classList.remove(
+            'preview-mode'
+        );
+
+        document.body.className =
+            'printing-nota';
+
+        setTimeout(() => {
+            window.print();
+
+            document.body.className = '';
+
+            ArquivoNotas.renderLista();
+        }, 500);
     },
 
     abaterEstoqueNota: function () {
-        if (itensNotaAtual.length === 0) { CustomModal.show('A nota está vazia. Adicione os itens primeiro.'); return; }
-        const clIndex = document.getElementById('nota-cliente').value;
-        if (clIndex === "") { CustomModal.show('Selecione o Cliente na nota para poder registrar a saída no estoque.'); return; }
-        if (notaAbatida) { CustomModal.show('As peças desta nota JÁ FORAM abatidas do estoque!'); return; }
+        if (itensNotaAtual.length === 0) {
+            CustomModal.show(
+                'A nota está vazia. Adicione os itens primeiro.'
+            );
+            return;
+        }
 
-        let nomeCliEstoque = "AVULSO";
-        if (clIndex !== "AVULSO") nomeCliEstoque = DB.get().clientes[clIndex].nome;
+        const clIndex =
+            document.getElementById(
+                'nota-cliente'
+            ).value;
 
-        CustomModal.show(`Confirma a baixa destas peças no Estoque de Afinação?`, true, () => {
-            const dbEraw = localStorage.getItem('ks_estoque_dados');
-            const dbE = dbEraw ? JSON.parse(dbEraw) : { insumos: [], logsInsumos: [], logsPecas: [] };
-            if (!dbE.logsPecas) dbE.logsPecas = [];
+        if (clIndex === '') {
+            CustomModal.show(
+                'Selecione o Cliente na nota para poder registrar a saída no estoque.'
+            );
+            return;
+        }
 
-            if (!idNotaAtual) idNotaAtual = Math.floor(10000 + Math.random() * 90000).toString();
+        if (notaAbatida) {
+            CustomModal.show(
+                'As peças desta nota JÁ FORAM abatidas do estoque!'
+            );
+            return;
+        }
 
-            itensNotaAtual.forEach(item => {
-                const qtdPerca = parseInt(item.perca) || 0;
-                const qtdTotal = parseInt(item.qtd) + qtdPerca;
-                dbE.logsPecas.push({
-                    id: 'LOGP_' + Date.now() + Math.random().toString(36).substr(2, 5),
-                    data: new Date().toISOString().split('T')[0], tipo: 'Saída',
-                    codigoPeca: item.codigo, qtd: qtdTotal, perca: qtdPerca,
-                    origemDestino: `Nota Fiscal ${idNotaAtual} - ${nomeCliEstoque}`
+        let nomeCliEstoque = 'AVULSO';
+
+        if (clIndex !== 'AVULSO') {
+            nomeCliEstoque =
+                DB.get().clientes[clIndex].nome;
+        }
+
+        CustomModal.show(
+            'Confirma a baixa destas peças no Estoque de Afinação?',
+            true,
+            () => {
+                const dbEraw =
+                    localStorage.getItem(
+                        'ks_estoque_dados'
+                    );
+
+                const dbE =
+                    dbEraw
+                        ? JSON.parse(dbEraw)
+                        : {
+                            insumos: [],
+                            logsInsumos: [],
+                            logsPecas: []
+                        };
+
+                if (!dbE.logsPecas) {
+                    dbE.logsPecas = [];
+                }
+
+                if (!idNotaAtual) {
+                    idNotaAtual =
+                        Math.floor(
+                            10000 +
+                            Math.random() * 90000
+                        ).toString();
+                }
+
+                itensNotaAtual.forEach(item => {
+                    const qtdPerca =
+                        parseInt(item.perca) || 0;
+
+                    const qtdTotal =
+                        parseInt(item.qtd) +
+                        qtdPerca;
+
+                    dbE.logsPecas.push({
+                        id:
+                            'LOGP_' +
+                            Date.now() +
+                            Math.random()
+                                .toString(36)
+                                .substr(2, 5),
+
+                        data:
+                            new Date()
+                                .toISOString()
+                                .split('T')[0],
+
+                        tipo: 'Saída',
+
+                        codigoPeca:
+                            item.codigo,
+
+                        qtd:
+                            qtdTotal,
+
+                        perca:
+                            qtdPerca,
+
+                        origemDestino:
+                            `Nota Fiscal ${idNotaAtual} - ${nomeCliEstoque}`
+                    });
                 });
-            });
 
-            localStorage.setItem('ks_estoque_dados', JSON.stringify(dbE));
-            if (typeof DB !== 'undefined' && DB.save) DB.save(DB.get());
-            notaAbatida = true;
+                localStorage.setItem(
+                    'ks_estoque_dados',
+                    JSON.stringify(dbE)
+                );
 
-            const btnEstoque = document.getElementById('btn-abater-estoque');
-            if (btnEstoque) {
-                btnEstoque.style.backgroundColor = 'rgba(16, 185, 129, 0.1)'; btnEstoque.style.borderColor = '#10b981'; btnEstoque.style.color = '#10b981';
-                btnEstoque.innerHTML = '<i data-lucide="check" style="width: 18px; height: 18px;"></i> Estoque Abatido';
-                lucide.createIcons();
+                if (
+                    typeof DB !== 'undefined' &&
+                    DB.save
+                ) {
+                    DB.save(DB.get());
+                }
+
+                notaAbatida = true;
+
+                const btnEstoque =
+                    document.getElementById(
+                        'btn-abater-estoque'
+                    );
+
+                if (btnEstoque) {
+                    btnEstoque.style.backgroundColor =
+                        'rgba(16, 185, 129, 0.1)';
+
+                    btnEstoque.style.borderColor =
+                        '#10b981';
+
+                    btnEstoque.style.color =
+                        '#10b981';
+
+                    btnEstoque.innerHTML =
+                        '<i data-lucide="check" style="width:18px; height:18px;"></i> Estoque Abatido';
+
+                    lucide.createIcons();
+                }
+
+                CustomModal.show(
+                    'Peças abatidas com sucesso!'
+                );
             }
-            CustomModal.show('Peças abatidas com sucesso!');
-        });
-    },
+        );
+    }
 };
 
 const Tabelas = {
     gerarTabelaPreview: function (dadosReajuste = null) {
-        const fornecedor = document.getElementById('tabela-fornecedor').value;
+        const fornecedor =
+            document.getElementById(
+                'tabela-fornecedor'
+            ).value;
+
         let produtos = DB.get().produtos;
 
-        let titulo = "Tabela Geral - KS Afinações";
-        if (fornecedor !== "GERAL") {
-            produtos = produtos.filter(p => p.fornecedor === fornecedor);
-            titulo = `TABELA KS AFINAÇÃO ${new Date().getFullYear()} - ${fornecedor}`;
+        let titulo =
+            'Tabela Geral - KS Afinações';
+
+        if (fornecedor !== 'GERAL') {
+            produtos =
+                produtos.filter(
+                    p =>
+                        p.fornecedor === fornecedor
+                );
+
+            titulo =
+                `TABELA KS AFINAÇÃO ${new Date().getFullYear()} - ${fornecedor}`;
         }
 
-        if (produtos.length === 0 && !dadosReajuste) { CustomModal.show('Nenhum produto encontrado para este fornecedor.'); return; }
-        produtos.sort((a, b) => a.nome.localeCompare(b.nome));
+        if (
+            produtos.length === 0 &&
+            !dadosReajuste
+        ) {
+            CustomModal.show(
+                'Nenhum produto encontrado para este fornecedor.'
+            );
+            return;
+        }
+
+        produtos.sort(
+            (a, b) =>
+                a.nome.localeCompare(b.nome)
+        );
 
         let htmlContent = '';
+
         if (dadosReajuste) {
             htmlContent += `
-                <div class="tabela-precos-header"><h1>KS AFINAÇÕES</h1><h2>Relatório de Reajuste</h2></div>
-                <div class="tabela-precos-subheader">Empresa: ${dadosReajuste.empresa} | Aumento Aplicado: +${dadosReajuste.porcentagem}%</div>
+                <div class="tabela-precos-header">
+                    <h1>KS AFINAÇÕES</h1>
+                    <h2>Relatório de Reajuste</h2>
+                </div>
+
+                <div class="tabela-precos-subheader">
+                    Empresa: ${dadosReajuste.empresa}
+                    |
+                    Aumento Aplicado:
+                    +${dadosReajuste.porcentagem}%
+                </div>
+
                 <table class="tabela-precos-table">
-                    <thead><tr><th class="produto-col" style="width: 70%; text-align: left;">Produto</th><th class="valor-col-th" style="width: 15%;">Preço Antigo</th><th class="valor-col-th" style="width: 15%;">Preço Novo</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th class="produto-col" style="width:70%; text-align:left;">
+                                Produto
+                            </th>
+                            <th class="valor-col-th" style="width:15%;">
+                                Preço Antigo
+                            </th>
+                            <th class="valor-col-th" style="width:15%;">
+                                Preço Novo
+                            </th>
+                        </tr>
+                    </thead>
+
                     <tbody>
             `;
+
             dadosReajuste.itens.forEach(item => {
-                htmlContent += `<tr><td class="produto-col">${item.codigo} - ${item.nome}</td><td><div class="valor-reajuste-flex"><span>R$</span> <span>${item.antigo.toFixed(2).replace('.', ',')}</span></div></td><td><div class="valor-reajuste-flex"><span>R$</span> <span>${item.novo.toFixed(2).replace('.', ',')}</span></div></td></tr>`;
+                htmlContent += `
+                    <tr>
+                        <td class="produto-col">
+                            ${item.codigo} - ${item.nome}
+                        </td>
+
+                        <td>
+                            <div class="valor-reajuste-flex">
+                                <span>R$</span>
+                                <span>
+                                    ${item.antigo.toFixed(2).replace('.', ',')}
+                                </span>
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="valor-reajuste-flex">
+                                <span>R$</span>
+                                <span>
+                                    ${item.novo.toFixed(2).replace('.', ',')}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
             });
+
         } else {
             htmlContent += `
-                <div class="tabela-precos-header"><h1>KS AFINAÇÕES</h1><h2>Tabela de Preços</h2></div>
-                <div class="tabela-precos-subheader">Tabela.: ${titulo.toUpperCase()}</div>
+                <div class="tabela-precos-header">
+                    <h1>KS AFINAÇÕES</h1>
+                    <h2>Tabela de Preços</h2>
+                </div>
+
+                <div class="tabela-precos-subheader">
+                    Tabela.: ${titulo.toUpperCase()}
+                </div>
+
                 <table class="tabela-precos-table">
-                    <thead><tr><th class="produto-col" style="width: 80%; text-align: left;">Produto</th><th class="valor-col-th" style="width: 20%;">Vlr. Unit.</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th class="produto-col" style="width:80%; text-align:left;">
+                                Produto
+                            </th>
+
+                            <th class="valor-col-th" style="width:20%;">
+                                Vlr. Unit.
+                            </th>
+                        </tr>
+                    </thead>
+
                     <tbody>
             `;
+
             produtos.forEach(p => {
-                const variacoes = p.variacoes || ["Cromado"];
-                let nomeExibicao = variacoes.length > 1 ? `${p.codigo} - ${p.nome} (TODOS)` : `${p.codigo} - ${p.nome} - ${variacoes[0]}`;
-                htmlContent += `<tr><td class="produto-col">${nomeExibicao}</td><td><div class="valor-flex"><span>R$</span> <span>${p.valVenda.toFixed(2).replace('.', ',')}</span></div></td></tr>`;
+                const variacoes =
+                    p.variacoes ||
+                    ['Cromado'];
+
+                let nomeExibicao =
+                    variacoes.length > 1
+                        ? `${p.codigo} - ${p.nome} (TODOS)`
+                        : `${p.codigo} - ${p.nome} - ${variacoes[0]}`;
+
+                htmlContent += `
+                    <tr>
+                        <td class="produto-col">
+                            ${nomeExibicao}
+                        </td>
+
+                        <td>
+                            <div class="valor-flex">
+                                <span>R$</span>
+                                <span>
+                                    ${p.valVenda.toFixed(2).replace('.', ',')}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
             });
         }
-        htmlContent += `</tbody></table>`;
-        document.getElementById('preview-tabela-conteudo').innerHTML = htmlContent;
-        document.getElementById('preview-tabela-container').style.display = 'block';
-        document.getElementById('print-tabela-conteudo').innerHTML = htmlContent;
-        document.getElementById('btn-imprimir-tabela').style.display = 'flex';
+
+        htmlContent += `
+                </tbody>
+            </table>
+        `;
+
+        document.getElementById(
+            'preview-tabela-conteudo'
+        ).innerHTML =
+            htmlContent;
+
+        document.getElementById(
+            'preview-tabela-container'
+        ).style.display = 'block';
+
+        document.getElementById(
+            'print-tabela-conteudo'
+        ).innerHTML =
+            htmlContent;
+
+        document.getElementById(
+            'btn-imprimir-tabela'
+        ).style.display = 'flex';
     },
 
     imprimirTabela: function () {
-        document.title = "Tabela_Precos_KS_Afinacoes";
-        document.body.className = 'printing-tabela';
-        setTimeout(() => { window.print(); }, 500);
+        document.title =
+            'Tabela_Precos_KS_Afinacoes';
+
+        document.body.className =
+            'printing-tabela';
+
+        setTimeout(() => {
+            window.print();
+        }, 500);
     },
 
     aplicarReajuste: function () {
-        const fornecedor = document.getElementById('reajuste-fornecedor').value;
-        const porcentagemStr = document.getElementById('reajuste-porcentagem').value;
+        const fornecedor =
+            document.getElementById(
+                'reajuste-fornecedor'
+            ).value;
 
-        if (!fornecedor) { CustomModal.show('Selecione uma empresa para reajustar.'); return; }
-        if (!porcentagemStr || isNaN(parseFloat(porcentagemStr)) || parseFloat(porcentagemStr) <= 0) { CustomModal.show('Digite uma porcentagem válida de aumento (ex: 10).'); return; }
+        const porcentagemStr =
+            document.getElementById(
+                'reajuste-porcentagem'
+            ).value;
 
-        const porcentagem = parseFloat(porcentagemStr);
+        if (!fornecedor) {
+            CustomModal.show(
+                'Selecione uma empresa para reajustar.'
+            );
+            return;
+        }
 
-        CustomModal.show(`Atenção: Isso aumentará todos os preços da empresa ${fornecedor} em ${porcentagem}%. Confirma?`, true, () => {
-            const db = DB.get();
-            let alterados = 0; let relatorioItens = [];
+        if (
+            !porcentagemStr ||
+            isNaN(
+                parseFloat(porcentagemStr)
+            ) ||
+            parseFloat(porcentagemStr) <= 0
+        ) {
+            CustomModal.show(
+                'Digite uma porcentagem válida de aumento (ex: 10).'
+            );
+            return;
+        }
 
-            db.produtos.forEach(p => {
-                if (p.fornecedor === fornecedor) {
-                    const precoAntigo = p.valVenda;
-                    const precoNovo = parseFloat((precoAntigo * (1 + (porcentagem / 100))).toFixed(2));
-                    p.valVenda = precoNovo; alterados++;
+        const porcentagem =
+            parseFloat(porcentagemStr);
 
-                    let nomeRelatorio = p.nome;
-                    if (p.variacoes && p.variacoes.length > 1) nomeRelatorio = `${p.nome} (TODOS)`;
-                    else if (p.variacoes && p.variacoes.length === 1) nomeRelatorio = `${p.nome} - ${p.variacoes[0]}`;
-                    relatorioItens.push({ codigo: p.codigo, nome: nomeRelatorio, antigo: precoAntigo, novo: precoNovo });
+        CustomModal.show(
+            `Atenção: Isso aumentará todos os preços da empresa ${fornecedor} em ${porcentagem}%. Confirma?`,
+            true,
+            () => {
+                const db = DB.get();
+
+                let alterados = 0;
+                let relatorioItens = [];
+
+                db.produtos.forEach(p => {
+                    if (p.fornecedor === fornecedor) {
+                        const precoAntigo =
+                            p.valVenda;
+
+                        const precoNovo =
+                            parseFloat(
+                                (
+                                    precoAntigo *
+                                    (
+                                        1 +
+                                        (
+                                            porcentagem /
+                                            100
+                                        )
+                                    )
+                                ).toFixed(2)
+                            );
+
+                        p.valVenda =
+                            precoNovo;
+
+                        alterados++;
+
+                        let nomeRelatorio =
+                            p.nome;
+
+                        if (
+                            p.variacoes &&
+                            p.variacoes.length > 1
+                        ) {
+                            nomeRelatorio =
+                                `${p.nome} (TODOS)`;
+                        } else if (
+                            p.variacoes &&
+                            p.variacoes.length === 1
+                        ) {
+                            nomeRelatorio =
+                                `${p.nome} - ${p.variacoes[0]}`;
+                        }
+
+                        relatorioItens.push({
+                            codigo: p.codigo,
+                            nome: nomeRelatorio,
+                            antigo: precoAntigo,
+                            novo: precoNovo
+                        });
+                    }
+                });
+
+                if (alterados > 0) {
+                    DB.save(db);
+                    UI.renderTabelaProdutos();
+
+                    const dadosReajuste = {
+                        empresa: fornecedor,
+                        porcentagem,
+                        itens: relatorioItens
+                    };
+
+                    this.gerarTabelaPreview(
+                        dadosReajuste
+                    );
+
+                    document.getElementById(
+                        'reajuste-porcentagem'
+                    ).value = '';
+
+                    CustomModal.show(
+                        `${alterados} produtos base foram atualizados com sucesso! Você pode visualizar e IMPRIMIR a tabela de relatório logo abaixo.`
+                    );
+
+                } else {
+                    CustomModal.show(
+                        'Nenhum produto encontrado para esta empresa.'
+                    );
                 }
-            });
-
-            if (alterados > 0) {
-                DB.save(db); UI.renderTabelaProdutos();
-                const dadosReajuste = { empresa: fornecedor, porcentagem: porcentagem, itens: relatorioItens };
-                this.gerarTabelaPreview(dadosReajuste);
-                document.getElementById('reajuste-porcentagem').value = '';
-                CustomModal.show(`${alterados} produtos base foram atualizados com sucesso! Você pode visualizar e IMPRIMIR a tabela de relatório logo abaixo.`);
-            } else { CustomModal.show('Nenhum produto encontrado para esta empresa.'); }
-        });
+            }
+        );
     }
 };
 
 const UI = {
-        initData: function () {
+
+    initData: function () {
         const db = DB.get();
+
         let mudouAlgo = false;
+
         db.produtos.forEach(p => {
             if (p.variacoes) {
-                for (let i = 0; i < p.variacoes.length; i++) {
-                    if (p.variacoes[i] === 'Cromada') { p.variacoes[i] = 'Cromado'; mudouAlgo = true; }
-                    if (p.variacoes[i] === 'Polida') { p.variacoes[i] = 'Polido'; mudouAlgo = true; }
-                    if (p.variacoes[i] === 'Afinada') { p.variacoes[i] = 'Afinado'; mudouAlgo = true; }
+                for (
+                    let i = 0;
+                    i < p.variacoes.length;
+                    i++
+                ) {
+                    if (
+                        p.variacoes[i] ===
+                        'Cromada'
+                    ) {
+                        p.variacoes[i] =
+                            'Cromado';
+                        mudouAlgo = true;
+                    }
+
+                    if (
+                        p.variacoes[i] ===
+                        'Polida'
+                    ) {
+                        p.variacoes[i] =
+                            'Polido';
+                        mudouAlgo = true;
+                    }
+
+                    if (
+                        p.variacoes[i] ===
+                        'Afinada'
+                    ) {
+                        p.variacoes[i] =
+                            'Afinado';
+                        mudouAlgo = true;
+                    }
                 }
             }
-            if (p.valVendaPolida !== undefined) { p.valVendaPolido = p.valVendaPolida; delete p.valVendaPolida; mudouAlgo = true; }
+
+            if (
+                p.valVendaPolida !==
+                undefined
+            ) {
+                p.valVendaPolido =
+                    p.valVendaPolida;
+
+                delete p.valVendaPolida;
+
+                mudouAlgo = true;
+            }
         });
-        if (mudouAlgo) DB.save(db);
 
-        if (document.getElementById('dash-prod-count')) this.updateDashCards();
-        if (document.querySelector('#tabela-produtos tbody')) this.renderTabelaProdutos();
-        if (document.querySelector('#tabela-clientes tbody')) this.renderTabelaClientes();
-        if (document.getElementById('nota-cliente')) this.renderSelectClientes();
-        if (document.getElementById('prod-fornecedor')) this.renderSelectFornecedorProduto();
-        if (document.getElementById('tabela-fornecedor')) this.renderSelectsFornecedoresTabelas();
+        if (mudouAlgo) {
+            DB.save(db);
+        }
 
-        const inputData = document.getElementById('nota-data');
-        if (inputData) inputData.value = new Date().toISOString().split('T')[0];
+        if (
+            document.getElementById(
+                'dash-prod-count'
+            )
+        ) {
+            this.updateDashCards();
+        }
 
-        // --- NOVO: Define o mês atual no filtro do Arquivo de Notas ---
-        const filtroMesNota = document.getElementById('filtro-mes-nota');
+        if (
+            document.querySelector(
+                '#tabela-produtos tbody'
+            )
+        ) {
+            this.renderTabelaProdutos();
+        }
+
+        if (
+            document.querySelector(
+                '#tabela-clientes tbody'
+            )
+        ) {
+            this.renderTabelaClientes();
+        }
+
+        if (
+            document.getElementById(
+                'nota-cliente'
+            )
+        ) {
+            this.renderSelectClientes();
+        }
+
+        if (
+            document.getElementById(
+                'prod-fornecedor'
+            )
+        ) {
+            this.renderSelectFornecedorProduto();
+        }
+
+        if (
+            document.getElementById(
+                'tabela-fornecedor'
+            )
+        ) {
+            this.renderSelectsFornecedoresTabelas();
+        }
+
+        const inputData =
+            document.getElementById(
+                'nota-data'
+            );
+
+        if (inputData) {
+            inputData.value =
+                new Date()
+                    .toISOString()
+                    .split('T')[0];
+        }
+
+        // MÊS AUTOMÁTICO DO ARQUIVO DE NOTAS
+        const filtroMesNota =
+            document.getElementById(
+                'filtro-mes-nota'
+            );
+
         if (filtroMesNota) {
             const hoje = new Date();
-            const yyyy = hoje.getFullYear();
-            const mm = String(hoje.getMonth() + 1).padStart(2, '0');
-            filtroMesNota.value = `${yyyy}-${mm}`;
+
+            const yyyy =
+                hoje.getFullYear();
+
+            const mm =
+                String(
+                    hoje.getMonth() + 1
+                ).padStart(2, '0');
+
+            filtroMesNota.value =
+                `${yyyy}-${mm}`;
         }
 
         LogicaNegocio.carregarFuncionariosProducao();
-        LogicaNegocio.atualizarLockCamposAvulso(false); // Trava os campos na inicialização
+
+        LogicaNegocio.atualizarLockCamposAvulso(false);
     },
 
     switchTab: function (tabId) {
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelector(`button[onclick="UI.switchTab('${tabId}')"]`).classList.add('active');
-        document.getElementById(`tab-${tabId}`).classList.add('active');
+        document.querySelectorAll(
+            '.nav-btn'
+        ).forEach(b =>
+            b.classList.remove('active')
+        );
 
-        document.body.className = ''; document.title = "Gestão - KS Afinações";
+        document.querySelectorAll(
+            '.tab-content'
+        ).forEach(c =>
+            c.classList.remove('active')
+        );
 
-        if (tabId === 'busca') Tabelas.renderProdutos();
-        if (tabId === 'nota') LogicaNegocio.carregarFuncionariosProducao();
-        if (tabId === 'arquivo') ArquivoNotas.renderLista();
+        const botao =
+            document.querySelector(
+                `button[onclick="UI.switchTab('${tabId}')"]`
+            );
+
+        if (botao) {
+            botao.classList.add('active');
+        }
+
+        const aba =
+            document.getElementById(
+                `tab-${tabId}`
+            );
+
+        if (aba) {
+            aba.classList.add('active');
+        }
+
+        document.body.className = '';
+        document.title =
+            'Gestão - KS Afinações';
+
+        if (tabId === 'busca') {
+            Tabelas.renderProdutos();
+        }
+
+        if (tabId === 'nota') {
+            LogicaNegocio.carregarFuncionariosProducao();
+        }
+
+        if (tabId === 'arquivo') {
+            ArquivoNotas.renderLista();
+        }
     },
 
     updateDashCards: function () {
         const db = DB.get();
-        document.getElementById('dash-prod-count').innerText = db.produtos.length;
-        document.getElementById('dash-cli-count').innerText = db.clientes.length;
+
+        document.getElementById(
+            'dash-prod-count'
+        ).innerText =
+            db.produtos.length;
+
+        document.getElementById(
+            'dash-cli-count'
+        ).innerText =
+            db.clientes.length;
     },
 
     renderTabelaProdutos: function () {
         const db = DB.get();
-        const tbody = document.querySelector('#tabela-produtos tbody');
+
+        const tbody =
+            document.querySelector(
+                '#tabela-produtos tbody'
+            );
+
         if (!tbody) return;
+
         tbody.innerHTML = '';
 
-        const selectFiltro = document.getElementById('filtro-empresa-produto');
-        const empresaSelecionada = selectFiltro ? selectFiltro.value : 'TODAS';
+        const selectFiltro =
+            document.getElementById(
+                'filtro-empresa-produto'
+            );
+
+        const empresaSelecionada =
+            selectFiltro
+                ? selectFiltro.value
+                : 'TODAS';
 
         if (selectFiltro) {
-            const fornecedores = [...new Set(db.produtos.map(p => p.fornecedor || 'SEM EMPRESA FIXA'))].sort();
-            selectFiltro.innerHTML = '<option value="TODAS">-- Todas as Empresas --</option>' +
-                fornecedores.map(f => `<option value="${f}">${f}</option>`).join('');
-            if (fornecedores.includes(empresaSelecionada) || empresaSelecionada === 'TODAS') {
-                selectFiltro.value = empresaSelecionada;
+            const fornecedores =
+                [
+                    ...new Set(
+                        db.produtos.map(
+                            p =>
+                                p.fornecedor ||
+                                'SEM EMPRESA FIXA'
+                        )
+                    )
+                ].sort();
+
+            selectFiltro.innerHTML =
+                '<option value="TODAS">-- Todas as Empresas --</option>' +
+                fornecedores
+                    .map(f =>
+                        `<option value="${f}">${f}</option>`
+                    )
+                    .join('');
+
+            if (
+                fornecedores.includes(
+                    empresaSelecionada
+                ) ||
+                empresaSelecionada === 'TODAS'
+            ) {
+                selectFiltro.value =
+                    empresaSelecionada;
             }
         }
 
-        const produtosAgrupados = db.produtos.reduce((acc, p, index) => {
-            const f = p.fornecedor || 'SEM EMPRESA FIXA';
-            if (empresaSelecionada !== 'TODAS' && f !== empresaSelecionada) return acc;
-            if (!acc[f]) acc[f] = [];
-            acc[f].push({ ...p, originalIndex: index });
-            return acc;
-        }, {});
+        const produtosAgrupados =
+            db.produtos.reduce(
+                (acc, p, index) => {
+                    const f =
+                        p.fornecedor ||
+                        'SEM EMPRESA FIXA';
 
-        Object.keys(produtosAgrupados).sort().forEach(empresa => {
-            tbody.innerHTML += `<tr><td colspan="6" style="background:#0f172a; color:#38bdf8; padding:10px; font-weight:bold; text-transform:uppercase; border-bottom: 2px solid #1e293b;">EMPRESA: ${empresa}</td></tr>`;
+                    if (
+                        empresaSelecionada !==
+                        'TODAS' &&
+                        f !==
+                        empresaSelecionada
+                    ) {
+                        return acc;
+                    }
 
-            produtosAgrupados[empresa].forEach(p => {
-                const varsFormatadas = p.variacoes ? p.variacoes.join(', ').toUpperCase() : 'CROMADO';
-                tbody.innerHTML += `<tr id="tr-produto-${p.originalIndex}">
-                    <td>${p.codigo}</td>
-                    <td>${p.nome.toUpperCase()} <br><small style="color:var(--text-muted); font-size: 12px;">(${varsFormatadas})</small></td>
-                    <td>${p.fornecedor || '-'}</td>
-                    <td>R$ ${p.valVenda.toFixed(2)} ${p.variacoes && p.variacoes.includes("Polido") ? `<br><small style="color:#a855f7;">Polido: R$ ${(p.valVendaPolido || p.valVenda).toFixed(2)}</small>` : ''}</td>
-                    <td style="color: var(--success-color); font-weight: bold;">R$ ${(p.valProducao || 0).toFixed(2)}</td>
-                    <td>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <button onclick="LogicaNegocio.iniciarEdicaoProduto(${p.originalIndex})" style="background: transparent; border: none; cursor: pointer; color: var(--primary-color); padding: 0;"><i data-lucide="pencil" style="width: 14px; height: 14px;"></i></button>
-                            <button class="btn-danger" onclick="LogicaNegocio.excluirProduto(${p.originalIndex})"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
-                        </div>
-                    </td>
-                </tr>`;
+                    if (!acc[f]) {
+                        acc[f] = [];
+                    }
+
+                    acc[f].push({
+                        ...p,
+                        originalIndex: index
+                    });
+
+                    return acc;
+                },
+                {}
+            );
+
+        Object.keys(
+            produtosAgrupados
+        )
+            .sort()
+            .forEach(empresa => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td
+                            colspan="6"
+                            style="background:#0f172a; color:#38bdf8; padding:10px; font-weight:bold; text-transform:uppercase; border-bottom:2px solid #1e293b;"
+                        >
+                            EMPRESA: ${empresa}
+                        </td>
+                    </tr>
+                `;
+
+                produtosAgrupados[
+                    empresa
+                ].forEach(p => {
+                    const varsFormatadas =
+                        p.variacoes
+                            ? p.variacoes
+                                .join(', ')
+                                .toUpperCase()
+                            : 'CROMADO';
+
+                    tbody.innerHTML += `
+                        <tr id="tr-produto-${p.originalIndex}">
+                            <td>${p.codigo}</td>
+
+                            <td>
+                                ${p.nome.toUpperCase()}
+                                <br>
+                                <small
+                                    style="color:var(--text-muted); font-size:12px;"
+                                >
+                                    (${varsFormatadas})
+                                </small>
+                            </td>
+
+                            <td>
+                                ${p.fornecedor || '-'}
+                            </td>
+
+                            <td>
+                                R$ ${p.valVenda.toFixed(2)}
+
+                                ${p.variacoes &&
+                            p.variacoes.includes(
+                                'Polido'
+                            )
+                            ? `
+                                            <br>
+                                            <small style="color:#a855f7;">
+                                                Polido:
+                                                R$ ${(p.valVendaPolido || p.valVenda).toFixed(2)}
+                                            </small>
+                                        `
+                            : ''
+                        }
+                            </td>
+
+                            <td
+                                style="color:var(--success-color); font-weight:bold;"
+                            >
+                                R$ ${(p.valProducao || 0).toFixed(2)}
+                            </td>
+
+                            <td>
+                                <div
+                                    style="display:flex; gap:8px; align-items:center;"
+                                >
+                                    <button
+                                        onclick="LogicaNegocio.iniciarEdicaoProduto(${p.originalIndex})"
+                                        style="background:transparent; border:none; cursor:pointer; color:var(--primary-color); padding:0;"
+                                    >
+                                        <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                                    </button>
+
+                                    <button
+                                        class="btn-danger"
+                                        onclick="LogicaNegocio.excluirProduto(${p.originalIndex})"
+                                    >
+                                        <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
             });
-        });
+
         lucide.createIcons();
     },
 
     renderTabelaClientes: function () {
-        const tbody = document.querySelector('#tabela-clientes tbody');
+        const tbody =
+            document.querySelector(
+                '#tabela-clientes tbody'
+            );
+
+        if (!tbody) return;
+
         tbody.innerHTML = '';
+
         DB.get().clientes.forEach((c, i) => {
-            tbody.innerHTML += `<tr id="tr-cliente-${i}">
-                <td>${c.nome}</td><td>${c.cnpj || '-'}</td><td>${c.telefone || '-'}</td>
-                <td>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button onclick="LogicaNegocio.iniciarEdicaoCliente(${i})" style="background: transparent; border: none; cursor: pointer; color: var(--primary-color); padding: 0;" title="Editar Cliente"><i data-lucide="pencil" style="width: 14px; height: 14px;"></i></button>
-                        <button class="btn-danger" onclick="LogicaNegocio.excluirCliente(${i})"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
-                    </div>
-                </td>
-            </tr>`;
+            tbody.innerHTML += `
+                <tr id="tr-cliente-${i}">
+                    <td>${c.nome}</td>
+                    <td>${c.cnpj || '-'}</td>
+                    <td>${c.telefone || '-'}</td>
+
+                    <td>
+                        <div
+                            style="display:flex; gap:8px; align-items:center;"
+                        >
+                            <button
+                                onclick="LogicaNegocio.iniciarEdicaoCliente(${i})"
+                                style="background:transparent; border:none; cursor:pointer; color:var(--primary-color); padding:0;"
+                                title="Editar Cliente"
+                            >
+                                <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                            </button>
+
+                            <button
+                                class="btn-danger"
+                                onclick="LogicaNegocio.excluirCliente(${i})"
+                            >
+                                <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
         });
+
         lucide.createIcons();
     },
+
     renderSelectClientes: function () {
-        const select = document.getElementById('nota-cliente');
+        const select =
+            document.getElementById(
+                'nota-cliente'
+            );
+
         if (!select) return;
-        select.innerHTML = '<option value="">-- Selecione a Empresa --</option><option value="AVULSO" style="font-weight:bold; color:#eab308;">--- CLIENTE AVULSO / SEM EMPRESA FIXA ---</option>';
-        DB.get().clientes.forEach((c, i) => select.innerHTML += `<option value="${i}">${c.nome}</option>`);
+
+        select.innerHTML =
+            '<option value="">-- Selecione a Empresa --</option>' +
+            '<option value="AVULSO" style="font-weight:bold; color:#eab308;">--- CLIENTE AVULSO / SEM EMPRESA FIXA ---</option>';
+
+        DB.get().clientes.forEach((c, i) => {
+            select.innerHTML += `
+                <option value="${i}">
+                    ${c.nome}
+                </option>
+            `;
+        });
     },
+
     renderSelectFornecedorProduto: function () {
-        const select = document.getElementById('prod-fornecedor');
-        const valorAtual = select.value;
-        select.innerHTML = '<option value="">-- Selecione o Fornecedor (Opcional) --</option>';
-        DB.get().clientes.forEach(c => select.innerHTML += `<option value="${c.nome}">${c.nome}</option>`);
-        if (valorAtual) select.value = valorAtual;
+        const select =
+            document.getElementById(
+                'prod-fornecedor'
+            );
+
+        if (!select) return;
+
+        const valorAtual =
+            select.value;
+
+        select.innerHTML =
+            '<option value="">-- Selecione o Fornecedor (Opcional) --</option>';
+
+        DB.get().clientes.forEach(c => {
+            select.innerHTML += `
+                <option value="${c.nome}">
+                    ${c.nome}
+                </option>
+            `;
+        });
+
+        if (valorAtual) {
+            select.value =
+                valorAtual;
+        }
     },
+
     renderSelectsFornecedoresTabelas: function () {
-        const selectTabela = document.getElementById('tabela-fornecedor');
-        const selectReajuste = document.getElementById('reajuste-fornecedor');
+        const selectTabela =
+            document.getElementById(
+                'tabela-fornecedor'
+            );
 
-        const fornecedores = [...new Set(DB.get().produtos.map(p => p.fornecedor).filter(f => f && f.trim() !== ''))];
-        fornecedores.sort();
+        const selectReajuste =
+            document.getElementById(
+                'reajuste-fornecedor'
+            );
 
-        selectTabela.innerHTML = '<option value="GERAL">-- Tabela Geral (Todos os Produtos) --</option>';
-        selectReajuste.innerHTML = '<option value="">-- Selecione a Empresa --</option>';
+        if (!selectTabela || !selectReajuste) {
+            return;
+        }
+
+        const fornecedores =
+            [
+                ...new Set(
+                    DB.get()
+                        .produtos
+                        .map(p => p.fornecedor)
+                        .filter(
+                            f =>
+                                f &&
+                                f.trim() !== ''
+                        )
+                )
+            ].sort();
+
+        selectTabela.innerHTML =
+            '<option value="GERAL">-- Tabela Geral (Todos os Produtos) --</option>';
+
+        selectReajuste.innerHTML =
+            '<option value="">-- Selecione a Empresa --</option>';
 
         fornecedores.forEach(f => {
-            selectTabela.innerHTML += `<option value="${f}">${f}</option>`;
-            selectReajuste.innerHTML += `<option value="${f}">${f}</option>`;
+            selectTabela.innerHTML += `
+                <option value="${f}">
+                    ${f}
+                </option>
+            `;
+
+            selectReajuste.innerHTML += `
+                <option value="${f}">
+                    ${f}
+                </option>
+            `;
         });
     },
 
     renderItensNota: function () {
-        const tbody = document.getElementById('lista-itens-nota');
+        const tbody =
+            document.getElementById(
+                'lista-itens-nota'
+            );
+
+        if (!tbody) return;
+
         tbody.innerHTML = '';
+
         let total = 0;
-        let qtdCaixas = itensNotaAtual.length;
+
+        const qtdCaixas =
+            itensNotaAtual.length;
 
         itensNotaAtual.forEach((item, i) => {
             total += item.subtotal;
-            const trClass = (itemNotaEmEdicaoIndex === i) ? 'style="background-color: rgba(16, 185, 129, 0.1); border-left: 3px solid var(--success-color);"' : '';
 
-            tbody.innerHTML += `<tr ${trClass}>
-                <td>${item.codigo}</td>
-                <td>${item.nome}<div style="font-size: 11px; color: #38bdf8; margin-top: 2px;">👤 ${item.maoObraNome || 'KS Afinações'}</div></td>
-                <td>R$ ${item.valor.toFixed(2)}</td><td>${item.qtd}</td>
-                <td style="color: var(--text-main); font-weight: ${item.perca > 0 ? 'bold' : 'normal'};">${item.perca > 0 ? item.perca : '-'}</td>
-                <td>R$ ${item.subtotal.toFixed(2)}</td>
-                <td>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-outline" style="border-color: var(--primary-color); color: var(--primary-color); padding: 4px;" onclick="LogicaNegocio.editarItemNota(${i})" title="Editar Item"><i data-lucide="pencil" style="width: 14px; height: 14px;"></i></button>
-                        <button class="btn-danger" style="padding: 4px;" onclick="LogicaNegocio.removerItemNota(${i})" title="Remover"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
-                    </div>
-                </td>
-            </tr>`;
+            const trClass =
+                (itemNotaEmEdicaoIndex === i)
+                    ? 'style="background-color:rgba(16,185,129,0.1); border-left:3px solid var(--success-color);"'
+                    : '';
+
+            tbody.innerHTML += `
+                <tr ${trClass}>
+
+                    <td>
+                        ${item.codigo}
+                    </td>
+
+                    <td>
+                        ${item.nome}
+
+                        <div
+                            style="font-size:11px; color:#38bdf8; margin-top:2px;"
+                        >
+                            👤 ${item.maoObraNome || 'KS Afinações'}
+                        </div>
+                    </td>
+
+                    <td>
+                        R$ ${item.valor.toFixed(2)}
+                    </td>
+
+                    <td>
+                        ${item.qtd}
+                    </td>
+
+                    <td
+                        style="color:var(--text-main); font-weight:${item.perca > 0 ? 'bold' : 'normal'};"
+                    >
+                        ${item.perca > 0 ? item.perca : '-'}
+                    </td>
+
+                    <td>
+                        R$ ${item.subtotal.toFixed(2)}
+                    </td>
+
+                    <td>
+                        <div style="display:flex; gap:8px;">
+
+                            <button
+                                class="btn-outline"
+                                style="border-color:var(--primary-color); color:var(--primary-color); padding:4px;"
+                                onclick="LogicaNegocio.editarItemNota(${i})"
+                                title="Editar Item"
+                            >
+                                <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                            </button>
+
+                            <button
+                                class="btn-danger"
+                                style="padding:4px;"
+                                onclick="LogicaNegocio.removerItemNota(${i})"
+                                title="Remover"
+                            >
+                                <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                            </button>
+
+                        </div>
+                    </td>
+                </tr>
+            `;
         });
-        document.getElementById('nota-total-display').innerHTML = `R$ ${total.toFixed(2)} <span style="font-size: 16px; color: var(--text-muted); margin-left: 15px; border-left: 2px solid var(--border-color); padding-left: 15px;"><i data-lucide="package" style="width: 18px; margin-right: 5px; vertical-align: middle;"></i>Caixas: <span style="color: var(--text-main);">${qtdCaixas}</span></span>`;
+
+        document.getElementById(
+            'nota-total-display'
+        ).innerHTML = `
+            R$ ${total.toFixed(2)}
+
+            <span
+                style="
+                    font-size:16px;
+                    color:var(--text-muted);
+                    margin-left:15px;
+                    border-left:2px solid var(--border-color);
+                    padding-left:15px;
+                "
+            >
+                <i
+                    data-lucide="package"
+                    style="width:18px; margin-right:5px; vertical-align:middle;"
+                ></i>
+
+                Caixas:
+
+                <span
+                    style="color:var(--text-main);"
+                >
+                    ${qtdCaixas}
+                </span>
+            </span>
+        `;
+
         lucide.createIcons();
     }
 };
 
 const ArquivoNotas = {
-        renderLista: function () {
+
+    renderLista: function () {
         const db = DB.get();
-        const tbody = document.querySelector('#tabela-arquivo-notas tbody');
+
+        const tbody =
+            document.querySelector(
+                '#tabela-arquivo-notas tbody'
+            );
+
         if (!tbody) return;
 
         let filtroTipo = 'TODAS';
-        const selectFiltroTipo = document.getElementById('filtro-arquivo-tipo');
-        if (selectFiltroTipo) filtroTipo = selectFiltroTipo.value;
 
-        let filtroEmpresa = 'TODAS';
-        const selectFiltroEmpresa = document.getElementById('filtro-empresa-nota');
+        const selectFiltroTipo =
+            document.getElementById(
+                'filtro-arquivo-tipo'
+            );
 
-        if (selectFiltroEmpresa) {
-            const valorAtual = selectFiltroEmpresa.value;
-            const clientes = [...new Set(db.notasSalvas.map(n => n.cliente || 'SEM CLIENTE'))].sort();
-            selectFiltroEmpresa.innerHTML = '<option value="TODAS">-- Todos os Clientes --</option>' +
-                clientes.map(c => `<option value="${c}">${c}</option>`).join('');
-            if (clientes.includes(valorAtual) || valorAtual === 'TODAS') {
-                selectFiltroEmpresa.value = valorAtual;
-            }
-            filtroEmpresa = selectFiltroEmpresa.value;
+        if (selectFiltroTipo) {
+            filtroTipo =
+                selectFiltroTipo.value;
         }
 
-        // LÓGICA DO NOVO FILTRO DE MÊS
-        let filtroMes = '';
-        const inputFiltroMes = document.getElementById('filtro-mes-nota');
-        if (inputFiltroMes) filtroMes = inputFiltroMes.value;
+        let filtroEmpresa = 'TODAS';
 
-        let notas = [...db.notasSalvas].reverse();
-        
-        // Aplica todos os filtros selecionados
-        if (filtroTipo !== 'TODAS') notas = notas.filter(n => (n.tipo || 'VENDA') === filtroTipo);
-        if (filtroEmpresa !== 'TODAS') notas = notas.filter(n => n.cliente === filtroEmpresa);
-        if (filtroMes) notas = notas.filter(n => n.data.startsWith(filtroMes)); // Corta as notas pelo ano/mês
+        const selectFiltroEmpresa =
+            document.getElementById(
+                'filtro-empresa-nota'
+            );
+
+        if (selectFiltroEmpresa) {
+            const valorAtual =
+                selectFiltroEmpresa.value;
+
+            const clientes =
+                [
+                    ...new Set(
+                        db.notasSalvas.map(
+                            n =>
+                                n.cliente ||
+                                'SEM CLIENTE'
+                        )
+                    )
+                ].sort();
+
+            selectFiltroEmpresa.innerHTML =
+                '<option value="TODAS">-- Todos os Clientes --</option>' +
+                clientes
+                    .map(c =>
+                        `<option value="${c}">${c}</option>`
+                    )
+                    .join('');
+
+            if (
+                clientes.includes(valorAtual) ||
+                valorAtual === 'TODAS'
+            ) {
+                selectFiltroEmpresa.value =
+                    valorAtual;
+            }
+
+            filtroEmpresa =
+                selectFiltroEmpresa.value;
+        }
+
+        let filtroMes = '';
+
+        const inputFiltroMes =
+            document.getElementById(
+                'filtro-mes-nota'
+            );
+
+        if (inputFiltroMes) {
+            filtroMes =
+                inputFiltroMes.value;
+        }
+
+        let notas =
+            [...db.notasSalvas].reverse();
+
+        if (filtroTipo !== 'TODAS') {
+            notas =
+                notas.filter(
+                    n =>
+                        (n.tipo || 'VENDA') ===
+                        filtroTipo
+                );
+        }
+
+        if (filtroEmpresa !== 'TODAS') {
+            notas =
+                notas.filter(
+                    n =>
+                        n.cliente ===
+                        filtroEmpresa
+                );
+        }
+
+        if (filtroMes) {
+            notas =
+                notas.filter(
+                    n =>
+                        n.data &&
+                        n.data.startsWith(
+                            filtroMes
+                        )
+                );
+        }
 
         if (notas.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">Nenhuma nota encontrada com esses filtros.</td></tr>`;
+            tbody.innerHTML = `
+                <tr>
+                    <td
+                        colspan="6"
+                        style="
+                            text-align:center;
+                            padding:20px;
+                            color:var(--text-muted);
+                        "
+                    >
+                        Nenhuma nota encontrada com esses filtros.
+                    </td>
+                </tr>
+            `;
             return;
         }
 
         let html = '';
-        notas.forEach(nota => {
-            const dataFormatada = nota.data.split('-').reverse().join('/');
-            const isRetrabalho = nota.tipo === 'RETRABALHO';
-            const corTipo = isRetrabalho ? '#ef4444' : '#10b981';
-            const labelTipo = isRetrabalho ? 'RETRABALHO' : 'VENDA';
 
-            html += `<tr>
-                <td style="color:#facc15; font-weight:bold;">${nota.id}</td>
-                <td>${dataFormatada}</td>
-                <td><span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: ${corTipo}22; color: ${corTipo}; border: 1px solid ${corTipo}55; font-weight: bold;">${labelTipo}</span></td>
-                <td>${nota.cliente.toUpperCase()}</td>
-                <td style="text-align:right; color:#10b981; font-weight:bold;">R$ ${nota.total.toFixed(2).replace('.', ',')}</td>
-                <td style="text-align:center;">
-                    <div style="display: flex; justify-content: center; gap: 8px;">
-                        <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#a855f7; color:#a855f7; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.abrirPreview('${nota.id}')" title="Ver Detalhes"><i data-lucide="eye" style="width: 14px;"></i> Ver</button>
-                        <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#38bdf8; color:#38bdf8; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.visualizar('${nota.id}')" title="Imprimir"><i data-lucide="printer" style="width: 14px;"></i> Imp</button>
-                        <button class="btn-outline" style="padding: 6px 10px; font-size:12px; border-color:#eab308; color:#eab308; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.editar('${nota.id}')" title="Editar"><i data-lucide="pencil" style="width: 14px;"></i> Edit</button>
-                        <button class="btn-danger" style="padding: 6px 10px; font-size:12px; display: flex; align-items: center; gap: 4px;" onclick="ArquivoNotas.excluir('${nota.id}')" title="Excluir"><i data-lucide="trash-2" style="width: 14px;"></i></button>
-                    </div>
-                </td>
-            </tr>`;
+        notas.forEach(nota => {
+            const dataFormatada =
+                nota.data
+                    .split('-')
+                    .reverse()
+                    .join('/');
+
+            const isRetrabalho =
+                nota.tipo === 'RETRABALHO';
+
+            const corTipo =
+                isRetrabalho
+                    ? '#ef4444'
+                    : '#10b981';
+
+            const labelTipo =
+                isRetrabalho
+                    ? 'RETRABALHO'
+                    : 'VENDA';
+
+            html += `
+                <tr>
+
+                    <td style="color:#facc15; font-weight:bold;">
+                        ${nota.id}
+                    </td>
+
+                    <td>
+                        ${dataFormatada}
+                    </td>
+
+                    <td>
+                        <span
+                            style="
+                                font-size:10px;
+                                padding:2px 6px;
+                                border-radius:4px;
+                                background:${corTipo}22;
+                                color:${corTipo};
+                                border:1px solid ${corTipo}55;
+                                font-weight:bold;
+                            "
+                        >
+                            ${labelTipo}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${nota.cliente.toUpperCase()}
+                    </td>
+
+                    <td
+                        style="
+                            text-align:right;
+                            color:#10b981;
+                            font-weight:bold;
+                        "
+                    >
+                        R$ ${nota.total
+                    .toFixed(2)
+                    .replace('.', ',')}
+                    </td>
+
+                    <td style="text-align:center;">
+                        <div
+                            style="
+                                display:flex;
+                                justify-content:center;
+                                gap:8px;
+                            "
+                        >
+
+                            <!-- VER DETALHES -->
+                            <button
+                                class="btn-outline"
+                                style="
+                                    padding:6px 10px;
+                                    font-size:12px;
+                                    border-color:#a855f7;
+                                    color:#a855f7;
+                                    display:flex;
+                                    align-items:center;
+                                    gap:4px;
+                                "
+                                onclick="ArquivoNotas.abrirPreview('${nota.id}')"
+                                title="Ver Detalhes"
+                            >
+                                <i data-lucide="eye" style="width:14px;"></i>
+                                Ver
+                            </button>
+
+                            <!-- IMPRIMIR -->
+                            <button
+                                class="btn-outline"
+                                style="
+                                    padding:6px 10px;
+                                    font-size:12px;
+                                    border-color:#38bdf8;
+                                    color:#38bdf8;
+                                    display:flex;
+                                    align-items:center;
+                                    gap:4px;
+                                "
+                                onclick="ArquivoNotas.visualizar('${nota.id}')"
+                                title="Imprimir"
+                            >
+                                <i data-lucide="printer" style="width:14px;"></i>
+                                Imp
+                            </button>
+
+                            <!-- EDITAR -->
+                            <button
+                                class="btn-outline"
+                                style="
+                                    padding:6px 10px;
+                                    font-size:12px;
+                                    border-color:#eab308;
+                                    color:#eab308;
+                                    display:flex;
+                                    align-items:center;
+                                    gap:4px;
+                                "
+                                onclick="ArquivoNotas.editar('${nota.id}')"
+                                title="Editar"
+                            >
+                                <i data-lucide="pencil" style="width:14px;"></i>
+                                Edit
+                            </button>
+
+                            <!-- EXCLUIR -->
+                            <button
+                                class="btn-danger"
+                                style="
+                                    padding:6px 10px;
+                                    font-size:12px;
+                                    display:flex;
+                                    align-items:center;
+                                    gap:4px;
+                                "
+                                onclick="ArquivoNotas.excluir('${nota.id}')"
+                                title="Excluir"
+                            >
+                                <i data-lucide="trash-2" style="width:14px;"></i>
+                            </button>
+
+                        </div>
+                    </td>
+                </tr>
+            `;
         });
+
         tbody.innerHTML = html;
+
         lucide.createIcons();
     },
 
+    // BOTÃO VER RESTAURADO
+    // Mostra a nota completa, incluindo todas as peças
+    // e quem produziu cada uma.
+    abrirPreview: function (id) {
+        const db = DB.get();
+
+        const nota = db.notasSalvas.find(
+            n => String(n.id) === String(id)
+        );
+
+        if (!nota) {
+            CustomModal.show('Nota não encontrada.');
+            return;
+        }
+
+        const dataFormatada = nota.data
+            ? nota.data.split('-').reverse().join('/')
+            : '-';
+
+        const isRetrabalho =
+            nota.tipo === 'RETRABALHO';
+
+        // Garante que o modal exista no HTML.
+        let modal =
+            document.getElementById('modal-preview-nota');
+
+        if (!modal) {
+            modal = document.createElement('div');
+
+            modal.id = 'modal-preview-nota';
+
+            modal.style.cssText = `
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            padding: 20px;
+            box-sizing: border-box;
+        `;
+
+            modal.innerHTML = `
+            <div
+                style="
+                    width: min(1000px, 95vw);
+                    max-height: 90vh;
+                    background: var(--bg-card, #111827);
+                    border: 1px solid var(--border-color, #334155);
+                    border-radius: 10px;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                "
+            >
+
+                <div
+                    style="
+                        display:flex;
+                        align-items:center;
+                        justify-content:space-between;
+                        gap:15px;
+                        padding:15px 20px;
+                        border-bottom:1px solid var(--border-color, #334155);
+                    "
+                >
+                    <h3
+                        id="preview-nota-titulo"
+                        style="
+                            margin:0;
+                            color:var(--text-main, #f8fafc);
+                            font-size:18px;
+                        "
+                    >
+                        Visualização da Nota
+                    </h3>
+
+                    <button
+                        type="button"
+                        id="btn-fechar-preview-nota"
+                        style="
+                            background:transparent;
+                            border:none;
+                            color:var(--text-muted, #94a3b8);
+                            cursor:pointer;
+                            padding:5px;
+                            font-size:24px;
+                            line-height:1;
+                        "
+                        title="Fechar"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div
+                    id="preview-nota-conteudo"
+                    style="
+                        padding:20px;
+                        overflow:auto;
+                        color:var(--text-main, #f8fafc);
+                    "
+                ></div>
+
+                <div
+                    style="
+                        display:flex;
+                        justify-content:flex-end;
+                        padding:12px 20px;
+                        border-top:1px solid var(--border-color, #334155);
+                    "
+                >
+                    <button
+                        type="button"
+                        id="btn-fechar-preview-nota-bottom"
+                        class="btn-outline"
+                        style="
+                            padding:8px 16px;
+                        "
+                    >
+                        Fechar
+                    </button>
+                </div>
+
+            </div>
+        `;
+
+            document.body.appendChild(modal);
+
+            const fechar =
+                () => {
+                    modal.style.display = 'none';
+                };
+
+            document.getElementById(
+                'btn-fechar-preview-nota'
+            ).onclick = fechar;
+
+            document.getElementById(
+                'btn-fechar-preview-nota-bottom'
+            ).onclick = fechar;
+
+            modal.addEventListener(
+                'click',
+                function (e) {
+                    if (e.target === modal) {
+                        fechar();
+                    }
+                }
+            );
+        }
+
+        const titulo =
+            document.getElementById(
+                'preview-nota-titulo'
+            );
+
+        const conteudo =
+            document.getElementById(
+                'preview-nota-conteudo'
+            );
+
+        // Monta o detalhamento
+        let html = `
+        <div
+            style="
+                margin-bottom:20px;
+                border-bottom:1px solid var(--border-color);
+                padding-bottom:15px;
+            "
+        >
+
+            <p>
+                <strong>Tipo:</strong>
+
+                <span
+                    style="
+                        color:${isRetrabalho ? '#ef4444' : '#10b981'};
+                        font-weight:bold;
+                    "
+                >
+                    ${isRetrabalho
+                ? 'RETRABALHO'
+                : 'VENDA'
+            }
+                </span>
+            </p>
+
+            <p>
+                <strong>Cliente:</strong>
+                ${nota.cliente || '-'}
+            </p>
+
+            <p>
+                <strong>Data:</strong>
+                ${dataFormatada}
+            </p>
+
+            <p style="font-size:18px;">
+                <strong>Total:</strong>
+
+                <span
+                    style="
+                        color:var(--success-color);
+                        font-weight:bold;
+                    "
+                >
+                    R$
+                    ${(Number(nota.total) || 0)
+                .toFixed(2)
+                .replace('.', ',')}
+                </span>
+            </p>
+
+        </div>
+
+        <div style="overflow-x:auto;">
+
+            <table
+                style="
+                    width:100%;
+                    border-collapse:collapse;
+                    font-size:13px;
+                "
+            >
+
+                <thead>
+                    <tr
+                        style="
+                            border-bottom:2px solid var(--border-color);
+                            color:var(--text-muted);
+                        "
+                    >
+                        <th
+                            style="
+                                padding:10px 8px;
+                                text-align:left;
+                            "
+                        >
+                            Cód
+                        </th>
+
+                        <th
+                            style="
+                                padding:10px 8px;
+                                text-align:left;
+                            "
+                        >
+                            Produto
+                        </th>
+
+                        <th
+                            style="
+                                padding:10px 8px;
+                                text-align:left;
+                            "
+                        >
+                            Responsável
+                        </th>
+
+                        <th
+                            style="
+                                padding:10px 8px;
+                                text-align:center;
+                            "
+                        >
+                            Qtd
+                        </th>
+
+                        <th
+                            style="
+                                padding:10px 8px;
+                                text-align:center;
+                            "
+                        >
+                            Perca
+                        </th>
+
+                        <th
+                            style="
+                                padding:10px 8px;
+                                text-align:right;
+                            "
+                        >
+                            Val. Un.
+                        </th>
+
+                        <th
+                            style="
+                                padding:10px 8px;
+                                text-align:right;
+                            "
+                        >
+                            Total
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+    `;
+
+        if (!nota.itens || nota.itens.length === 0) {
+
+            html += `
+            <tr>
+                <td
+                    colspan="7"
+                    style="
+                        padding:25px;
+                        text-align:center;
+                        color:var(--text-muted);
+                    "
+                >
+                    Nenhum item registrado nesta nota.
+                </td>
+            </tr>
+        `;
+
+        } else {
+
+            nota.itens.forEach(item => {
+
+                const qtd =
+                    Number(item.qtd) || 0;
+
+                const perca =
+                    Number(item.perca) || 0;
+
+                const valor =
+                    Number(item.valor) || 0;
+
+                const subtotal =
+                    Number(item.subtotal) ||
+                    (valor * qtd);
+
+                let responsavel =
+                    item.maoObraNome ||
+                    'KS Afinações';
+
+                let tipoResponsavel = '';
+
+                if (
+                    item.maoObraTipo ===
+                    'PRODUCAO'
+                ) {
+                    tipoResponsavel =
+                        '<div style="font-size:10px; color:#38bdf8; margin-top:2px;">Produção</div>';
+
+                } else if (
+                    item.maoObraTipo ===
+                    'EMPREITA'
+                ) {
+                    tipoResponsavel =
+                        '<div style="font-size:10px; color:#a855f7; margin-top:2px;">Empreita</div>';
+                }
+
+                html += `
+                <tr
+                    style="
+                        border-bottom:1px solid var(--border-color);
+                    "
+                >
+
+                    <td
+                        style="
+                            padding:10px 8px;
+                            vertical-align:top;
+                        "
+                    >
+                        ${item.codigo || '-'}
+                    </td>
+
+                    <td
+                        style="
+                            padding:10px 8px;
+                            vertical-align:top;
+                        "
+                    >
+                        <strong>
+                            ${item.nome || '-'}
+                        </strong>
+                    </td>
+
+                    <td
+                        style="
+                            padding:10px 8px;
+                            vertical-align:top;
+                        "
+                    >
+                        <div
+                            style="
+                                color:var(--text-main);
+                                font-weight:600;
+                            "
+                        >
+                            👤 ${responsavel}
+                        </div>
+
+                        ${tipoResponsavel}
+                    </td>
+
+                    <td
+                        style="
+                            padding:10px 8px;
+                            text-align:center;
+                            vertical-align:top;
+                        "
+                    >
+                        ${qtd}
+                    </td>
+
+                    <td
+                        style="
+                            padding:10px 8px;
+                            text-align:center;
+                            vertical-align:top;
+                            font-weight:${perca > 0 ? 'bold' : 'normal'};
+                        "
+                    >
+                        ${perca > 0 ? perca : '-'}
+                    </td>
+
+                    <td
+                        style="
+                            padding:10px 8px;
+                            text-align:right;
+                            vertical-align:top;
+                        "
+                    >
+                        R$
+                        ${valor
+                        .toFixed(2)
+                        .replace('.', ',')}
+                    </td>
+
+                    <td
+                        style="
+                            padding:10px 8px;
+                            text-align:right;
+                            vertical-align:top;
+                            color:var(--success-color);
+                            font-weight:bold;
+                        "
+                    >
+                        R$
+                        ${subtotal
+                        .toFixed(2)
+                        .replace('.', ',')}
+                    </td>
+
+                </tr>
+            `;
+            });
+        }
+
+        html += `
+                </tbody>
+            </table>
+
+        </div>
+    `;
+
+        titulo.innerText =
+            `Nota Nº ${nota.id}`;
+
+        conteudo.innerHTML =
+            html;
+
+        modal.style.display =
+            'flex';
+
+        lucide.createIcons();
+    },
 
     visualizar: function (id) {
-        const nota = DB.get().notasSalvas.find(n => n.id === id);
+        const nota =
+            DB.get()
+                .notasSalvas
+                .find(n => n.id === id);
+
         if (!nota) return;
-        const backupItens = JSON.parse(JSON.stringify(itensNotaAtual));
-        const backupId = idNotaAtual;
 
-        itensNotaAtual = nota.itens;
-        idNotaAtual = nota.id;
-        document.getElementById('nota-data').value = nota.data;
-        document.getElementById('nota-cliente').value = nota.clienteIndex;
+        const backupItens =
+            JSON.parse(
+                JSON.stringify(
+                    itensNotaAtual
+                )
+            );
 
-        if (nota.clienteIndex === 'AVULSO') {
-            document.getElementById('div-cliente-avulso').style.display = 'block';
-            document.getElementById('avulso-nome').value = nota.clienteObj ? nota.clienteObj.nome : nota.cliente;
-            document.getElementById('avulso-cnpj').value = nota.clienteObj ? nota.clienteObj.cnpj : '';
-            document.getElementById('avulso-endereco').value = nota.clienteObj ? nota.clienteObj.endereco : '';
-            document.getElementById('avulso-telefone').value = nota.clienteObj ? nota.clienteObj.telefone : '';
+        const backupId =
+            idNotaAtual;
+
+        itensNotaAtual =
+            nota.itens;
+
+        idNotaAtual =
+            nota.id;
+
+        document.getElementById(
+            'nota-data'
+        ).value =
+            nota.data;
+
+        document.getElementById(
+            'nota-cliente'
+        ).value =
+            nota.clienteIndex;
+
+        if (
+            nota.clienteIndex ===
+            'AVULSO'
+        ) {
+            document.getElementById(
+                'div-cliente-avulso'
+            ).style.display =
+                'block';
+
+            document.getElementById(
+                'avulso-nome'
+            ).value =
+                nota.clienteObj
+                    ? nota.clienteObj.nome
+                    : nota.cliente;
+
+            document.getElementById(
+                'avulso-cnpj'
+            ).value =
+                nota.clienteObj
+                    ? nota.clienteObj.cnpj
+                    : '';
+
+            document.getElementById(
+                'avulso-endereco'
+            ).value =
+                nota.clienteObj
+                    ? nota.clienteObj.endereco
+                    : '';
+
+            document.getElementById(
+                'avulso-telefone'
+            ).value =
+                nota.clienteObj
+                    ? nota.clienteObj.telefone
+                    : '';
+
         } else {
-            document.getElementById('div-cliente-avulso').style.display = 'none';
+            document.getElementById(
+                'div-cliente-avulso'
+            ).style.display =
+                'none';
         }
 
         LogicaNegocio.gerarPreviewNota();
-        itensNotaAtual = backupItens;
-        idNotaAtual = backupId;
+
+        itensNotaAtual =
+            backupItens;
+
+        idNotaAtual =
+            backupId;
     },
 
     editar: function (id) {
-        const nota = DB.get().notasSalvas.find(n => n.id === id);
+        const nota =
+            DB.get()
+                .notasSalvas
+                .find(n => n.id === id);
+
         if (!nota) return;
 
-        CustomModal.show(`Deseja abrir a Nota ${id} para edição?`, true, () => {
-            itensNotaAtual = JSON.parse(JSON.stringify(nota.itens));
-            idNotaAtual = nota.id;
-            notaAbatida = false;
-            document.getElementById('nota-data').value = nota.data;
-            document.getElementById('nota-cliente').value = nota.clienteIndex;
+        CustomModal.show(
+            `Deseja abrir a Nota ${id} para edição?`,
+            true,
+            () => {
+                itensNotaAtual =
+                    JSON.parse(
+                        JSON.stringify(
+                            nota.itens
+                        )
+                    );
 
-            const isAvulso = (nota.clienteIndex === 'AVULSO');
-            LogicaNegocio.atualizarLockCamposAvulso(isAvulso);
+                idNotaAtual =
+                    nota.id;
 
-            if (isAvulso) {
-                document.getElementById('avulso-nome').value = nota.clienteObj ? nota.clienteObj.nome : nota.cliente;
-                document.getElementById('avulso-cnpj').value = nota.clienteObj ? nota.clienteObj.cnpj : '';
-                document.getElementById('avulso-endereco').value = nota.clienteObj ? nota.clienteObj.endereco : '';
-                document.getElementById('avulso-telefone').value = nota.clienteObj ? nota.clienteObj.telefone : '';
+                notaAbatida =
+                    false;
+
+                document.getElementById(
+                    'nota-data'
+                ).value =
+                    nota.data;
+
+                document.getElementById(
+                    'nota-cliente'
+                ).value =
+                    nota.clienteIndex;
+
+                const isAvulso =
+                    (
+                        nota.clienteIndex ===
+                        'AVULSO'
+                    );
+
+                LogicaNegocio
+                    .atualizarLockCamposAvulso(
+                        isAvulso
+                    );
+
+                if (isAvulso) {
+                    document.getElementById(
+                        'avulso-nome'
+                    ).value =
+                        nota.clienteObj
+                            ? nota.clienteObj.nome
+                            : nota.cliente;
+
+                    document.getElementById(
+                        'avulso-cnpj'
+                    ).value =
+                        nota.clienteObj
+                            ? nota.clienteObj.cnpj
+                            : '';
+
+                    document.getElementById(
+                        'avulso-endereco'
+                    ).value =
+                        nota.clienteObj
+                            ? nota.clienteObj.endereco
+                            : '';
+
+                    document.getElementById(
+                        'avulso-telefone'
+                    ).value =
+                        nota.clienteObj
+                            ? nota.clienteObj.telefone
+                            : '';
+                }
+
+                const radiosTipo =
+                    document.querySelectorAll(
+                        'input[name="nota-tipo"]'
+                    );
+
+                radiosTipo.forEach(r => {
+                    if (
+                        r.value ===
+                        (
+                            nota.tipo ||
+                            'VENDA'
+                        )
+                    ) {
+                        r.checked = true;
+                    }
+                });
+
+                UI.switchTab('nota');
+
+                UI.renderItensNota();
             }
-
-            const radiosTipo = document.querySelectorAll('input[name="nota-tipo"]');
-            radiosTipo.forEach(r => { if (r.value === (nota.tipo || 'VENDA')) r.checked = true; });
-
-            UI.switchTab('nota');
-            UI.renderItensNota();
-        });
+        );
     },
 
     excluir: function (id) {
-        CustomModal.show(`Tem certeza absoluta que deseja excluir a Nota Nº ${id}? Esta ação não pode ser desfeita.`, true, () => {
-            const db = DB.get();
-            db.notasSalvas = db.notasSalvas.filter(n => n.id !== id);
-            DB.save(db);
+        CustomModal.show(
+            `Tem certeza absoluta que deseja excluir a Nota Nº ${id}? Esta ação não pode ser desfeita.`,
+            true,
+            () => {
+                const db = DB.get();
 
-            // Tira o lançamento do funcionário do RH também
-            const dbRHRaw = localStorage.getItem('ks_rh_dados');
-            if (dbRHRaw) {
-                const dbRH = JSON.parse(dbRHRaw);
-                if (dbRH.lancamentosProducao) {
-                    const originalLen = dbRH.lancamentosProducao.length;
-                    dbRH.lancamentosProducao = dbRH.lancamentosProducao.filter(l => l.idNota !== id);
-                    if (dbRH.lancamentosProducao.length !== originalLen) {
-                        localStorage.setItem('ks_rh_dados', JSON.stringify(dbRH));
+                db.notasSalvas =
+                    db.notasSalvas.filter(
+                        n =>
+                            n.id !== id
+                    );
+
+                DB.save(db);
+
+                const dbRHRaw =
+                    localStorage.getItem(
+                        'ks_rh_dados'
+                    );
+
+                if (dbRHRaw) {
+                    const dbRH =
+                        JSON.parse(
+                            dbRHRaw
+                        );
+
+                    if (
+                        dbRH.lancamentosProducao
+                    ) {
+                        const originalLen =
+                            dbRH.lancamentosProducao.length;
+
+                        dbRH.lancamentosProducao =
+                            dbRH.lancamentosProducao.filter(
+                                l =>
+                                    l.idNota !==
+                                    id
+                            );
+
+                        if (
+                            dbRH
+                                .lancamentosProducao
+                                .length !==
+                            originalLen
+                        ) {
+                            localStorage.setItem(
+                                'ks_rh_dados',
+                                JSON.stringify(
+                                    dbRH
+                                )
+                            );
+                        }
                     }
                 }
-            }
 
-            ArquivoNotas.renderLista();
-            CustomModal.show(`Nota ${id} excluída com sucesso!`);
-        });
-    },
+                ArquivoNotas.renderLista();
+
+                CustomModal.show(
+                    `Nota ${id} excluída com sucesso!`
+                );
+            }
+        );
+    }
 };
 
-document.addEventListener("DOMContentLoaded", function () {
-    UI.initData();
-    setTimeout(() => { if (window.google) DriveAPI.init(); }, 1000);
-});
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+        UI.initData();
+
+        setTimeout(() => {
+            if (window.google) {
+                DriveAPI.init();
+            }
+        }, 1000);
+    }
+);
