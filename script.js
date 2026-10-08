@@ -4609,7 +4609,6 @@ const ArquivoNotas = {
         html += `
                 </tbody>
             </table>
-
         </div>
     `;
 
