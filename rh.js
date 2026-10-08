@@ -970,8 +970,14 @@ const RH = {
                 });
 
                 let cargaReal1 = 0, cargaReal2 = 0;
-                if (pontosDia.length >= 2) cargaReal1 = (new Date(pontosDia[1].saida) - new Date(pontosDia[0].entrada)) / 60000;
-                if (pontosDia.length >= 4) cargaReal2 = (new Date(pontosDia[3].saida) - new Date(pontosDia[2].entrada)) / 60000;
+
+                if (pontosDia.length >= 1) {
+                    cargaReal1 = (new Date(pontosDia[0].saida) - new Date(pontosDia[0].entrada)) / 60000;
+                }
+
+                if (pontosDia.length >= 2) {
+                    cargaReal2 = (new Date(pontosDia[1].saida) - new Date(pontosDia[1].entrada)) / 60000;
+                }
 
                 let cargaExp1 = cargaEsperadaMinutos / 2;
                 let cargaExp2 = cargaEsperadaMinutos / 2;
@@ -1301,9 +1307,14 @@ const RH = {
                             pontosDia.sort((a, b) => new Date(a.entrada) - new Date(b.entrada));
 
                             let cargaReal1 = 0, cargaReal2 = 0;
-                            if (pontosDia.length >= 2) cargaReal1 = (new Date(pontosDia[1].saida) - new Date(pontosDia[0].entrada)) / 60000;
-                            if (pontosDia.length >= 4) cargaReal2 = (new Date(pontosDia[3].saida) - new Date(pontosDia[2].entrada)) / 60000;
 
+                            if (pontosDia.length >= 1) {
+                                cargaReal1 = (new Date(pontosDia[0].saida) - new Date(pontosDia[0].entrada)) / 60000;
+                            }
+
+                            if (pontosDia.length >= 2) {
+                                cargaReal2 = (new Date(pontosDia[1].saida) - new Date(pontosDia[1].entrada)) / 60000;
+                            }
                             let cargaExp1 = cargaEsperadaMinutos / 2;
                             let cargaExp2 = cargaEsperadaMinutos / 2;
 
