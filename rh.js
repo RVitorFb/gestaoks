@@ -1822,7 +1822,6 @@ const RH = {
             else { producoes.forEach(lp => { relatorioHTML += `<tr><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${lp.data.split('-').reverse().join('/')}</td><td style="border: 1px solid #000; padding: 6px; text-align: left; color: #000;">${lp.pecaCodigo} - ${lp.pecaNome.toUpperCase()}</td><td style="border: 1px solid #000; padding: 6px; text-align: center; color: #000;">${lp.qtd}</td><td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">R$ ${lp.valorUnit.toFixed(2).replace('.', ',')}</td><td style="border: 1px solid #000; padding: 6px; text-align: right; color: #000;">R$ ${lp.total.toFixed(2).replace('.', ',')}</td></tr>`; }); }
             relatorioHTML += `</tbody></table>`;
         } else {
-            relatorioHTML += `<h3 style="text-align: center; margin-top: 5px; margin-bottom: 5px; color: #000;">ESPELHO DE PONTO DETALHADO</h3>`;
             const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
             const cargo = db.cargos.find(c => c.id === data.func.cargoId);
             const numDias = new Date(ano, mes, 0).getDate();
